@@ -3,53 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="robots" content="noindex, nofollow">
-    <title>Personal Space</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="GuitarPro">
+    
+    <title>Guitar Teacher</title>
     <style>
-        body { background-color: #000; color: #fff; font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .box { background: #1c1c1e; padding: 30px; border-radius: 20px; text-align: center; width: 85%; max-width: 350px; }
-        input { width: 100%; padding: 15px; margin: 20px 0; border-radius: 12px; border: none; background: #2c2c2e; color: white; font-size: 16px; box-sizing: border-box; text-align: center; }
-        button { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #0a84ff; color: white; font-weight: 600; font-size: 16px; }
-        .hidden { display: none; }
-        #app-content { padding: 20px; text-align: left; }
+        body { background-color: #121212; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .hidden { display: none !important; }
+        
+        /* Login Style */
+        .login-box { margin-top: 100px; background: #1c1c1e; padding: 30px; border-radius: 20px; text-align: center; width: 80%; }
+        input { width: 100%; padding: 15px; margin: 20px 0; border-radius: 10px; border: none; background: #2c2c2e; color: white; font-size: 16px; text-align: center; }
+        button { width: 100%; padding: 15px; border-radius: 10px; border: none; background: #34c759; color: white; font-weight: bold; }
+
+        /* App Style */
+        header { width: 100%; padding: 40px 20px 20px; background: #1c1c1e; text-align: center; font-size: 24px; font-weight: bold; color: #34c759; box-sizing: border-box; }
+        .container { padding: 20px; width: 100%; box-sizing: border-box; }
+        
+        .chord-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .chord-card { background: #1c1c1e; padding: 15px; border-radius: 15px; text-align: center; border: 1px solid #333; }
+        .chord-name { font-size: 20px; margin-bottom: 10px; color: #34c759; }
+        
+        /* Visual Fretboard (Simple CSS version) */
+        .fretboard { display: inline-block; background: #3d2b1f; padding: 5px; border: 1px solid #555; }
+        .string { display: flex; border-bottom: 1px solid #888; height: 15px; width: 80px; align-items: center; justify-content: space-around; }
+        .note { width: 10px; height: 10px; background: transparent; border-radius: 50%; }
+        .active { background: #ff3b30; box-shadow: 0 0 5px #ff3b30; }
     </style>
 </head>
 <body>
 
-    <div id="login-screen" class="box">
-        <h2 style="font-weight: 400;">Secure Access</h2>
-        <input type="password" id="key" placeholder="Enter Key">
-        <button onclick="unlock()">Unlock App</button>
+    <div id="login-screen" class="login-box">
+        <h2>🎸 Guitar Vault</h2>
+        <input type="password" id="key" placeholder="Private Key">
+        <button onclick="unlock()">Unlock Lessons</button>
     </div>
 
-    <div id="app-content" class="hidden">
-        <h1 style="color: #0a84ff;">Your Vault</h1>
-        <p>This is your private space. Only you can see this.</p>
-        <hr style="border: 0.5px solid #333;">
-        <textarea id="notes" style="width:100%; height:200px; background:#1c1c1e; color:white; border-radius:10px; padding:10px; border:none;" placeholder="Start typing private notes here..."></textarea>
-        <p style="font-size: 12px; color: #888;">Note: These notes are saved only on this phone.</p>
+    <div id="app-content" class="hidden" style="width: 100%;">
+        <header>GUITAR TEACHER</header>
+        
+        <div class="container">
+            <h3 style="color: #888;">Essential Chords</h3>
+            <div class="chord-grid">
+                
+                <div class="chord-card">
+                    <div class="chord-name">C Major</div>
+                    <div class="fretboard">
+                        <div class="string"><div class="note"></div><div class="note"></div><div class="note"></div></div>
+                        <div class="string"><div class="note active"></div><div class="note"></div><div class="note"></div></div>
+                        <div class="string"><div class="note"></div><div class="note"></div><div class="note"></div></div>
+                        <div class="string"><div class="note"></div><div class="note active"></div><div class="note"></div></div>
+                        <div class="string"><div class="note"></div><div class="note"></div><div class="note active"></div></div>
+                    </div>
+                </div>
+
+                <div class="chord-card">
+                    <div class="chord-name">G Major</div>
+                    <div class="fretboard">
+                        <div class="string"><div class="note"></div><div class="note"></div><div class="note active"></div></div>
+                        <div class="string"><div class="note"></div><div class="note"></div><div class="note"></div></div>
+                        <div class="string"><div class="note"></div><div class="note"></div><div class="note"></div></div>
+                        <div class="string"><div class="note"></div><div class="note"></div><div class="note"></div></div>
+                        <div class="string"><div class="note"></div><div class="note active"></div><div class="note"></div></div>
+                        <div class="string"><div class="note"></div><div class="note"></div><div class="note active"></div></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <h3 style="color: #888; margin-top: 30px;">Practice Notes</h3>
+            <textarea id="practice-notes" style="width:100%; height:100px; background:#1c1c1e; color:white; border-radius:10px; border:1px solid #333; padding:10px;" placeholder="What are you working on today?"></textarea>
+        </div>
     </div>
 
     <script>
         function unlock() {
-            const secret = "Yankho"; // <--- CHANGE THIS WORD
-            const input = document.getElementById('key').value;
-            
-            if(input === secret) {
+            const secret = "1234"; // <-- Change this to your password
+            const val = document.getElementById('key').value;
+            if(val === secret) {
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('app-content').classList.remove('hidden');
-                // Load saved notes
-                document.getElementById('notes').value = localStorage.getItem('myNotes') || "";
+                document.getElementById('practice-notes').value = localStorage.getItem('gNotes') || "";
             } else {
-                alert("Incorrect Key");
+                alert("Wrong Key");
             }
         }
 
-        // Auto-save notes as you type
-        document.getElementById('notes').addEventListener('input', function() {
-            localStorage.setItem('myNotes', this.value);
+        document.getElementById('practice-notes').addEventListener('input', (e) => {
+            localStorage.setItem('gNotes', e.target.value);
         });
     </script>
 </body>
 </html>
-
