@@ -2,69 +2,54 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Private Space</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Personal Space</title>
     <style>
-        body {
-            background-color: #121212;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .card {
-            background: #1e1e1e;
-            padding: 2rem;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            text-align: center;
-            width: 80%;
-            max-width: 400px;
-        }
-        h1 { font-weight: 300; letter-spacing: -1px; }
-        input {
-            width: 100%;
-            padding: 12px;
-            margin-top: 20px;
-            border-radius: 10px;
-            border: none;
-            background: #333;
-            color: white;
-            box-sizing: border-box;
-        }
-        button {
-            margin-top: 15px;
-            padding: 12px 24px;
-            border-radius: 10px;
-            border: none;
-            background: #007AFF;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-        }
+        body { background-color: #000; color: #fff; font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .box { background: #1c1c1e; padding: 30px; border-radius: 20px; text-align: center; width: 85%; max-width: 350px; }
+        input { width: 100%; padding: 15px; margin: 20px 0; border-radius: 12px; border: none; background: #2c2c2e; color: white; font-size: 16px; box-sizing: border-box; text-align: center; }
+        button { width: 100%; padding: 15px; border-radius: 12px; border: none; background: #0a84ff; color: white; font-weight: 600; font-size: 16px; }
+        .hidden { display: none; }
+        #app-content { padding: 20px; text-align: left; }
     </style>
 </head>
 <body>
-    <div class="card" id="login-card">
-        <h1>Private Access</h1>
-        <input type="password" id="pass" placeholder="Enter Secret Key">
-        <button onclick="checkPass()">Unlock</button>
+
+    <div id="login-screen" class="box">
+        <h2 style="font-weight: 400;">Secure Access</h2>
+        <input type="password" id="key" placeholder="Enter Key">
+        <button onclick="unlock()">Unlock App</button>
+    </div>
+
+    <div id="app-content" class="hidden">
+        <h1 style="color: #0a84ff;">Your Vault</h1>
+        <p>This is your private space. Only you can see this.</p>
+        <hr style="border: 0.5px solid #333;">
+        <textarea id="notes" style="width:100%; height:200px; background:#1c1c1e; color:white; border-radius:10px; padding:10px; border:none;" placeholder="Start typing private notes here..."></textarea>
+        <p style="font-size: 12px; color: #888;">Note: These notes are saved only on this phone.</p>
     </div>
 
     <script>
-        function checkPass() {
-            const pass = document.getElementById('pass').value;
-            // You can change '1234' to whatever you want
-            if(pass === '1234') {
-                document.getElementById('login-card').innerHTML = "<h1>Welcome Back.</h1><p>Your private dashboard is ready.</p>";
+        function unlock() {
+            const secret = "Yankho"; // <--- CHANGE THIS WORD
+            const input = document.getElementById('key').value;
+            
+            if(input === secret) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('app-content').classList.remove('hidden');
+                // Load saved notes
+                document.getElementById('notes').value = localStorage.getItem('myNotes') || "";
             } else {
-                alert("Access Denied");
+                alert("Incorrect Key");
             }
         }
+
+        // Auto-save notes as you type
+        document.getElementById('notes').addEventListener('input', function() {
+            localStorage.setItem('myNotes', this.value);
+        });
     </script>
 </body>
 </html>
+
