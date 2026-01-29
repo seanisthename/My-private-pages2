@@ -3,97 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="GuitarPro">
-    
-    <title>Guitar Teacher</title>
+    <title>Soccer Pro</title>
     <style>
-        body { background-color: #121212; color: #fff; font-family: -apple-system, sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        body { margin: 0; background: #222; font-family: sans-serif; overflow: hidden; color: white; }
         .hidden { display: none !important; }
         
-        /* Login Style */
-        .login-box { margin-top: 100px; background: #1c1c1e; padding: 30px; border-radius: 20px; text-align: center; width: 80%; }
-        input { width: 100%; padding: 15px; margin: 20px 0; border-radius: 10px; border: none; background: #2c2c2e; color: white; font-size: 16px; text-align: center; }
-        button { width: 100%; padding: 15px; border-radius: 10px; border: none; background: #34c759; color: white; font-weight: bold; }
-
-        /* App Style */
-        header { width: 100%; padding: 40px 20px 20px; background: #1c1c1e; text-align: center; font-size: 24px; font-weight: bold; color: #34c759; box-sizing: border-box; }
-        .container { padding: 20px; width: 100%; box-sizing: border-box; }
+        /* Login */
+        #login-screen { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #1a1a1a; }
+        input { padding: 15px; border-radius: 10px; border: none; width: 250px; margin-bottom: 10px; font-size: 16px; text-align: center; }
         
-        .chord-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .chord-card { background: #1c1c1e; padding: 15px; border-radius: 15px; text-align: center; border: 1px solid #333; }
-        .chord-name { font-size: 20px; margin-bottom: 10px; color: #34c759; }
-        
-        /* Visual Fretboard (Simple CSS version) */
-        .fretboard { display: inline-block; background: #3d2b1f; padding: 5px; border: 1px solid #555; }
-        .string { display: flex; border-bottom: 1px solid #888; height: 15px; width: 80px; align-items: center; justify-content: space-around; }
-        .note { width: 10px; height: 10px; background: transparent; border-radius: 50%; }
-        .active { background: #ff3b30; box-shadow: 0 0 5px #ff3b30; }
+        /* Game Canvas */
+        #game-container { position: relative; width: 100vw; height: 100vh; background: #2ecc71; display: flex; flex-direction: column; align-items: center; }
+        canvas { background: #27ae60; border-bottom: 5px solid #fff; touch-action: none; }
+        .stats { position: absolute; top: 50px; left: 20px; font-size: 20px; font-weight: bold; text-shadow: 2px 2px #000; }
+        .instructions { position: absolute; bottom: 30px; color: white; opacity: 0.8; }
     </style>
 </head>
 <body>
 
-    <div id="login-screen" class="login-box">
-        <h2>🎸 Guitar Vault</h2>
+    <div id="login-screen">
+        <h1>⚽ Soccer Pro</h1>
         <input type="password" id="key" placeholder="Private Key">
-        <button onclick="unlock()">Unlock Lessons</button>
+        <button onclick="unlock()" style="padding: 10px 30px; border-radius: 20px; border: none; background: #2ecc71; color: white; font-weight: bold;">PLAY</button>
     </div>
 
-    <div id="app-content" class="hidden" style="width: 100%;">
-        <header>GUITAR TEACHER</header>
-        
-        <div class="container">
-            <h3 style="color: #888;">Essential Chords</h3>
-            <div class="chord-grid">
-                
-                <div class="chord-card">
-                    <div class="chord-name">C Major</div>
-                    <div class="fretboard">
-                        <div class="string"><div class="note"></div><div class="note"></div><div class="note"></div></div>
-                        <div class="string"><div class="note active"></div><div class="note"></div><div class="note"></div></div>
-                        <div class="string"><div class="note"></div><div class="note"></div><div class="note"></div></div>
-                        <div class="string"><div class="note"></div><div class="note active"></div><div class="note"></div></div>
-                        <div class="string"><div class="note"></div><div class="note"></div><div class="note active"></div></div>
-                    </div>
-                </div>
-
-                <div class="chord-card">
-                    <div class="chord-name">G Major</div>
-                    <div class="fretboard">
-                        <div class="string"><div class="note"></div><div class="note"></div><div class="note active"></div></div>
-                        <div class="string"><div class="note"></div><div class="note"></div><div class="note"></div></div>
-                        <div class="string"><div class="note"></div><div class="note"></div><div class="note"></div></div>
-                        <div class="string"><div class="note"></div><div class="note"></div><div class="note"></div></div>
-                        <div class="string"><div class="note"></div><div class="note active"></div><div class="note"></div></div>
-                        <div class="string"><div class="note"></div><div class="note"></div><div class="note active"></div></div>
-                    </div>
-                </div>
-
-            </div>
-
-            <h3 style="color: #888; margin-top: 30px;">Practice Notes</h3>
-            <textarea id="practice-notes" style="width:100%; height:100px; background:#1c1c1e; color:white; border-radius:10px; border:1px solid #333; padding:10px;" placeholder="What are you working on today?"></textarea>
+    <div id="app-content" class="hidden">
+        <div id="game-container">
+            <div class="stats">Score: <span id="score">0</span></div>
+            <canvas id="soccerCanvas"></canvas>
+            <div class="instructions">Swipe up to shoot!</div>
         </div>
     </div>
 
     <script>
+        const canvas = document.getElementById('soccerCanvas');
+        const ctx = canvas.getContext('2d');
+        let score = 0;
+
         function unlock() {
-            const secret = "1234"; // <-- Change this to your password
-            const val = document.getElementById('key').value;
-            if(val === secret) {
+            if(document.getElementById('key').value === '1234') { // Change your password here
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('app-content').classList.remove('hidden');
-                document.getElementById('practice-notes').value = localStorage.getItem('gNotes') || "";
-            } else {
-                alert("Wrong Key");
+                initGame();
             }
         }
 
-        document.getElementById('practice-notes').addEventListener('input', (e) => {
-            localStorage.setItem('gNotes', e.target.value);
-        });
+        function initGame() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            let ball = { x: canvas.width / 2, y: canvas.height - 100, r: 15, sx: 0, sy: 0, active: false };
+            let goalie = { x: canvas.width / 2, y: 150, w: 60, h: 20, speed: 3 };
+            let touchStart = { x: 0, y: 0 };
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Draw Goal
+                ctx.strokeStyle = "white";
+                ctx.lineWidth = 5;
+                ctx.strokeRect(50, 100, canvas.width - 100, 100);
+
+                // Draw Goalie
+                ctx.fillStyle = "#e74c3c";
+                ctx.fillRect(goalie.x - goalie.w/2, goalie.y, goalie.w, goalie.h);
+                goalie.x += goalie.speed;
+                if(goalie.x > canvas.width - 80 || goalie.x < 80) goalie.speed *= -1;
+
+                // Draw Ball
+                ctx.beginPath();
+                ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+                ctx.fillStyle = "white";
+                ctx.fill();
+                ctx.closePath();
+
+                if(ball.active) {
+                    ball.x += ball.sx;
+                    ball.y += ball.sy;
+                    
+                    // Goal Detection
+                    if(ball.y < 200 && ball.x > 50 && ball.x < canvas.width - 50) {
+                        // Check if goalie blocked it
+                        if(ball.x > goalie.x - 30 && ball.x < goalie.x + 30 && ball.y < goalie.y + 20) {
+                            resetBall();
+                        } else if (ball.y < 110) {
+                            score++;
+                            document.getElementById('score').innerText = score;
+                            resetBall();
+                        }
+                    }
+
+                    // Out of bounds
+                    if(ball.y < 0 || ball.x < 0 || ball.x > canvas.width) resetBall();
+                }
+
+                requestAnimationFrame(draw);
+            }
+
+            function resetBall() {
+                ball.x = canvas.width / 2;
+                ball.y = canvas.height - 100;
+                ball.sx = 0;
+                ball.sy = 0;
+                ball.active = false;
+            }
+
+            canvas.addEventListener('touchstart', e => {
+                touchStart.x = e.touches[0].clientX;
+                touchStart.y = e.touches[0].clientY;
+            });
+
+            canvas.addEventListener('touchend', e => {
+                if(ball.active) return;
+                let dx = e.changedTouches[0].clientX - touchStart.x;
+                let dy = e.changedTouches[0].clientY - touchStart.y;
+                ball.sx = dx * 0.1;
+                ball.sy = dy * 0.1;
+                ball.active = true;
+            });
+
+            draw();
+        }
     </script>
 </body>
 </html>
