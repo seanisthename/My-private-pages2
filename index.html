@@ -5,127 +5,98 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <title>Soccer Pro</title>
+    <title>Union in Christ</title>
     <style>
-        body { margin: 0; background: #222; font-family: sans-serif; overflow: hidden; color: white; }
+        :root { --gold: #D4AF37; --navy: #002366; --white: #ffffff; }
+        body { margin: 0; font-family: 'Georgia', serif; background: #f4f4f4; color: #333; }
+        header { background: var(--navy); color: var(--gold); padding: 50px 20px 20px; text-align: center; border-bottom: 4px solid var(--gold); }
         .hidden { display: none !important; }
         
-        /* Login */
-        #login-screen { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #1a1a1a; }
-        input { padding: 15px; border-radius: 10px; border: none; width: 250px; margin-bottom: 10px; font-size: 16px; text-align: center; }
+        /* Navigation Links */
+        .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 20px; }
+        .nav-item { background: white; padding: 20px; text-align: center; border-radius: 10px; border: 1px solid #ddd; font-weight: bold; color: var(--navy); text-decoration: none; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+        /* Updates Section */
+        .updates-section { padding: 20px; background: white; margin: 0 20px 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .update-card { border-left: 5px solid var(--gold); padding-left: 15px; margin-bottom: 20px; }
+        .update-date { font-size: 12px; color: #888; }
+
+        /* Admin Styles */
+        #admin-room { padding: 20px; background: #eee; min-height: 100vh; }
+        textarea { width: 100%; height: 150px; margin-top: 10px; border-radius: 10px; padding: 10px; }
+        .btn { background: var(--navy); color: white; padding: 15px; width: 100%; border: none; border-radius: 10px; margin-top: 10px; font-size: 16px; }
         
-        /* Game Canvas */
-        #game-container { position: relative; width: 100vw; height: 100vh; background: #2ecc71; display: flex; flex-direction: column; align-items: center; }
-        canvas { background: #27ae60; border-bottom: 5px solid #fff; touch-action: none; }
-        .stats { position: absolute; top: 50px; left: 20px; font-size: 20px; font-weight: bold; text-shadow: 2px 2px #000; }
-        .instructions { position: absolute; bottom: 30px; color: white; opacity: 0.8; }
+        .footer { text-align: center; padding: 20px; font-size: 14px; color: #666; }
     </style>
 </head>
 <body>
 
-    <div id="login-screen">
-        <h1>⚽ Soccer Pro</h1>
-        <input type="password" id="key" placeholder="Private Key">
-        <button onclick="unlock()" style="padding: 10px 30px; border-radius: 20px; border: none; background: #2ecc71; color: white; font-weight: bold;">PLAY</button>
+    <div id="member-view">
+        <header>
+            <h1 style="margin:0;">Union in Christ</h1>
+            <p style="font-style: italic; color: white; font-size: 14px;">Founder: Lady Bishop E. Chafulumira</p>
+        </header>
+
+        <div class="nav-grid">
+            <div class="nav-item" onclick="alert('Redirecting to Sermons...')">Sunday Sermons</div>
+            <div class="nav-item" onclick="showSection('about')">About Us</div>
+            <div class="nav-item" onclick="showSection('contact')">Contact Us</div>
+            <div class="nav-item" onclick="showSection('updates')">Updates</div>
+        </div>
+
+        <div class="updates-section">
+            <h2 style="color: var(--navy); border-bottom: 1px solid var(--gold); padding-bottom: 5px;">Latest Updates</h2>
+            <div id="display-updates">
+                <div class="update-card">
+                    <div class="update-date">January 30, 2026</div>
+                    <p>Welcome to the Union in Christ Church digital home. Join us this Sunday for a powerful service.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <button onclick="showAdminLogin()" style="background:none; border:none; color:#ccc;">Admin Login</button>
+        </div>
     </div>
 
-    <div id="app-content" class="hidden">
-        <div id="game-container">
-            <div class="stats">Score: <span id="score">0</span></div>
-            <canvas id="soccerCanvas"></canvas>
-            <div class="instructions">Swipe up to shoot!</div>
+    <div id="admin-login" class="hidden" style="padding:50px; text-align:center;">
+        <h2>Admin Access</h2>
+        <input type="password" id="admin-key" placeholder="Enter Admin Key" style="width:100%; padding:15px; margin-bottom:10px; border-radius:10px; border:1px solid #ccc;">
+        <button class="btn" onclick="checkAdmin()">Login to Admin Room</button>
+        <button onclick="location.reload()" style="background:none; border:none; margin-top:20px;">Back to Home</button>
+    </div>
+
+    <div id="admin-room" class="hidden">
+        <h2 style="color:var(--navy);">Admin Post Room</h2>
+        <p>Type the new update below:</p>
+        <textarea id="new-post-content" placeholder="Type sermon notes or church updates here..."></textarea>
+        <button class="btn" onclick="generateCode()">Publish Update</button>
+        <div id="output-code" style="margin-top:20px; font-size:12px; background:white; padding:10px; border:1px dashed #333; display:none;">
+            <p><strong>Step 1:</strong> Copy the text below.</p>
+            <p><strong>Step 2:</strong> Go to GitHub and replace your code with this.</p>
         </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('soccerCanvas');
-        const ctx = canvas.getContext('2d');
-        let score = 0;
+        function showAdminLogin() {
+            document.getElementById('member-view').classList.add('hidden');
+            document.getElementById('admin-login').classList.remove('hidden');
+        }
 
-        function unlock() {
-            if(document.getElementById('key').value === '1234') { // Change your password here
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('app-content').classList.remove('hidden');
-                initGame();
+        function checkAdmin() {
+            if(document.getElementById('admin-key').value === 'church777') { // Your Admin Password
+                document.getElementById('admin-login').classList.add('hidden');
+                document.getElementById('admin-room').classList.remove('hidden');
+            } else {
+                alert("Incorrect Admin Key");
             }
         }
 
-        function initGame() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            
-            let ball = { x: canvas.width / 2, y: canvas.height - 100, r: 15, sx: 0, sy: 0, active: false };
-            let goalie = { x: canvas.width / 2, y: 150, w: 60, h: 20, speed: 3 };
-            let touchStart = { x: 0, y: 0 };
-
-            function draw() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                // Draw Goal
-                ctx.strokeStyle = "white";
-                ctx.lineWidth = 5;
-                ctx.strokeRect(50, 100, canvas.width - 100, 100);
-
-                // Draw Goalie
-                ctx.fillStyle = "#e74c3c";
-                ctx.fillRect(goalie.x - goalie.w/2, goalie.y, goalie.w, goalie.h);
-                goalie.x += goalie.speed;
-                if(goalie.x > canvas.width - 80 || goalie.x < 80) goalie.speed *= -1;
-
-                // Draw Ball
-                ctx.beginPath();
-                ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
-                ctx.fillStyle = "white";
-                ctx.fill();
-                ctx.closePath();
-
-                if(ball.active) {
-                    ball.x += ball.sx;
-                    ball.y += ball.sy;
-                    
-                    // Goal Detection
-                    if(ball.y < 200 && ball.x > 50 && ball.x < canvas.width - 50) {
-                        // Check if goalie blocked it
-                        if(ball.x > goalie.x - 30 && ball.x < goalie.x + 30 && ball.y < goalie.y + 20) {
-                            resetBall();
-                        } else if (ball.y < 110) {
-                            score++;
-                            document.getElementById('score').innerText = score;
-                            resetBall();
-                        }
-                    }
-
-                    // Out of bounds
-                    if(ball.y < 0 || ball.x < 0 || ball.x > canvas.width) resetBall();
-                }
-
-                requestAnimationFrame(draw);
-            }
-
-            function resetBall() {
-                ball.x = canvas.width / 2;
-                ball.y = canvas.height - 100;
-                ball.sx = 0;
-                ball.sy = 0;
-                ball.active = false;
-            }
-
-            canvas.addEventListener('touchstart', e => {
-                touchStart.x = e.touches[0].clientX;
-                touchStart.y = e.touches[0].clientY;
-            });
-
-            canvas.addEventListener('touchend', e => {
-                if(ball.active) return;
-                let dx = e.changedTouches[0].clientX - touchStart.x;
-                let dy = e.changedTouches[0].clientY - touchStart.y;
-                ball.sx = dx * 0.1;
-                ball.sy = dy * 0.1;
-                ball.active = true;
-            });
-
-            draw();
+        function showSection(name) {
+            alert("This section will show: " + name);
         }
+
+        // Logic to generate the "Update" will go here in the next phase
     </script>
 </body>
 </html>
