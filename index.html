@@ -11,22 +11,15 @@
         body { margin: 0; font-family: 'Georgia', serif; background: #f4f4f4; color: #333; }
         header { background: var(--navy); color: var(--gold); padding: 50px 20px 20px; text-align: center; border-bottom: 4px solid var(--gold); }
         .hidden { display: none !important; }
-        
-        /* Navigation Links */
         .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 20px; }
-        .nav-item { background: white; padding: 20px; text-align: center; border-radius: 10px; border: 1px solid #ddd; font-weight: bold; color: var(--navy); text-decoration: none; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-
-        /* Updates Section */
+        .nav-item { background: white; padding: 20px; text-align: center; border-radius: 10px; border: 1px solid #ddd; font-weight: bold; color: var(--navy); cursor: pointer; }
         .updates-section { padding: 20px; background: white; margin: 0 20px 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .update-card { border-left: 5px solid var(--gold); padding-left: 15px; margin-bottom: 20px; }
-        .update-date { font-size: 12px; color: #888; }
-
-        /* Admin Styles */
-        #admin-room { padding: 20px; background: #eee; min-height: 100vh; }
-        textarea { width: 100%; height: 150px; margin-top: 10px; border-radius: 10px; padding: 10px; }
-        .btn { background: var(--navy); color: white; padding: 15px; width: 100%; border: none; border-radius: 10px; margin-top: 10px; font-size: 16px; }
-        
-        .footer { text-align: center; padding: 20px; font-size: 14px; color: #666; }
+        .update-card { border-left: 5px solid var(--gold); padding-left: 15px; margin-bottom: 20px; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        #admin-room { padding: 20px; background: #fff; min-height: 100vh; }
+        textarea { width: 100%; height: 150px; margin-top: 10px; border-radius: 10px; padding: 10px; border: 1px solid #ccc; font-size: 16px; }
+        .btn { background: var(--navy); color: white; padding: 15px; width: 100%; border: none; border-radius: 10px; margin-top: 10px; font-size: 16px; font-weight: bold; }
+        .footer { text-align: center; padding: 40px; font-size: 12px; color: #aaa; }
     </style>
 </head>
 <body>
@@ -38,53 +31,54 @@
         </header>
 
         <div class="nav-grid">
-            <div class="nav-item" onclick="alert('Redirecting to Sermons...')">Sunday Sermons</div>
-            <div class="nav-item" onclick="showSection('about')">About Us</div>
-            <div class="nav-item" onclick="showSection('contact')">Contact Us</div>
-            <div class="nav-item" onclick="showSection('updates')">Updates</div>
+            <div class="nav-item">Sunday Sermons</div>
+            <div class="nav-item">About Us</div>
+            <div class="nav-item">Contact Us</div>
+            <div class="nav-item">Updates</div>
         </div>
 
         <div class="updates-section">
             <h2 style="color: var(--navy); border-bottom: 1px solid var(--gold); padding-bottom: 5px;">Latest Updates</h2>
             <div id="display-updates">
-                <div class="update-card">
-                    <div class="update-date">January 30, 2026</div>
-                    <p>Welcome to the Union in Christ Church digital home. Join us this Sunday for a powerful service.</p>
-                </div>
+                <p id="no-updates">Loading latest announcements...</p>
             </div>
         </div>
 
         <div class="footer">
+            <p>© 2026 Union in Christ Church</p>
             <button onclick="showAdminLogin()" style="background:none; border:none; color:#ccc;">Admin Login</button>
         </div>
     </div>
 
     <div id="admin-login" class="hidden" style="padding:50px; text-align:center;">
-        <h2>Admin Access</h2>
-        <input type="password" id="admin-key" placeholder="Enter Admin Key" style="width:100%; padding:15px; margin-bottom:10px; border-radius:10px; border:1px solid #ccc;">
-        <button class="btn" onclick="checkAdmin()">Login to Admin Room</button>
-        <button onclick="location.reload()" style="background:none; border:none; margin-top:20px;">Back to Home</button>
+        <h2 style="color: var(--navy);">Admin Access</h2>
+        <input type="password" id="admin-key" placeholder="Enter Admin Key">
+        <button class="btn" onclick="checkAdmin()">Login</button>
+        <button onclick="location.reload()" style="background:none; border:none; margin-top:20px; color: var(--navy);">Cancel</button>
     </div>
 
     <div id="admin-room" class="hidden">
-        <h2 style="color:var(--navy);">Admin Post Room</h2>
-        <p>Type the new update below:</p>
-        <textarea id="new-post-content" placeholder="Type sermon notes or church updates here..."></textarea>
-        <button class="btn" onclick="generateCode()">Publish Update</button>
-        <div id="output-code" style="margin-top:20px; font-size:12px; background:white; padding:10px; border:1px dashed #333; display:none;">
-            <p><strong>Step 1:</strong> Copy the text below.</p>
-            <p><strong>Step 2:</strong> Go to GitHub and replace your code with this.</p>
-        </div>
+        <h2 style="color:var(--navy);">Post an Update</h2>
+        <p>This message will appear on the front page.</p>
+        <textarea id="new-post-content" placeholder="Type message here..."></textarea>
+        <button class="btn" style="background: #28a745;" onclick="publishUpdate()">Publish to My Phone</button>
+        <button class="btn" style="background: #dc3545;" onclick="clearAll()">Clear All Updates</button>
+        <button class="btn" onclick="location.reload()">Exit Admin Room</button>
     </div>
 
     <script>
+        // Load updates on start
+        window.onload = function() {
+            renderUpdates();
+        };
+
         function showAdminLogin() {
             document.getElementById('member-view').classList.add('hidden');
             document.getElementById('admin-login').classList.remove('hidden');
         }
 
         function checkAdmin() {
-            if(document.getElementById('admin-key').value === 'church777') { // Your Admin Password
+            if(document.getElementById('admin-key').value === 'church777') {
                 document.getElementById('admin-login').classList.add('hidden');
                 document.getElementById('admin-room').classList.remove('hidden');
             } else {
@@ -92,11 +86,50 @@
             }
         }
 
-        function showSection(name) {
-            alert("This section will show: " + name);
+        function publishUpdate() {
+            const content = document.getElementById('new-post-content').value;
+            if(!content) return alert("Please type something first");
+
+            let updates = JSON.parse(localStorage.getItem('churchUpdates') || "[]");
+            const newUpdate = {
+                text: content,
+                date: new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString()
+            };
+            
+            updates.unshift(newUpdate); // Put new post at the top
+            localStorage.setItem('churchUpdates', JSON.stringify(updates));
+            
+            document.getElementById('new-post-content').value = "";
+            alert("Published! Check the front page.");
+            renderUpdates();
         }
 
-        // Logic to generate the "Update" will go here in the next phase
+        function renderUpdates() {
+            const display = document.getElementById('display-updates');
+            let updates = JSON.parse(localStorage.getItem('churchUpdates') || "[]");
+            
+            if(updates.length === 0) {
+                display.innerHTML = "<p>No recent updates at this time.</p>";
+                return;
+            }
+
+            display.innerHTML = "";
+            updates.forEach(u => {
+                display.innerHTML += `
+                    <div class="update-card">
+                        <div class="update-date">${u.date}</div>
+                        <p>${u.text}</p>
+                    </div>
+                `;
+            });
+        }
+
+        function clearAll() {
+            if(confirm("Are you sure you want to delete all posts?")) {
+                localStorage.removeItem('churchUpdates');
+                renderUpdates();
+            }
+        }
     </script>
 </body>
 </html>
