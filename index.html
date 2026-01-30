@@ -6,18 +6,30 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <title>Union in Christ</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
     <style>
         :root { --gold: #D4AF37; --navy: #002366; --white: #ffffff; }
-        body { margin: 0; font-family: 'Georgia', serif; background: #f4f4f4; color: #333; }
-        header { background: var(--navy); color: var(--gold); padding: 50px 20px 20px; text-align: center; border-bottom: 4px solid var(--gold); }
+        body { margin: 0; font-family: 'Georgia', serif; background: #f4f4f4; color: #333; -webkit-tap-highlight-color: transparent; }
+        header { background: var(--navy); color: var(--gold); padding: 50px 20px 25px; text-align: center; border-bottom: 4px solid var(--gold); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .hidden { display: none !important; }
-        .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 20px; }
-        .nav-item { background: white; padding: 20px; text-align: center; border-radius: 10px; border: 1px solid #ddd; font-weight: bold; color: var(--navy); cursor: pointer; }
+        
+        /* Layout */
+        .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 20px; }
+        .nav-item { background: white; padding: 20px; text-align: center; border-radius: 12px; border-bottom: 3px solid var(--gold); font-weight: bold; color: var(--navy); box-shadow: 0 4px 6px rgba(0,0,0,0.05); cursor: pointer; }
+        
         .updates-section { padding: 20px; background: white; margin: 0 20px 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .update-card { border-left: 5px solid var(--gold); padding-left: 15px; margin-bottom: 20px; animation: fadeIn 0.5s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .update-card { border-left: 5px solid var(--gold); padding: 10px 15px; margin-bottom: 15px; background: #fafafa; border-radius: 0 10px 10px 0; animation: slideIn 0.4s ease-out; }
+        @keyframes slideIn { from { transform: translateX(-10px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        .update-date { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .update-text { margin: 5px 0 0; line-height: 1.4; font-size: 15px; }
+
+        /* Admin Styles */
         #admin-room { padding: 20px; background: #fff; min-height: 100vh; }
-        textarea { width: 100%; height: 150px; margin-top: 10px; border-radius: 10px; padding: 10px; border: 1px solid #ccc; font-size: 16px; }
+        textarea { width: 100%; height: 150px; margin-top: 10px; border-radius: 10px; padding: 15px; border: 1px solid #ddd; font-size: 16px; box-sizing: border-box; }
         .btn { background: var(--navy); color: white; padding: 15px; width: 100%; border: none; border-radius: 10px; margin-top: 10px; font-size: 16px; font-weight: bold; }
         .footer { text-align: center; padding: 40px; font-size: 12px; color: #aaa; }
     </style>
@@ -26,8 +38,8 @@
 
     <div id="member-view">
         <header>
-            <h1 style="margin:0;">Union in Christ</h1>
-            <p style="font-style: italic; color: white; font-size: 14px;">Founder: Lady Bishop E. Chafulumira</p>
+            <h1 style="margin:0; letter-spacing: 1px;">Union in Christ</h1>
+            <p style="font-style: italic; color: white; font-size: 13px; margin-top: 5px;">Founder: Lady Bishop E. Chafulumira</p>
         </header>
 
         <div class="nav-grid">
@@ -38,39 +50,71 @@
         </div>
 
         <div class="updates-section">
-            <h2 style="color: var(--navy); border-bottom: 1px solid var(--gold); padding-bottom: 5px;">Latest Updates</h2>
+            <h2 style="color: var(--navy); font-size: 20px; margin-top: 0;">Latest Updates</h2>
             <div id="display-updates">
-                <p id="no-updates">Loading latest announcements...</p>
+                <p style="color: #999;">Connecting to church feed...</p>
             </div>
         </div>
 
         <div class="footer">
             <p>© 2026 Union in Christ Church</p>
-            <button onclick="showAdminLogin()" style="background:none; border:none; color:#ccc;">Admin Login</button>
+            <button onclick="showAdminLogin()" style="background:none; border:none; color:#ddd; font-size: 10px;">Admin Access</button>
         </div>
     </div>
 
     <div id="admin-login" class="hidden" style="padding:50px; text-align:center;">
-        <h2 style="color: var(--navy);">Admin Access</h2>
-        <input type="password" id="admin-key" placeholder="Enter Admin Key">
-        <button class="btn" onclick="checkAdmin()">Login</button>
+        <h2 style="color: var(--navy);">Staff Login</h2>
+        <input type="password" id="admin-key" placeholder="Admin Password" style="width:100%; padding:15px; margin-bottom:10px; border-radius:10px; border:1px solid #ccc; text-align:center;">
+        <button class="btn" onclick="checkAdmin()">Enter Admin Room</button>
         <button onclick="location.reload()" style="background:none; border:none; margin-top:20px; color: var(--navy);">Cancel</button>
     </div>
 
     <div id="admin-room" class="hidden">
-        <h2 style="color:var(--navy);">Post an Update</h2>
-        <p>This message will appear on the front page.</p>
-        <textarea id="new-post-content" placeholder="Type message here..."></textarea>
-        <button class="btn" style="background: #28a745;" onclick="publishUpdate()">Publish to My Phone</button>
-        <button class="btn" style="background: #dc3545;" onclick="clearAll()">Clear All Updates</button>
+        <h2 style="color:var(--navy);">Post New Update</h2>
+        <p style="font-size: 14px; color: #666;">This will be sent to all members instantly.</p>
+        <textarea id="new-post-content" placeholder="Enter sermon highlights or announcements..."></textarea>
+        <button class="btn" style="background: #28a745;" onclick="publishToFirebase()">🚀 Publish to Everyone</button>
+        <button class="btn" style="background: #dc3545; margin-top: 30px;" onclick="clearDatabase()">Clear All Posts</button>
         <button class="btn" onclick="location.reload()">Exit Admin Room</button>
     </div>
 
     <script>
-        // Load updates on start
-        window.onload = function() {
-            renderUpdates();
+        // YOUR UNIQUE FIREBASE CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo",
+            authDomain: "unioninchristapp.firebaseapp.com",
+            projectId: "unioninchristapp",
+            storageBucket: "unioninchristapp.firebasestorage.app",
+            messagingSenderId: "68198927662",
+            appId: "1:68198927662:web:1ffa7ec16b35d4be88bebf"
         };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // REAL-TIME LISTENER: This makes the updates appear on all phones
+        database.ref('updates').on('value', (snapshot) => {
+            const data = snapshot.val();
+            const display = document.getElementById('display-updates');
+            display.innerHTML = "";
+            
+            if (!data) {
+                display.innerHTML = "<p>No recent announcements.</p>";
+                return;
+            }
+
+            // Convert object to array and reverse to show newest first
+            const updatesArray = Object.values(data).reverse();
+            updatesArray.forEach(u => {
+                display.innerHTML += `
+                    <div class="update-card">
+                        <div class="update-date">${u.date}</div>
+                        <p class="update-text">${u.text}</p>
+                    </div>
+                `;
+            });
+        });
 
         function showAdminLogin() {
             document.getElementById('member-view').classList.add('hidden');
@@ -81,53 +125,27 @@
             if(document.getElementById('admin-key').value === 'church777') {
                 document.getElementById('admin-login').classList.add('hidden');
                 document.getElementById('admin-room').classList.remove('hidden');
-            } else {
-                alert("Incorrect Admin Key");
-            }
+            } else { alert("Wrong Password"); }
         }
 
-        function publishUpdate() {
+        function publishToFirebase() {
             const content = document.getElementById('new-post-content').value;
-            if(!content) return alert("Please type something first");
+            if(!content) return alert("Please type a message");
 
-            let updates = JSON.parse(localStorage.getItem('churchUpdates') || "[]");
-            const newUpdate = {
+            const timestamp = new Date().toLocaleString();
+            
+            database.ref('updates').push({
                 text: content,
-                date: new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString()
-            };
-            
-            updates.unshift(newUpdate); // Put new post at the top
-            localStorage.setItem('churchUpdates', JSON.stringify(updates));
-            
-            document.getElementById('new-post-content').value = "";
-            alert("Published! Check the front page.");
-            renderUpdates();
-        }
-
-        function renderUpdates() {
-            const display = document.getElementById('display-updates');
-            let updates = JSON.parse(localStorage.getItem('churchUpdates') || "[]");
-            
-            if(updates.length === 0) {
-                display.innerHTML = "<p>No recent updates at this time.</p>";
-                return;
-            }
-
-            display.innerHTML = "";
-            updates.forEach(u => {
-                display.innerHTML += `
-                    <div class="update-card">
-                        <div class="update-date">${u.date}</div>
-                        <p>${u.text}</p>
-                    </div>
-                `;
+                date: timestamp
+            }).then(() => {
+                document.getElementById('new-post-content').value = "";
+                alert("Announcement Sent Successfully!");
             });
         }
 
-        function clearAll() {
-            if(confirm("Are you sure you want to delete all posts?")) {
-                localStorage.removeItem('churchUpdates');
-                renderUpdates();
+        function clearDatabase() {
+            if(confirm("This will delete all posts for every member. Continue?")) {
+                database.ref('updates').remove();
             }
         }
     </script>
