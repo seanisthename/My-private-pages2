@@ -11,25 +11,31 @@
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--gray); padding-bottom: 70px; }
         header { background: linear-gradient(135deg, var(--navy), #001a4d); color: var(--gold); padding: 40px 20px 20px; text-align: center; border-bottom: 3px solid var(--gold); position: relative; }
         .admin-trigger { position: absolute; top: 15px; right: 15px; font-size: 20px; opacity: 0.6; cursor: pointer; }
+        
+        /* FIXED: Changed cover to contain to prevent cropping */
         .slider-container { width: 100%; height: 25vh; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
-        .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: cover; }
+        .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: contain; }
         .active { opacity: 1; }
+
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #ddd; z-index: 1000; }
         .nav-btn { background: none; border: none; color: var(--navy); font-size: 11px; font-weight: bold; display: flex; flex-direction: column; align-items: center; }
         .page { display: none; padding: 20px; }
         .active-page { display: block; }
         .card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-top: 4px solid var(--gold); }
+        
+        /* FIXED: Added link styling */
+        .content-link { color: #0040ff; text-decoration: underline; word-break: break-all; font-weight: bold; }
+        
         input, textarea { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
         .btn { background: var(--navy); color: white; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; margin-top: 10px; }
-        .update-img { width: 100%; border-radius: 10px; margin-top: 10px; }
-        .del-btn { background: #ff4444; color: white; border: none; padding: 5px; border-radius: 5px; font-size: 10px; float: right; }
+        .update-img { width: 100%; border-radius: 10px; margin-top: 10px; object-fit: contain; max-height: 300px; background: #f0f0f0; }
     </style>
 </head>
 <body>
 
     <header>
         <div class="admin-trigger" onclick="showPage('admin-login')">🔑</div>
-        <h1>Union in Christ Church</h1>
+        <h1>Union in Christ</h1>
         <p style="color:white; font-size:12px;">Lady Bishop E. Chafulumira</p>
     </header>
 
@@ -55,7 +61,7 @@
     <div id="prayer" class="page">
         <div class="card">
             <h2>Prayer Request</h2>
-            <textarea id="prayer-text" placeholder="Your request..."></textarea>
+            <textarea id="prayer-text" placeholder="Remember to include your name..."></textarea>
             <button class="btn" onclick="submitPrayer()">Submit</button>
         </div>
     </div>
@@ -71,6 +77,7 @@
     <div id="admin-dashboard" class="page">
         <div class="card">
             <h3>Update Slideshow</h3>
+            <p style="font-size:11px;">Paste direct link (ending in .jpg or .png)</p>
             <input type="text" id="slide1-url" placeholder="Paste Image Link 1">
             <input type="text" id="slide2-url" placeholder="Paste Image Link 2">
             <button class="btn" onclick="updateSlides()">Save Photos</button>
@@ -79,13 +86,12 @@
         <div class="card">
             <h3>Post News/Sermon</h3>
             <select id="post-type"><option value="updates">Update</option><option value="sermons">Sermon</option></select>
-            <textarea id="post-text" placeholder="Message"></textarea>
+            <textarea id="post-text" placeholder="Type message or paste YouTube link here..."></textarea>
             <input type="text" id="post-img" placeholder="Optional: Image Link">
             <button class="btn" onclick="publishPost()">Publish</button>
         </div>
         
-        <div id="admin-list" class="card"><h3>Manage</h3><div id="manage-area"></div></div>
-        <button class="btn" style="background:#666" onclick="showPage('home')">Log Out</button>
+        <button class="btn" style="background:#666; margin-bottom: 50px;" onclick="showPage('home')">Log Out</button>
     </div>
 
     <nav class="bottom-nav">
@@ -106,13 +112,18 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // FIXED: Helper to make links clickable
+        function linkify(text) {
+            const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+            return text.replace(urlPattern, '<a href="$1" target="_blank" class="content-link">$1</a>');
+        }
+
         function showPage(id) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
             document.getElementById(id).classList.add('active-page');
             document.getElementById('home-slider').style.display = (id==='home') ? 'block' : 'none';
         }
 
-        // Load Content
         db.ref('settings/slider').on('value', s => {
             const d = s.val();
             if(d){ if(d.img1) document.getElementById('img1').src=d.img1; if(d.img2) document.getElementById('img2').src=d.img2; }
@@ -125,7 +136,8 @@
                 div.innerHTML = "";
                 if(d) Object.keys(d).reverse().forEach(k => {
                     const item = d[k];
-                    div.innerHTML += `<div class="card"><b>${item.date}</b><p>${item.text}</p>${item.image?`<img src="${item.image}" class="update-img">`:''}</div>`;
+                    // Applied linkify here to make text links clickable
+                    div.innerHTML += `<div class="card"><b>${item.date}</b><p>${linkify(item.text)}</p>${item.image?`<img src="${item.image}" class="update-img">`:''}</div>`;
                 });
             });
         }
@@ -135,31 +147,40 @@
         function updateSlides() {
             const img1 = document.getElementById('slide1-url').value;
             const img2 = document.getElementById('slide2-url').value;
-            db.ref('settings/slider').update({ img1, img2 }).then(() => alert("Updated!"));
+            db.ref('settings/slider').update({ img1, img2 }).then(() => { alert("Photos Saved!"); });
         }
 
         function publishPost() {
             const type = document.getElementById('post-type').value;
             const text = document.getElementById('post-text').value;
             const image = document.getElementById('post-img').value;
-            db.ref(type).push({ text, image, date: new Date().toLocaleDateString() }).then(() => alert("Posted!"));
+            if(!text) return alert("Enter some text first");
+            db.ref(type).push({ text, image, date: new Date().toLocaleDateString() }).then(() => {
+                alert("Posted!");
+                document.getElementById('post-text').value = "";
+                document.getElementById('post-img').value = "";
+            });
         }
 
         function submitPrayer() {
             const text = document.getElementById('prayer-text').value;
-            db.ref('prayers').push({ text, date: new Date().toLocaleDateString() }).then(() => alert("Sent to the Administrators."));
+            if(!text) return;
+            db.ref('prayers').push({ text, date: new Date().toLocaleDateString() }).then(() => {
+                alert("Sent to the Administrators.");
+                document.getElementById('prayer-text').value = "";
+            });
         }
 
-        function checkAdmin() { if(document.getElementById('admin-key').value === 'church111') showPage('admin-dashboard'); }
+        function checkAdmin() { if(document.getElementById('admin-key').value === 'church111') showPage('admin-dashboard'); else alert("Wrong key"); }
 
-        // Slider logic
         let cur = 0;
         setInterval(() => {
             const s = document.querySelectorAll('.slide');
+            if(s.length < 2) return;
             s[cur].classList.remove('active');
             cur = (cur + 1) % s.length;
             s[cur].classList.add('active');
-        }, 4000);
+        }, 5000);
     </script>
 </body>
 </html>
