@@ -12,38 +12,40 @@
         header { background: linear-gradient(135deg, var(--navy), #001a4d); color: var(--gold); padding: 40px 20px 20px; text-align: center; border-bottom: 3px solid var(--gold); position: relative; }
         
         .admin-trigger { position: absolute; top: 15px; right: 15px; font-size: 20px; cursor: pointer; }
-        
+
         /* Slider & Search */
         .slider-container { width: 100%; height: 25vh; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
         .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: contain; }
         .active { opacity: 1; }
+        
         .search-container { position: absolute; top: 10px; left: 10px; z-index: 100; display: flex; align-items: center; }
-        .search-icon { background: var(--navy); color: var(--gold); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid var(--gold); cursor: pointer; }
+        .search-icon { background: var(--navy); color: var(--gold); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid var(--gold); }
         .search-input { width: 0; padding: 0; border: none; border-radius: 20px; transition: 0.3s; opacity: 0; background: white; }
         .search-container:hover .search-input { width: 120px; padding: 5px 10px; opacity: 1; margin-left: 5px; border: 1px solid var(--gold); }
 
-        /* Pages & Cards */
+        /* UI Elements */
         .page { display: none; padding: 15px; }
         .active-page { display: block; }
-        .card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-top: 4px solid var(--gold); }
+        .card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-top: 4px solid var(--gold); position: relative; }
         
-        /* Interactions */
         .interaction-row { display: flex; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #eee; flex-wrap: wrap; }
-        .react-btn { background: #f0f2f5; border: none; padding: 6px 10px; border-radius: 20px; font-size: 12px; cursor: pointer; }
-        .msg-btn { background: #f0f2f5; border: 1px solid #ddd; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 5px; }
+        .react-btn { background: #f0f2f5; border: none; padding: 6px 12px; border-radius: 20px; font-size: 13px; cursor: pointer; }
+        .react-btn.active-react { background: var(--gold); color: white; }
+        .msg-btn { background: #f0f2f5; border: 1px solid #ddd; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 5px; }
         .msg-count { background: #ff4444; color: white; font-size: 10px; padding: 2px 6px; border-radius: 50%; font-weight: bold; }
 
-        /* Commenting/Quoting */
+        /* Comments/Quotes */
         .comment-drawer { display: none; margin-top: 10px; background: #fdfdfd; padding: 10px; border-radius: 8px; border: 1px solid #eee; }
-        .comment-bubble { font-size: 12px; padding: 8px; margin-bottom: 5px; border-radius: 10px; background: white; border: 1px solid #efefef; position: relative; cursor: pointer; }
-        .quoted-box { background: #f0f0f0; border-left: 3px solid var(--gold); padding: 4px; margin-bottom: 4px; font-size: 10px; color: #555; }
-        .del-comment { color: red; font-size: 14px; position: absolute; right: 5px; top: 5px; border: none; background: none; cursor: pointer; }
+        .comment-bubble { font-size: 12px; padding: 10px; margin-bottom: 5px; border-radius: 10px; background: white; border: 1px solid #eee; position: relative; }
+        .quoted-box { background: #f0f0f0; border-left: 3px solid var(--gold); padding: 5px; margin-bottom: 5px; font-size: 11px; }
         
-        /* Admin Section Styling */
-        .admin-section-title { background: var(--navy); color: var(--gold); padding: 10px; border-radius: 5px; margin: 30px 0 15px; font-size: 16px; text-align: center; }
-        .btn { background: var(--navy); color: white; padding: 10px; border: none; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .edit-btn { background: #4CAF50 !important; margin-right: 5px; width: auto !important; display: inline-block; padding: 5px 15px !important; }
-        .del-btn { background: #f44336 !important; width: auto !important; display: inline-block; padding: 5px 15px !important; }
+        /* Admin Big Buttons */
+        .admin-big-btn { background: var(--navy); color: var(--gold); padding: 20px; border-radius: 12px; text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 15px; cursor: pointer; border: 2px solid var(--gold); }
+        .admin-content-hide { display: none; margin-bottom: 30px; }
+
+        .btn { background: var(--navy); color: white; padding: 12px; border: none; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .edit-btn { background: #4CAF50 !important; width: auto !important; padding: 5px 10px !important; margin-right: 5px; }
+        .del-btn { background: #f44336 !important; width: auto !important; padding: 5px 10px !important; }
 
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #ddd; z-index: 1000; }
         .nav-btn { background: none; border: none; color: var(--navy); font-size: 11px; font-weight: bold; display: flex; flex-direction: column; align-items: center; }
@@ -57,54 +59,39 @@
         <p style="color:white; font-size:12px;">Lady Bishop E. Chafulumira</p>
     </header>
 
-    <div id="visual-layer">
+    <div id="visual-section">
         <div class="search-container">
             <div class="search-icon">🔍</div>
             <input type="text" id="global-search" class="search-input" placeholder="Search..." onkeyup="filterPosts()">
         </div>
-        <div id="home-slider" class="slider-container">
-            <img id="img1" class="slide active" src="https://via.placeholder.com/800x400?text=Welcome">
-            <img id="img2" class="slide" src="https://via.placeholder.com/800x400?text=Union+In+Christ">
+        <div class="slider-container">
+            <img class="slide active" src="https://images.unsplash.com/photo-1438232992991-995b7058bbb3?auto=format&fit=crop&w=800">
+            <img class="slide" src="https://images.unsplash.com/photo-1510590337019-5ef8d3d32116?auto=format&fit=crop&w=800">
         </div>
     </div>
 
     <div id="home" class="page active-page"><div id="display-updates"></div></div>
     <div id="sermons" class="page"><div id="display-sermons"></div></div>
-    
-    <div id="prayer" class="page">
-        <div class="card">
-            <h2>Prayer Request</h2>
-            <textarea id="prayer-text" style="width:100%; height:100px; padding:10px; border-radius:8px; border:1px solid #ddd;" placeholder="Type your request here..."></textarea>
-            <button class="btn" onclick="submitPrayer()">Send to Bishop</button>
-        </div>
-    </div>
+    <div id="prayer" class="page"><div class="card"><h2>Prayer Request</h2><textarea id="prayer-text" style="width:100%; height:100px;"></textarea><button class="btn" onclick="submitPrayer()">Send to Bishop</button></div></div>
 
     <div id="admin-login" class="page">
-        <div class="card">
-            <h2>Admin Login</h2>
-            <input type="password" id="admin-key" style="width:100%; padding:10px;" placeholder="Password">
-            <button class="btn" onclick="checkAdmin()">Enter Room</button>
-        </div>
+        <div class="card"><h2>Admin Login</h2><input type="password" id="admin-key" placeholder="Password"><button class="btn" onclick="checkAdmin()">Enter</button></div>
     </div>
 
     <div id="admin-dashboard" class="page">
         <div class="card">
-            <h3>Post New Content</h3>
-            <select id="post-type" style="width:100%; padding:8px;"><option value="updates">Home Update</option><option value="sermons">Sermon Update</option></select>
-            <textarea id="post-text" style="width:100%; margin-top:10px; height:80px;" placeholder="Message..."></textarea>
-            <input type="text" id="post-img" style="width:100%; margin-top:5px;" placeholder="Image URL (optional)">
-            <button class="btn" onclick="publishPost()">Publish Now</button>
+            <h3>Post New Update</h3>
+            <select id="post-type" style="width:100%; padding:10px;"><option value="updates">Home Update</option><option value="sermons">Sermon Update</option></select>
+            <textarea id="post-text" placeholder="Message..." style="width:100%; margin-top:10px; height:60px;"></textarea>
+            <input type="text" id="post-img" placeholder="Image URL (Optional)" style="width:100%; margin-top:5px;">
+            <button class="btn" onclick="publishPost()">Publish</button>
         </div>
 
-        <div id="admin-updates-section">
-            <div class="admin-section-title">MANAGE HOME UPDATES</div>
-            <div id="admin-list-updates"></div>
-        </div>
+        <div class="admin-big-btn" onclick="toggleAdminView('admin-posts-container')">📂 MANAGE HOME POSTS</div>
+        <div id="admin-posts-container" class="admin-content-hide"></div>
 
-        <div id="admin-sermons-section">
-            <div class="admin-section-title">MANAGE SERMONS</div>
-            <div id="admin-list-sermons"></div>
-        </div>
+        <div class="admin-big-btn" onclick="toggleAdminView('admin-sermons-container')">📖 MANAGE SERMONS</div>
+        <div id="admin-sermons-container" class="admin-content-hide"></div>
 
         <button class="btn" style="background:#666; margin-bottom: 50px;" onclick="location.reload()">Log Out</button>
     </div>
@@ -126,12 +113,18 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        let myReactions = JSON.parse(localStorage.getItem('myReactions') || '{}');
         let selectedQuote = {};
 
         function showPage(id) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
             document.getElementById(id).classList.add('active-page');
-            document.getElementById('visual-layer').style.display = (id==='home' || id==='sermons') ? 'block' : 'none';
+            document.getElementById('visual-section').style.display = (id==='home' || id==='sermons') ? 'block' : 'none';
+        }
+
+        function toggleAdminView(id) {
+            const el = document.getElementById(id);
+            el.style.display = (el.style.display === 'block') ? 'none' : 'block';
         }
 
         function filterPosts() {
@@ -139,10 +132,22 @@
             document.querySelectorAll('.post-card').forEach(c => c.style.display = c.innerText.toLowerCase().includes(q) ? 'block' : 'none');
         }
 
-        // WhatsApp-style Quoting
+        function toggleReact(path, postId, emoji) {
+            const key = `${path}_${postId}_${emoji}`;
+            const ref = db.ref(`${path}/${postId}/reactions/${emoji}`);
+            if (myReactions[key]) {
+                ref.transaction(c => (c > 0 ? c - 1 : 0));
+                delete myReactions[key];
+            } else {
+                ref.transaction(c => (c || 0) + 1);
+                myReactions[key] = true;
+            }
+            localStorage.setItem('myReactions', JSON.stringify(myReactions));
+        }
+
         function setQuote(postId, text, user) {
             selectedQuote[postId] = { text, user };
-            document.getElementById(`quote-label-${postId}`).innerHTML = `<div class="quoted-box">Replying to <b>${user}</b>: ${text.substring(0,20)}... <span onclick="clearQuote('${postId}')" style="float:right">✖</span></div>`;
+            document.getElementById(`quote-label-${postId}`).innerHTML = `<div class="quoted-box">Replying to <b>${user}</b>: ${text.substring(0,30)}... <span onclick="clearQuote('${postId}')" style="float:right">✖</span></div>`;
         }
         function clearQuote(postId) { delete selectedQuote[postId]; document.getElementById(`quote-label-${postId}`).innerHTML = ""; }
 
@@ -166,15 +171,6 @@
             input.value = ""; clearQuote(postId);
         }
 
-        function deleteComment(path, postId, commentId) {
-            if(confirm("Delete this reply?")) db.ref(`${path}/${postId}/comments/${commentId}`).remove();
-        }
-
-        function editPost(path, id, oldText) {
-            const newText = prompt("Edit your post:", oldText);
-            if(newText) db.ref(`${path}/${id}`).update({ text: newText });
-        }
-
         function renderPosts(path, divId, isAdmin = false) {
             db.ref(path).on('value', s => {
                 const data = s.val();
@@ -187,28 +183,30 @@
                     let unread = 0;
                     if(item.comments) Object.values(item.comments).forEach(c => { if(!c.readByAdmin) unread++; });
                     
-                    let commentsHtml = `<div class="comment-drawer" id="drawer-${k}">`;
+                    let reacts = `<div class="interaction-row">`;
+                    ['❤️', '🙏', '🙌'].forEach(e => {
+                        const count = (item.reactions && item.reactions[e]) ? item.reactions[e] : 0;
+                        const active = myReactions[`${path}_${k}_${e}`] ? 'active-react' : '';
+                        reacts += `<button class="react-btn ${active}" onclick="toggleReact('${path}','${k}','${e}')">${e} ${count}</button>`;
+                    });
+                    reacts += `<button class="msg-btn" onclick="toggleComments('${k}', ${isAdmin ? `'${path}'` : 'null'})">💬 ${unread > 0 ? `<span class="msg-count">${unread}</span>` : ''} Replies</button></div>`;
+
+                    let comments = `<div class="comment-drawer" id="drawer-${k}">`;
                     if(item.comments) Object.keys(item.comments).forEach(ck => {
                         const c = item.comments[ck];
-                        commentsHtml += `<div class="comment-bubble" onclick="setQuote('${k}', '${c.text}', '${c.user}')">
+                        comments += `<div class="comment-bubble" onclick="setQuote('${k}', '${c.text}', '${c.user}')">
                             ${c.quote ? `<div class="quoted-box"><b>${c.quote.user}:</b> ${c.quote.text}</div>` : ''}
                             <b>${c.user}:</b> ${c.text}
-                            ${isAdmin ? `<button class="del-comment" onclick="deleteComment('${path}','${k}','${ck}')">🗑️</button>` : ''}
+                            ${isAdmin ? `<button onclick="db.ref('${path}/${k}/comments/${ck}').remove()" style="float:right; border:none; color:red; background:none;">🗑️</button>` : ''}
                         </div>`;
                     });
-                    commentsHtml += `<div id="quote-label-${k}"></div><div style="display:flex; gap:5px;"><input type="text" id="input-${k}" style="flex:1;" placeholder="Reply..."><button class="btn" style="width:60px; margin:0;" onclick="postComment('${path}','${k}', ${isAdmin})">➤</button></div></div>`;
+                    comments += `<div id="quote-label-${k}"></div><div style="display:flex; gap:5px;"><input type="text" id="input-${k}" style="flex:1;"><button class="btn" style="width:50px; margin:0;" onclick="postComment('${path}','${k}', ${isAdmin})">➤</button></div></div>`;
 
                     div.innerHTML += `<div class="card post-card">
                         <b>${item.date}</b><p>${item.text}</p>
                         ${item.image ? `<img src="${item.image}" style="width:100%; border-radius:8px;">` : ''}
-                        <div class="interaction-row">
-                            <button class="msg-btn" onclick="toggleComments('${k}', ${isAdmin ? `'${path}'` : 'null'})">💬 ${unread > 0 ? `<span class="msg-count">${unread}</span>` : ''} Replies</button>
-                            ${isAdmin ? `
-                                <button class="btn edit-btn" onclick="editPost('${path}','${k}','${item.text}')">Edit</button>
-                                <button class="btn del-btn" onclick="db.ref('${path}/${k}').remove()">Delete</button>
-                            ` : ''}
-                        </div>
-                        ${commentsHtml}
+                        ${reacts}${comments}
+                        ${isAdmin ? `<div style="margin-top:10px;"><button class="btn edit-btn" onclick="const nt=prompt('Edit:', '${item.text}'); if(nt) db.ref('${path}/${k}').update({text:nt})">Edit</button><button class="btn del-btn" onclick="if(confirm('Delete?')) db.ref('${path}/${k}').remove()">Delete</button></div>` : ''}
                     </div>`;
                 });
             });
@@ -217,8 +215,8 @@
         function checkAdmin() {
             if(document.getElementById('admin-key').value === 'church111') {
                 showPage('admin-dashboard');
-                renderPosts('updates', 'admin-list-updates', true);
-                renderPosts('sermons', 'admin-list-sermons', true);
+                renderPosts('updates', 'admin-posts-container', true);
+                renderPosts('sermons', 'admin-sermons-container', true);
             }
         }
 
@@ -229,21 +227,17 @@
             if(!text) return;
             db.ref(type).push({ text, image, date: new Date().toLocaleDateString(), timestamp: Date.now() });
             document.getElementById('post-text').value = "";
-            alert("Published!");
+            alert("Success!");
         }
 
         function submitPrayer() {
             const text = document.getElementById('prayer-text').value;
             if(text) db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), timestamp: Date.now() });
             document.getElementById('prayer-text').value = "";
-            alert("Prayer Request Sent");
+            alert("Sent!");
         }
 
-        // Init
-        renderPosts('updates', 'display-updates', false);
-        renderPosts('sermons', 'display-sermons', false);
-
-        // Simple Slider
+        // Initialize Slider
         let cur = 0;
         setInterval(() => {
             const slides = document.querySelectorAll('.slide');
@@ -253,6 +247,9 @@
                 slides[cur].classList.add('active');
             }
         }, 4000);
+
+        renderPosts('updates', 'display-updates', false);
+        renderPosts('sermons', 'display-sermons', false);
     </script>
 </body>
 </html>
