@@ -7,70 +7,121 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
-        /* CSS Variables for easy theme switching */
+        /* Updated Dark Theme Variables */
         :root { 
             --gold: #D4AF37; 
-            --navy: #002366; 
-            --white: #ffffff; 
-            --gray: #f8f9fa; 
-            --text-color: #333333;
-            --card-bg: #ffffff;
-            --input-border: #ddd;
+            --navy: #001a4d; 
+            --dark-bg: #121212; 
+            --card-bg: #1e1e1e; 
+            --text-main: #e0e0e0;
+            --text-dim: #b0b0b0;
+            --input-bg: #2d2d2d;
+            --border: #333;
         }
 
-        /* Dark Theme Overrides */
-        body.dark-theme {
-            --navy: #050505;
-            --gray: #121212;
-            --white: #1e1e1e;
-            --text-color: #f0f0f0;
-            --card-bg: #1e1e1e;
-            --input-border: #444;
+        body { 
+            margin: 0; 
+            font-family: 'Segoe UI', sans-serif; 
+            background: var(--dark-bg); 
+            color: var(--text-main);
+            padding-bottom: 70px; 
         }
 
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--gray); padding-bottom: 70px; color: var(--text-color); transition: background 0.3s ease; }
-        header { background: linear-gradient(135deg, var(--navy), #001a4d); color: var(--gold); padding: 40px 20px 20px; text-align: center; border-bottom: 3px solid var(--gold); position: relative; }
+        header { 
+            background: linear-gradient(135deg, #000c24, var(--navy)); 
+            color: var(--gold); 
+            padding: 40px 20px 20px; 
+            text-align: center; 
+            border-bottom: 3px solid var(--gold); 
+            position: relative; 
+        }
         
-        /* Buttons in Header */
-        .admin-trigger { position: absolute; top: 15px; right: 15px; font-size: 20px; cursor: pointer; }
-        .theme-toggle { position: absolute; top: 15px; left: 15px; font-size: 20px; cursor: pointer; background: rgba(255,255,255,0.1); border-radius: 50%; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--gold); }
+        .admin-trigger { position: absolute; top: 15px; right: 15px; font-size: 20px; cursor: pointer; opacity: 0.6; }
         
-        .new-label { position: absolute; top: 10px; right: 10px; background: var(--gold); color: var(--navy); font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
+        .new-label { 
+            position: absolute; top: 10px; right: 10px; 
+            background: var(--gold); color: #000; 
+            font-size: 10px; font-weight: bold; 
+            padding: 2px 8px; border-radius: 10px; 
+            text-transform: uppercase; 
+        }
 
         .slider-container { width: 100%; height: 25vh; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
         .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: contain; }
         .active { opacity: 1; }
-        
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: var(--card-bg); display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid var(--input-border); z-index: 1000; }
-        .nav-btn { background: none; border: none; color: var(--gold); font-size: 11px; font-weight: bold; display: flex; flex-direction: column; align-items: center; }
-        
+
+        .bottom-nav { 
+            position: fixed; bottom: 0; width: 100%; 
+            background: #1a1a1a; 
+            display: flex; justify-content: space-around; 
+            padding: 10px 0; border-top: 1px solid var(--border); 
+            z-index: 1000; 
+        }
+
+        .nav-btn { 
+            background: none; border: none; 
+            color: var(--text-dim); 
+            font-size: 11px; font-weight: bold; 
+            display: flex; flex-direction: column; align-items: center; 
+            transition: 0.3s;
+        }
+        .nav-btn:active { color: var(--gold); }
+
         .page { display: none; padding: 20px; }
         .active-page { display: block; }
+
+        /* Card Styling for Dark Mode */
+        .card { 
+            background: var(--card-bg); 
+            border-radius: 15px; padding: 20px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4); 
+            border-top: 4px solid var(--gold); 
+            position: relative; 
+        }
+
+        h2, h3 { color: var(--gold); margin-top: 0; }
+
+        .content-link { color: #4d94ff; text-decoration: underline; word-break: break-all; font-weight: bold; }
+
+        input, textarea, select { 
+            width: 100%; padding: 12px; margin-top: 10px; 
+            border-radius: 8px; border: 1px solid var(--border); 
+            box-sizing: border-box; 
+            background: var(--input-bg);
+            color: white;
+        }
+
+        .btn { 
+            background: var(--gold); 
+            color: #000; 
+            padding: 15px; border: none; 
+            border-radius: 10px; width: 100%; 
+            font-weight: bold; margin-top: 10px; 
+            cursor: pointer; 
+        }
+
+        .update-img { 
+            width: 100%; border-radius: 10px; 
+            margin-top: 10px; object-fit: contain; 
+            max-height: 300px; background: #000; 
+        }
         
-        .card { background: var(--card-bg); border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-top: 4px solid var(--gold); position: relative; }
-        .content-link { color: #5c85ff; text-decoration: underline; word-break: break-all; font-weight: bold; }
-        
-        input, textarea, select { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid var(--input-border); box-sizing: border-box; background: var(--card-bg); color: var(--text-color); }
-        .btn { background: var(--navy); color: white; padding: 15px; border: 1px solid var(--gold); border-radius: 10px; width: 100%; font-weight: bold; margin-top: 10px; cursor: pointer; }
-        
-        .update-img { width: 100%; border-radius: 10px; margin-top: 10px; object-fit: contain; max-height: 300px; background: #333; }
-        .admin-item { border-bottom: 1px solid var(--input-border); padding: 15px 0; }
-        .delete-btn { background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; cursor: pointer; margin-top: 5px; }
-        .edit-btn { background: #ffbb33; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; margin-right: 5px; cursor: pointer; margin-top: 5px; }
+        .admin-item { border-bottom: 1px solid var(--border); padding: 15px 0; color: var(--text-dim); }
+        .delete-btn { background: #cc0000; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; cursor: pointer; margin-top: 5px; }
+        .edit-btn { background: #b8860b; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; margin-right: 5px; cursor: pointer; margin-top: 5px; }
     </style>
 </head>
-<body class="light-theme">
-
+<body>
     <header>
-        <div class="theme-toggle" onclick="toggleTheme()" id="theme-icon">🌙</div>
         <div class="admin-trigger" onclick="showPage('admin-login')">🔑</div>
         <h1>Union in Christ Church</h1>
-        <p style="color:white; font-size:12px;">Founder: Lady Bishop E. Chafulumira</p>
+        <p style="color:var(--text-dim); font-size:12px;">Founder: Lady Bishop E. Chafulumira</p>
     </header>
 
     <div id="home-slider" class="slider-container">
-        <img id="img1" class="slide active" src="https://via.placeholder.com/800x400?text=Welcome">
-        <img id="img2" class="slide" src="https://via.placeholder.com/800x400?text=Union+In+Christ">
+        <img id="img1" class="slide active" src="https://via.placeholder.com/800x400/121212/D4AF37?text=Welcome">
+        <img id="img2" class="slide" src="https://via.placeholder.com/800x400/121212/D4AF37?text=Union+In+Christ">
     </div>
 
     <div id="home" class="page active-page">
@@ -118,13 +169,13 @@
             <div id="admin-manage-posts"></div>
         </div>
 
-        <div class="card" style="border-top-color: red;">
+        <div class="card" style="border-top-color: #cc0000;">
             <h3>🙏 New Prayer Requests (<span id="count-display">0</span>)</h3>
-            <button class="btn" style="background:#444; font-size: 10px; padding: 5px;" onclick="markAllRead()">Mark All as Viewed</button>
+            <button class="btn" style="background:#333; color: white; font-size: 10px; padding: 5px;" onclick="markAllRead()">Mark All as Viewed</button>
             <div id="admin-prayers" style="margin-top: 15px;"></div>
         </div>
 
-        <button class="btn" style="background:#666; margin-bottom: 80px;" onclick="showPage('home')">Log Out</button>
+        <button class="btn" style="background:#444; color: white; margin-bottom: 80px;" onclick="showPage('home')">Log Out</button>
     </div>
 
     <nav class="bottom-nav">
@@ -134,28 +185,7 @@
     </nav>
 
     <script>
-        // --- THEME LOGIC ---
-        function toggleTheme() {
-            const body = document.body;
-            const icon = document.getElementById('theme-icon');
-            if (body.classList.contains('dark-theme')) {
-                body.classList.remove('dark-theme');
-                icon.innerText = '🌙';
-                localStorage.setItem('churchTheme', 'light');
-            } else {
-                body.classList.add('dark-theme');
-                icon.innerText = '☀️';
-                localStorage.setItem('churchTheme', 'dark');
-            }
-        }
-
-        // Apply saved theme on load
-        if (localStorage.getItem('churchTheme') === 'dark') {
-            document.body.classList.add('dark-theme');
-            document.getElementById('theme-icon').innerText = '☀️';
-        }
-
-        // --- FIREBASE LOGIC ---
+        // ... (Paste your existing Firebase and Navigation scripts here, they will work perfectly with the new CSS)
         const firebaseConfig = {
             apiKey: "AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo",
             authDomain: "unioninchristapp.firebaseapp.com",
