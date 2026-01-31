@@ -11,9 +11,10 @@
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--gray); padding-bottom: 70px; }
         header { background: linear-gradient(135deg, var(--navy), #001a4d); color: var(--gold); padding: 40px 20px 20px; text-align: center; border-bottom: 3px solid var(--gold); position: relative; }
         
-        /* Notification Counter Style */
         .admin-trigger { position: absolute; top: 15px; right: 15px; font-size: 20px; cursor: pointer; }
-        #notif-badge { position: absolute; top: -5px; right: -10px; background: red; color: white; font-size: 10px; padding: 2px 6px; border-radius: 50%; display: none; border: 1px solid white; }
+        
+        /* New Badge Style */
+        .new-label { position: absolute; top: 10px; right: 10px; background: var(--gold); color: var(--navy); font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
 
         .slider-container { width: 100%; height: 25vh; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
         .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: contain; }
@@ -28,18 +29,15 @@
         .btn { background: var(--navy); color: white; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; margin-top: 10px; cursor: pointer; }
         .update-img { width: 100%; border-radius: 10px; margin-top: 10px; object-fit: contain; max-height: 300px; background: #f0f0f0; }
         
-        .admin-item { border-bottom: 1px solid #eee; padding: 10px 0; }
-        .delete-btn { background: #ff4444; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; }
-        .edit-btn { background: #ffbb33; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px; margin-right: 5px; cursor: pointer; }
-        .unread { border-left: 4px solid red; padding-left: 10px; background: #fffdfd; }
+        .admin-item { border-bottom: 1px solid #eee; padding: 15px 0; }
+        .delete-btn { background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; cursor: pointer; margin-top: 5px; }
+        .edit-btn { background: #ffbb33; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; margin-right: 5px; cursor: pointer; margin-top: 5px; }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="admin-trigger" onclick="showPage('admin-login')">
-            🔑<span id="notif-badge">0</span>
-        </div>
+        <div class="admin-trigger" onclick="showPage('admin-login')">🔑</div>
         <h1>Union in Christ Church</h1>
         <p style="color:white; font-size:12px;">Lady Bishop E. Chafulumira</p>
     </header>
@@ -60,7 +58,7 @@
     <div id="prayer" class="page">
         <div class="card">
             <h2>Prayer Request</h2>
-            <textarea id="prayer-text" placeholder="How can we pray for you? Don't forget to write your name"></textarea>
+            <textarea id="prayer-text" placeholder="How can we pray for you? Remember to write your name"></textarea>
             <button class="btn" onclick="submitPrayer()">Send Request</button>
         </div>
     </div>
@@ -74,12 +72,6 @@
     </div>
 
     <div id="admin-dashboard" class="page">
-        <div class="card" style="border-top-color: red;">
-            <h3>🙏 New Prayer Requests (<span id="count-display">0</span>)</h3>
-            <button class="btn" style="background:#444; font-size: 10px; padding: 5px;" onclick="markAllRead()">Mark All as Viewed</button>
-            <div id="admin-prayers" style="margin-top: 15px;"></div>
-        </div>
-
         <div class="card">
             <h3>Update Slideshow</h3>
             <input type="text" id="slide1-url" placeholder="Slide 1 Image Link">
@@ -98,6 +90,12 @@
         <div class="card" style="border-top-color: #2196F3;">
             <h3>Manage Posts</h3>
             <div id="admin-manage-posts"></div>
+        </div>
+
+        <div class="card" style="border-top-color: red;">
+            <h3>🙏 New Prayer Requests (<span id="count-display">0</span>)</h3>
+            <button class="btn" style="background:#444; font-size: 10px; padding: 5px;" onclick="markAllRead()">Mark All as Viewed</button>
+            <div id="admin-prayers" style="margin-top: 15px;"></div>
         </div>
 
         <button class="btn" style="background:#666; margin-bottom: 80px;" onclick="showPage('home')">Log Out</button>
@@ -126,14 +124,19 @@
             return text ? text.replace(urlPattern, '<a href="$1" target="_blank" class="content-link">$1</a>') : '';
         }
 
+        function isNew(dateStr) {
+            const postDate = new Date(dateStr);
+            const today = new Date();
+            const diffInHours = Math.abs(today - postDate) / 36e5;
+            return diffInHours < 24;
+        }
+
         function showPage(id) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
             document.getElementById(id).classList.add('active-page');
             document.getElementById('home-slider').style.display = (id==='home') ? 'block' : 'none';
-            if(id === 'admin-dashboard') markAllRead(); // Counter drops when you enter dashboard
         }
 
-        // SLIDER & PUBLIC LISTS
         db.ref('settings/slider').on('value', s => {
             const d = s.val();
             if(d){ if(d.img1) document.getElementById('img1').src=d.img1; if(d.img2) document.getElementById('img2').src=d.img2; }
@@ -146,24 +149,19 @@
                 div.innerHTML = "";
                 if(d) Object.keys(d).reverse().forEach(k => {
                     const item = d[k];
-                    div.innerHTML += `<div class="card"><b>${item.date}</b><p>${linkify(item.text)}</p>${item.image?`<img src="${item.image}" class="update-img">`:''}</div>`;
+                    const newTag = isNew(item.timestamp || item.date) ? `<span class="new-label">New</span>` : '';
+                    div.innerHTML += `<div class="card">${newTag}<b>${item.date}</b><p>${linkify(item.text)}</p>${item.image?`<img src="${item.image}" class="update-img">`:''}</div>`;
                 });
             });
         }
         loadPublicList('updates', 'display-updates');
         loadPublicList('sermons', 'display-sermons');
 
-        // PRAYER COUNTER LOGIC
         db.ref('prayers').on('value', s => {
             const d = s.val();
             let unreadCount = 0;
             if(d) Object.keys(d).forEach(k => { if(!d[k].viewed) unreadCount++; });
-            
-            const badge = document.getElementById('notif-badge');
-            const display = document.getElementById('count-display');
-            badge.innerText = unreadCount;
-            display.innerText = unreadCount;
-            badge.style.display = unreadCount > 0 ? 'block' : 'none';
+            document.getElementById('count-display').innerText = unreadCount;
         });
 
         function markAllRead() {
@@ -179,35 +177,73 @@
                 const div = document.getElementById('admin-prayers');
                 div.innerHTML = d ? "" : "No requests.";
                 if(d) Object.keys(d).reverse().forEach(k => {
-                    const isUnread = !d[k].viewed ? 'unread' : '';
-                    div.innerHTML += `<div class="admin-item ${isUnread}"><b>${d[k].date}</b>: ${d[k].text} <br> <button class="delete-btn" onclick="deleteItem('prayers/${k}')">Delete</button></div>`;
+                    div.innerHTML += `<div class="admin-item"><b>${d[k].date}</b>: ${d[k].text} <br> <button class="delete-btn" onclick="deleteItem('prayers/${k}')">Delete Request</button></div>`;
                 });
             });
 
+            // Improved Manage Posts with immediate UI updates
             const manageDiv = document.getElementById('admin-manage-posts');
-            ['updates', 'sermons'].forEach(type => {
+            const paths = ['updates', 'sermons'];
+            
+            // Clear and reload to ensure fresh data on entry
+            manageDiv.innerHTML = "Loading posts...";
+            
+            paths.forEach(type => {
                 db.ref(type).on('value', s => {
-                    const d = s.val();
-                    if(d) Object.keys(d).reverse().forEach(k => {
-                        const post = d[k];
-                        manageDiv.innerHTML += `<div class="admin-item"><small>${type.toUpperCase()}</small> <br> ${post.text.substring(0,20)}...<br>
-                        <button class="edit-btn" onclick="editPost('${type}','${k}','${post.text}')">Edit</button>
-                        <button class="delete-btn" onclick="deleteItem('${type}/${k}')">Delete</button></div>`;
+                    // We rebuild the list specifically when data changes
+                    const allData = s.val();
+                    const typeHeader = `<h4>${type.toUpperCase()}</h4>`;
+                    
+                    // Create or find container for this type
+                    let typeContainer = document.getElementById(`manage-${type}`);
+                    if(!typeContainer) {
+                        typeContainer = document.createElement('div');
+                        typeContainer.id = `manage-${type}`;
+                        manageDiv.appendChild(typeContainer);
+                    }
+                    
+                    if(!allData) {
+                        typeContainer.innerHTML = typeHeader + "<p>None</p>";
+                        return;
+                    }
+
+                    let html = typeHeader;
+                    Object.keys(allData).reverse().forEach(k => {
+                        const post = allData[k];
+                        html += `<div class="admin-item">
+                            <b>${post.date}</b><br>${post.text.substring(0,40)}...<br>
+                            <button class="edit-btn" onclick="editPost('${type}','${k}')">Edit Text</button>
+                            <button class="delete-btn" onclick="deleteItem('${type}/${k}')">Delete</button>
+                        </div>`;
                     });
+                    typeContainer.innerHTML = html;
+                    if(manageDiv.innerHTML.includes("Loading")) manageDiv.firstChild.remove();
                 });
             });
         }
 
         function deleteItem(path) { if(confirm("Delete permanently?")) db.ref(path).remove(); }
-        function editPost(type, id, oldText) {
-            const newText = prompt("Update text:", oldText);
-            if(newText) db.ref(`${type}/${id}`).update({ text: newText });
+        
+        function editPost(type, id) {
+            db.ref(`${type}/${id}`).once('value', s => {
+                const post = s.val();
+                const newText = prompt("Update message:", post.text);
+                if(newText !== null && newText !== "") {
+                    db.ref(`${type}/${id}`).update({ text: newText })
+                    .then(() => alert("Post Updated Successfully"));
+                }
+            });
         }
 
         function submitPrayer() {
             const text = document.getElementById('prayer-text').value;
             if(!text) return;
-            db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), viewed: false }).then(() => {
+            db.ref('prayers').push({ 
+                text, 
+                date: new Date().toLocaleDateString(), 
+                timestamp: new Date().getTime(),
+                viewed: false 
+            }).then(() => {
                 alert("Request Sent.");
                 document.getElementById('prayer-text').value = "";
             });
@@ -218,7 +254,12 @@
             const text = document.getElementById('post-text').value;
             const image = document.getElementById('post-img').value;
             if(!text) return;
-            db.ref(type).push({ text, image, date: new Date().toLocaleDateString() }).then(() => {
+            db.ref(type).push({ 
+                text, 
+                image, 
+                date: new Date().toLocaleDateString(),
+                timestamp: new Date().getTime()
+            }).then(() => {
                 alert("Published!");
                 document.getElementById('post-text').value = "";
                 document.getElementById('post-img').value = "";
