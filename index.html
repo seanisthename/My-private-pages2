@@ -12,8 +12,6 @@
         header { background: linear-gradient(135deg, var(--navy), #001a4d); color: var(--gold); padding: 40px 20px 20px; text-align: center; border-bottom: 3px solid var(--gold); position: relative; }
         
         .admin-trigger { position: absolute; top: 15px; right: 15px; font-size: 20px; cursor: pointer; }
-        
-        /* New Badge Style */
         .new-label { position: absolute; top: 10px; right: 10px; background: var(--gold); color: var(--navy); font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
 
         .slider-container { width: 100%; height: 25vh; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
@@ -29,6 +27,13 @@
         .btn { background: var(--navy); color: white; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; margin-top: 10px; cursor: pointer; }
         .update-img { width: 100%; border-radius: 10px; margin-top: 10px; object-fit: contain; max-height: 300px; background: #f0f0f0; }
         
+        /* Interaction Styles */
+        .reaction-bar { display: flex; gap: 10px; margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee; }
+        .react-btn { background: #f0f2f5; border: none; padding: 5px 10px; border-radius: 20px; font-size: 14px; cursor: pointer; }
+        .comment-section { margin-top: 15px; background: #f9f9f9; padding: 10px; border-radius: 10px; }
+        .comment { font-size: 13px; padding: 5px 0; border-bottom: 1px solid #eee; }
+        .admin-reply { color: var(--navy); font-weight: bold; border-left: 3px solid var(--gold); padding-left: 8px; margin: 5px 0; }
+        
         .admin-item { border-bottom: 1px solid #eee; padding: 15px 0; }
         .delete-btn { background: #ff4444; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; cursor: pointer; margin-top: 5px; }
         .edit-btn { background: #ffbb33; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; margin-right: 5px; cursor: pointer; margin-top: 5px; }
@@ -39,7 +44,7 @@
     <header>
         <div class="admin-trigger" onclick="showPage('admin-login')">🔑</div>
         <h1>Union in Christ Church</h1>
-        <p style="color:white; font-size:12px;">Lady Bishop E. Chafulumira</p>
+        <p style="color:white; font-size:12px;">Founder: Lady Bishop E. Chafulumira</p>
     </header>
 
     <div id="home-slider" class="slider-container">
@@ -88,7 +93,7 @@
         </div>
 
         <div class="card" style="border-top-color: #2196F3;">
-            <h3>Manage Posts</h3>
+            <h3>Manage Posts & Comments</h3>
             <div id="admin-manage-posts"></div>
         </div>
 
@@ -142,6 +147,23 @@
             if(d){ if(d.img1) document.getElementById('img1').src=d.img1; if(d.img2) document.getElementById('img2').src=d.img2; }
         });
 
+        // USER FUNCTIONS: REACTIONS & COMMENTS
+        function react(type, id, emoji) {
+            const ref = db.ref(`${type}/${id}/reactions/${emoji}`);
+            ref.transaction(current => (current || 0) + 1);
+        }
+
+        function submitComment(type, id) {
+            const input = document.getElementById(`input-${id}`);
+            if(!input.value) return;
+            db.ref(`${type}/${id}/comments`).push({
+                text: input.value,
+                user: "Member",
+                date: new Date().toLocaleDateString()
+            });
+            input.value = "";
+        }
+
         function loadPublicList(path, divId) {
             db.ref(path).on('value', s => {
                 const d = s.val();
@@ -150,27 +172,37 @@
                 if(d) Object.keys(d).reverse().forEach(k => {
                     const item = d[k];
                     const newTag = isNew(item.timestamp || item.date) ? `<span class="new-label">New</span>` : '';
-                    div.innerHTML += `<div class="card">${newTag}<b>${item.date}</b><p>${linkify(item.text)}</p>${item.image?`<img src="${item.image}" class="update-img">`:''}</div>`;
+                    
+                    // Reactions Html
+                    let reactHtml = `<div class="reaction-bar">`;
+                    ['❤️', '🙏', '🙌', '💡'].forEach(e => {
+                        const count = (item.reactions && item.reactions[e]) ? item.reactions[e] : 0;
+                        reactHtml += `<button class="react-btn" onclick="react('${path}','${k}','${e}')">${e} ${count}</button>`;
+                    });
+                    reactHtml += `</div>`;
+
+                    // Comments Html
+                    let commHtml = `<div class="comment-section">`;
+                    if(item.comments) {
+                        Object.keys(item.comments).forEach(ck => {
+                            const c = item.comments[ck];
+                            const style = c.isAdmin ? 'admin-reply' : '';
+                            commHtml += `<div class="comment ${style}"><b>${c.user}:</b> ${c.text}</div>`;
+                        });
+                    }
+                    commHtml += `<input type="text" id="input-${k}" placeholder="Write a reply..." style="font-size:12px; padding:8px;">
+                                 <button class="btn" style="padding:8px; font-size:12px;" onclick="submitComment('${path}','${k}')">Reply</button></div>`;
+
+                    div.innerHTML += `<div class="card">${newTag}<b>${item.date}</b><p>${linkify(item.text)}</p>
+                                     ${item.image?`<img src="${item.image}" class="update-img">`:''}
+                                     ${reactHtml}${commHtml}</div>`;
                 });
             });
         }
         loadPublicList('updates', 'display-updates');
         loadPublicList('sermons', 'display-sermons');
 
-        db.ref('prayers').on('value', s => {
-            const d = s.val();
-            let unreadCount = 0;
-            if(d) Object.keys(d).forEach(k => { if(!d[k].viewed) unreadCount++; });
-            document.getElementById('count-display').innerText = unreadCount;
-        });
-
-        function markAllRead() {
-            db.ref('prayers').once('value', s => {
-                const d = s.val();
-                if(d) Object.keys(d).forEach(k => { db.ref(`prayers/${k}`).update({ viewed: true }); });
-            });
-        }
-
+        // ADMIN FUNCTIONS
         function loadAdminData() {
             db.ref('prayers').on('value', s => {
                 const d = s.val();
@@ -181,104 +213,98 @@
                 });
             });
 
-            // Improved Manage Posts with immediate UI updates
             const manageDiv = document.getElementById('admin-manage-posts');
-            const paths = ['updates', 'sermons'];
-            
-            // Clear and reload to ensure fresh data on entry
-            manageDiv.innerHTML = "Loading posts...";
-            
-            paths.forEach(type => {
+            ['updates', 'sermons'].forEach(type => {
                 db.ref(type).on('value', s => {
-                    // We rebuild the list specifically when data changes
                     const allData = s.val();
-                    const typeHeader = `<h4>${type.toUpperCase()}</h4>`;
-                    
-                    // Create or find container for this type
                     let typeContainer = document.getElementById(`manage-${type}`);
                     if(!typeContainer) {
                         typeContainer = document.createElement('div');
                         typeContainer.id = `manage-${type}`;
                         manageDiv.appendChild(typeContainer);
                     }
-                    
-                    if(!allData) {
-                        typeContainer.innerHTML = typeHeader + "<p>None</p>";
-                        return;
-                    }
+                    if(!allData) { typeContainer.innerHTML = `<h4>${type.toUpperCase()}</h4><p>None</p>`; return; }
 
-                    let html = typeHeader;
+                    let html = `<h4>${type.toUpperCase()}</h4>`;
                     Object.keys(allData).reverse().forEach(k => {
                         const post = allData[k];
-                        html += `<div class="admin-item">
-                            <b>${post.date}</b><br>${post.text.substring(0,40)}...<br>
-                            <button class="edit-btn" onclick="editPost('${type}','${k}')">Edit Text</button>
-                            <button class="delete-btn" onclick="deleteItem('${type}/${k}')">Delete</button>
-                        </div>`;
+                        html += `<div class="admin-item" style="background:white; padding:10px; border-radius:10px; margin-bottom:10px;">
+                            <b>${post.date}</b>: ${post.text.substring(0,30)}...<br>
+                            <button class="edit-btn" onclick="editPost('${type}','${k}')">Edit Post</button>
+                            <button class="delete-btn" onclick="deleteItem('${type}/${k}')">Delete Post</button>
+                            <button class="edit-btn" style="background:#2ecc71" onclick="adminReply('${type}','${k}')">Post Admin Reply</button>
+                            <div style="font-size:11px; margin-top:10px; border-top:1px solid #ddd;">`;
+                        
+                        if(post.comments) {
+                            Object.keys(post.comments).forEach(ck => {
+                                html += `<div style="display:flex; justify-content:space-between; padding:4px 0;">
+                                    <span>${post.comments[ck].user}: ${post.comments[ck].text}</span>
+                                    <button onclick="deleteItem('${type}/${k}/comments/${ck}')" style="color:red; border:none; background:none; cursor:pointer;">✖</button>
+                                </div>`;
+                            });
+                        }
+                        
+                        html += `</div></div>`;
                     });
                     typeContainer.innerHTML = html;
-                    if(manageDiv.innerHTML.includes("Loading")) manageDiv.firstChild.remove();
                 });
             });
         }
 
+        function adminReply(type, id) {
+            const msg = prompt("Type official Admin reply:");
+            if(msg) {
+                db.ref(`${type}/${id}/comments`).push({
+                    text: msg,
+                    user: "Church Admin",
+                    isAdmin: true,
+                    date: new Date().toLocaleDateString()
+                });
+            }
+        }
+
         function deleteItem(path) { if(confirm("Delete permanently?")) db.ref(path).remove(); }
-        
+        function markAllRead() {
+            db.ref('prayers').once('value', s => {
+                const d = s.val();
+                if(d) Object.keys(d).forEach(k => { db.ref(`prayers/${k}`).update({ viewed: true }); });
+            });
+        }
         function editPost(type, id) {
             db.ref(`${type}/${id}`).once('value', s => {
                 const post = s.val();
                 const newText = prompt("Update message:", post.text);
-                if(newText !== null && newText !== "") {
-                    db.ref(`${type}/${id}`).update({ text: newText })
-                    .then(() => alert("Post Updated Successfully"));
-                }
+                if(newText) db.ref(`${type}/${id}`).update({ text: newText });
             });
         }
-
         function submitPrayer() {
             const text = document.getElementById('prayer-text').value;
             if(!text) return;
-            db.ref('prayers').push({ 
-                text, 
-                date: new Date().toLocaleDateString(), 
-                timestamp: new Date().getTime(),
-                viewed: false 
-            }).then(() => {
-                alert("Request Sent.");
-                document.getElementById('prayer-text').value = "";
-            });
+            db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), viewed: false });
+            document.getElementById('prayer-text').value = "";
+            alert("Sent");
         }
-
         function publishPost() {
             const type = document.getElementById('post-type').value;
             const text = document.getElementById('post-text').value;
             const image = document.getElementById('post-img').value;
             if(!text) return;
-            db.ref(type).push({ 
-                text, 
-                image, 
-                date: new Date().toLocaleDateString(),
-                timestamp: new Date().getTime()
-            }).then(() => {
-                alert("Published!");
-                document.getElementById('post-text').value = "";
-                document.getElementById('post-img').value = "";
-            });
+            db.ref(type).push({ text, image, date: new Date().toLocaleDateString(), timestamp: new Date().getTime() });
+            document.getElementById('post-text').value = "";
+            document.getElementById('post-img').value = "";
+            alert("Published");
         }
-
         function updateSlides() {
             const img1 = document.getElementById('slide1-url').value;
             const img2 = document.getElementById('slide2-url').value;
             db.ref('settings/slider').update({ img1, img2 }).then(() => alert("Updated"));
         }
-
         function checkAdmin() {
             if(document.getElementById('admin-key').value === 'church111') {
                 showPage('admin-dashboard');
                 loadAdminData();
             } else { alert("Access Denied"); }
         }
-
         let cur = 0;
         setInterval(() => {
             const s = document.querySelectorAll('.slide');
