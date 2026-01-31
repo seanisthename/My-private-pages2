@@ -10,32 +10,37 @@
         :root { --gold: #D4AF37; --navy: #002366; --white: #ffffff; --gray: #f8f9fa; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--gray); padding-bottom: 70px; }
         header { background: linear-gradient(135deg, var(--navy), #001a4d); color: var(--gold); padding: 40px 20px 20px; text-align: center; border-bottom: 3px solid var(--gold); position: relative; }
-        .admin-trigger { position: absolute; top: 15px; right: 15px; font-size: 20px; opacity: 0.6; cursor: pointer; }
         
-        /* FIXED: Changed cover to contain to prevent cropping */
+        /* Notification Counter Style */
+        .admin-trigger { position: absolute; top: 15px; right: 15px; font-size: 20px; cursor: pointer; }
+        #notif-badge { position: absolute; top: -5px; right: -10px; background: red; color: white; font-size: 10px; padding: 2px 6px; border-radius: 50%; display: none; border: 1px solid white; }
+
         .slider-container { width: 100%; height: 25vh; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
         .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: contain; }
         .active { opacity: 1; }
-
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #ddd; z-index: 1000; }
         .nav-btn { background: none; border: none; color: var(--navy); font-size: 11px; font-weight: bold; display: flex; flex-direction: column; align-items: center; }
         .page { display: none; padding: 20px; }
         .active-page { display: block; }
-        .card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-top: 4px solid var(--gold); }
-        
-        /* FIXED: Added link styling */
+        .card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-top: 4px solid var(--gold); position: relative; }
         .content-link { color: #0040ff; text-decoration: underline; word-break: break-all; font-weight: bold; }
-        
-        input, textarea { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
-        .btn { background: var(--navy); color: white; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; margin-top: 10px; }
+        input, textarea, select { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
+        .btn { background: var(--navy); color: white; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; margin-top: 10px; cursor: pointer; }
         .update-img { width: 100%; border-radius: 10px; margin-top: 10px; object-fit: contain; max-height: 300px; background: #f0f0f0; }
+        
+        .admin-item { border-bottom: 1px solid #eee; padding: 10px 0; }
+        .delete-btn { background: #ff4444; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; }
+        .edit-btn { background: #ffbb33; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px; margin-right: 5px; cursor: pointer; }
+        .unread { border-left: 4px solid red; padding-left: 10px; background: #fffdfd; }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="admin-trigger" onclick="showPage('admin-login')">🔑</div>
-        <h1>Union in Christ</h1>
+        <div class="admin-trigger" onclick="showPage('admin-login')">
+            🔑<span id="notif-badge">0</span>
+        </div>
+        <h1>Union in Christ Church</h1>
         <p style="color:white; font-size:12px;">Lady Bishop E. Chafulumira</p>
     </header>
 
@@ -45,53 +50,57 @@
     </div>
 
     <div id="home" class="page active-page">
-        <div class="card">
-            <h2>Latest Updates</h2>
-            <div id="display-updates">Loading...</div>
-        </div>
+        <div class="card"><h2>Latest Updates</h2><div id="display-updates"></div></div>
     </div>
 
     <div id="sermons" class="page">
-        <div class="card">
-            <h2>Sunday Sermons</h2>
-            <div id="display-sermons">No sermons yet.</div>
-        </div>
+        <div class="card"><h2>Sunday Sermons</h2><div id="display-sermons"></div></div>
     </div>
 
     <div id="prayer" class="page">
         <div class="card">
             <h2>Prayer Request</h2>
-            <textarea id="prayer-text" placeholder="Remember to include your name..."></textarea>
-            <button class="btn" onclick="submitPrayer()">Submit</button>
+            <textarea id="prayer-text" placeholder="How can we pray for you? Don't forget to write your name"></textarea>
+            <button class="btn" onclick="submitPrayer()">Send Request</button>
         </div>
     </div>
 
     <div id="admin-login" class="page">
         <div class="card">
-            <h2>Admin</h2>
+            <h2>Admin Entry</h2>
             <input type="password" id="admin-key" placeholder="Password">
             <button class="btn" onclick="checkAdmin()">Login</button>
         </div>
     </div>
 
     <div id="admin-dashboard" class="page">
-        <div class="card">
-            <h3>Update Slideshow</h3>
-            <p style="font-size:11px;">Paste direct link (ending in .jpg or .png)</p>
-            <input type="text" id="slide1-url" placeholder="Paste Image Link 1">
-            <input type="text" id="slide2-url" placeholder="Paste Image Link 2">
-            <button class="btn" onclick="updateSlides()">Save Photos</button>
+        <div class="card" style="border-top-color: red;">
+            <h3>🙏 New Prayer Requests (<span id="count-display">0</span>)</h3>
+            <button class="btn" style="background:#444; font-size: 10px; padding: 5px;" onclick="markAllRead()">Mark All as Viewed</button>
+            <div id="admin-prayers" style="margin-top: 15px;"></div>
         </div>
 
         <div class="card">
-            <h3>Post News/Sermon</h3>
-            <select id="post-type"><option value="updates">Update</option><option value="sermons">Sermon</option></select>
-            <textarea id="post-text" placeholder="Type message or paste YouTube link here..."></textarea>
-            <input type="text" id="post-img" placeholder="Optional: Image Link">
-            <button class="btn" onclick="publishPost()">Publish</button>
+            <h3>Update Slideshow</h3>
+            <input type="text" id="slide1-url" placeholder="Slide 1 Image Link">
+            <input type="text" id="slide2-url" placeholder="Slide 2 Image Link">
+            <button class="btn" onclick="updateSlides()">Save Slider</button>
         </div>
-        
-        <button class="btn" style="background:#666; margin-bottom: 50px;" onclick="showPage('home')">Log Out</button>
+
+        <div class="card">
+            <h3>Create New Post</h3>
+            <select id="post-type"><option value="updates">Home Update</option><option value="sermons">Sermon Page</option></select>
+            <textarea id="post-text" placeholder="Message..."></textarea>
+            <input type="text" id="post-img" placeholder="Image Link (Optional)">
+            <button class="btn" onclick="publishPost()">Post Now</button>
+        </div>
+
+        <div class="card" style="border-top-color: #2196F3;">
+            <h3>Manage Posts</h3>
+            <div id="admin-manage-posts"></div>
+        </div>
+
+        <button class="btn" style="background:#666; margin-bottom: 80px;" onclick="showPage('home')">Log Out</button>
     </div>
 
     <nav class="bottom-nav">
@@ -112,71 +121,127 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // FIXED: Helper to make links clickable
         function linkify(text) {
             const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
-            return text.replace(urlPattern, '<a href="$1" target="_blank" class="content-link">$1</a>');
+            return text ? text.replace(urlPattern, '<a href="$1" target="_blank" class="content-link">$1</a>') : '';
         }
 
         function showPage(id) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
             document.getElementById(id).classList.add('active-page');
             document.getElementById('home-slider').style.display = (id==='home') ? 'block' : 'none';
+            if(id === 'admin-dashboard') markAllRead(); // Counter drops when you enter dashboard
         }
 
+        // SLIDER & PUBLIC LISTS
         db.ref('settings/slider').on('value', s => {
             const d = s.val();
             if(d){ if(d.img1) document.getElementById('img1').src=d.img1; if(d.img2) document.getElementById('img2').src=d.img2; }
         });
 
-        function loadList(path, divId) {
+        function loadPublicList(path, divId) {
             db.ref(path).on('value', s => {
                 const d = s.val();
                 const div = document.getElementById(divId);
                 div.innerHTML = "";
                 if(d) Object.keys(d).reverse().forEach(k => {
                     const item = d[k];
-                    // Applied linkify here to make text links clickable
                     div.innerHTML += `<div class="card"><b>${item.date}</b><p>${linkify(item.text)}</p>${item.image?`<img src="${item.image}" class="update-img">`:''}</div>`;
                 });
             });
         }
-        loadList('updates', 'display-updates');
-        loadList('sermons', 'display-sermons');
+        loadPublicList('updates', 'display-updates');
+        loadPublicList('sermons', 'display-sermons');
 
-        function updateSlides() {
-            const img1 = document.getElementById('slide1-url').value;
-            const img2 = document.getElementById('slide2-url').value;
-            db.ref('settings/slider').update({ img1, img2 }).then(() => { alert("Photos Saved!"); });
+        // PRAYER COUNTER LOGIC
+        db.ref('prayers').on('value', s => {
+            const d = s.val();
+            let unreadCount = 0;
+            if(d) Object.keys(d).forEach(k => { if(!d[k].viewed) unreadCount++; });
+            
+            const badge = document.getElementById('notif-badge');
+            const display = document.getElementById('count-display');
+            badge.innerText = unreadCount;
+            display.innerText = unreadCount;
+            badge.style.display = unreadCount > 0 ? 'block' : 'none';
+        });
+
+        function markAllRead() {
+            db.ref('prayers').once('value', s => {
+                const d = s.val();
+                if(d) Object.keys(d).forEach(k => { db.ref(`prayers/${k}`).update({ viewed: true }); });
+            });
+        }
+
+        function loadAdminData() {
+            db.ref('prayers').on('value', s => {
+                const d = s.val();
+                const div = document.getElementById('admin-prayers');
+                div.innerHTML = d ? "" : "No requests.";
+                if(d) Object.keys(d).reverse().forEach(k => {
+                    const isUnread = !d[k].viewed ? 'unread' : '';
+                    div.innerHTML += `<div class="admin-item ${isUnread}"><b>${d[k].date}</b>: ${d[k].text} <br> <button class="delete-btn" onclick="deleteItem('prayers/${k}')">Delete</button></div>`;
+                });
+            });
+
+            const manageDiv = document.getElementById('admin-manage-posts');
+            ['updates', 'sermons'].forEach(type => {
+                db.ref(type).on('value', s => {
+                    const d = s.val();
+                    if(d) Object.keys(d).reverse().forEach(k => {
+                        const post = d[k];
+                        manageDiv.innerHTML += `<div class="admin-item"><small>${type.toUpperCase()}</small> <br> ${post.text.substring(0,20)}...<br>
+                        <button class="edit-btn" onclick="editPost('${type}','${k}','${post.text}')">Edit</button>
+                        <button class="delete-btn" onclick="deleteItem('${type}/${k}')">Delete</button></div>`;
+                    });
+                });
+            });
+        }
+
+        function deleteItem(path) { if(confirm("Delete permanently?")) db.ref(path).remove(); }
+        function editPost(type, id, oldText) {
+            const newText = prompt("Update text:", oldText);
+            if(newText) db.ref(`${type}/${id}`).update({ text: newText });
+        }
+
+        function submitPrayer() {
+            const text = document.getElementById('prayer-text').value;
+            if(!text) return;
+            db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), viewed: false }).then(() => {
+                alert("Request Sent.");
+                document.getElementById('prayer-text').value = "";
+            });
         }
 
         function publishPost() {
             const type = document.getElementById('post-type').value;
             const text = document.getElementById('post-text').value;
             const image = document.getElementById('post-img').value;
-            if(!text) return alert("Enter some text first");
+            if(!text) return;
             db.ref(type).push({ text, image, date: new Date().toLocaleDateString() }).then(() => {
-                alert("Posted!");
+                alert("Published!");
                 document.getElementById('post-text').value = "";
                 document.getElementById('post-img').value = "";
             });
         }
 
-        function submitPrayer() {
-            const text = document.getElementById('prayer-text').value;
-            if(!text) return;
-            db.ref('prayers').push({ text, date: new Date().toLocaleDateString() }).then(() => {
-                alert("Sent to the Administrators.");
-                document.getElementById('prayer-text').value = "";
-            });
+        function updateSlides() {
+            const img1 = document.getElementById('slide1-url').value;
+            const img2 = document.getElementById('slide2-url').value;
+            db.ref('settings/slider').update({ img1, img2 }).then(() => alert("Updated"));
         }
 
-        function checkAdmin() { if(document.getElementById('admin-key').value === 'church111') showPage('admin-dashboard'); else alert("Wrong key"); }
+        function checkAdmin() {
+            if(document.getElementById('admin-key').value === 'church111') {
+                showPage('admin-dashboard');
+                loadAdminData();
+            } else { alert("Access Denied"); }
+        }
 
         let cur = 0;
         setInterval(() => {
             const s = document.querySelectorAll('.slide');
-            if(s.length < 2) return;
+            if(s.length<2) return;
             s[cur].classList.remove('active');
             cur = (cur + 1) % s.length;
             s[cur].classList.add('active');
