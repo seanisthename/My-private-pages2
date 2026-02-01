@@ -9,7 +9,6 @@
     <style>
         :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; --border: #333; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); padding-bottom: 40px; }
-        
         header { background: linear-gradient(135deg, #000c24, var(--navy)); color: var(--gold); padding: 30px 20px; text-align: center; border-bottom: 3px solid var(--gold); }
         
         .slider-container { width: 100%; height: 20vh; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); display: none; }
@@ -17,31 +16,26 @@
         .active { opacity: 1; }
 
         .admin-content { padding: 20px; display: none; }
-        .card { background: var(--card-bg); border-radius: 15px; padding: 20px; margin-bottom: 20px; border-top: 4px solid var(--gold); box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
-        h3 { color: var(--gold); margin-top: 0; }
+        .card { background: var(--card-bg); border-radius: 15px; padding: 20px; margin-bottom: 15px; border-top: 4px solid var(--gold); box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
         
-        /* Font-size 16px prevents mobile browser zoom */
-        input, textarea, select { 
-            width: 100%; 
-            padding: 12px; 
-            margin-top: 10px; 
-            border-radius: 8px; 
-            border: 1px solid var(--border); 
-            background: #2d2d2d; 
-            color: white; 
-            box-sizing: border-box; 
-            font-size: 16px; 
-            font-family: inherit;
-        }
-
+        input, textarea, select { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid var(--border); background: #2d2d2d; color: white; box-sizing: border-box; font-size: 16px; }
+        
         .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 16px; }
-        .admin-item { border-bottom: 1px solid var(--border); padding: 12px 0; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
-        .delete-btn { background: #cc0000; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; }
         
-        #login-screen { max-width: 400px; margin: 40px auto; padding: 20px; display: block; }
-        .preview-label { background: #333; color: var(--gold); font-size: 10px; padding: 2px 8px; border-radius: 5px; text-transform: uppercase; margin-bottom: 10px; display: inline-block; }
+        /* Big Toggle Buttons */
+        .menu-btn { background: #2d2d2d; color: var(--gold); border: 1px solid var(--gold); padding: 18px; border-radius: 12px; width: 100%; text-align: left; font-size: 18px; font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; cursor: pointer; }
+
+        .section-content { display: none; margin-bottom: 20px; }
+
+        /* Item Rows */
+        .admin-item { background: #252525; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid var(--gold); }
+        .item-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .edit-panel { display: none; padding-top: 15px; border-top: 1px solid #444; margin-top: 10px; }
         
-        h4 { color: var(--gold); margin: 20px 0 10px 0; border-bottom: 1px solid #444; padding-bottom: 5px; text-transform: uppercase; font-size: 13px; }
+        .delete-btn { background: #cc0000; color: white; border: none; padding: 10px; border-radius: 5px; margin-top: 10px; width: 100%; }
+        .save-btn { background: #28a745; color: white; border: none; padding: 10px; border-radius: 5px; margin-top: 5px; width: 100%; }
+        
+        #login-screen { max-width: 400px; margin: 40px auto; padding: 20px; }
     </style>
 </head>
 <body>
@@ -63,34 +57,32 @@
     </div>
 
     <div id="dashboard" class="admin-content">
-        <div class="preview-label">Live Preview Mode</div>
         
         <div class="card">
-            <h3>Update Slideshow</h3>
-            <input type="text" id="slide1-url" placeholder="Slide 1 Image URL">
-            <input type="text" id="slide2-url" placeholder="Slide 2 Image URL">
-            <button class="btn" onclick="updateSlides()">Save & Update Pictures</button>
-        </div>
-
-        <div class="card">
-            <h3>Post to Member Portal</h3>
+            <h3 style="color:var(--gold)">Create New Content</h3>
             <select id="post-type">
                 <option value="updates">Latest Updates (Home)</option>
-                <option value="sermons">Sunday Sermons Page</option>
+                <option value="sermons">Sunday Sermons</option>
             </select>
-            <textarea id="post-text" placeholder="Write message here..." rows="4"></textarea>
-            <input type="text" id="post-img" placeholder="Optional Image URL">
-            <button class="btn" onclick="publishPost()">Post Now</button>
+            <textarea id="post-text" placeholder="Write message here..." rows="3"></textarea>
+            <input type="text" id="post-img" placeholder="Image URL (Optional)">
+            <button class="btn" onclick="publishPost()">Publish Now</button>
         </div>
 
-        <div class="card">
-            <h3>Manage Content</h3>
-            <div id="admin-manage-posts"></div>
-        </div>
+        <button class="menu-btn" onclick="toggleSection('sec-posts')">Manage Posts <span>▼</span></button>
+        <div id="sec-posts" class="section-content"></div>
 
-        <div class="card" style="border-top-color: #cc0000;">
-            <h3>Prayer Requests</h3>
-            <div id="admin-prayers"></div>
+        <button class="menu-btn" onclick="toggleSection('sec-sermons')">Manage Sermons <span>▼</span></button>
+        <div id="sec-sermons" class="section-content"></div>
+
+        <button class="menu-btn" onclick="toggleSection('sec-prayers')">Prayer Requests <span>▼</span></button>
+        <div id="sec-prayers" class="section-content"></div>
+
+        <div class="card" style="margin-top:20px;">
+            <h3>Update Slideshow</h3>
+            <input type="text" id="slide1-url" placeholder="Slide 1 URL">
+            <input type="text" id="slide2-url" placeholder="Slide 2 URL">
+            <button class="btn" onclick="updateSlides()">Update Photos</button>
         </div>
 
         <button class="btn" style="background:#444; color:white; margin-top:30px;" onclick="logOut()">Log Out</button>
@@ -108,11 +100,8 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Check if already logged in
         window.onload = function() {
-            if (localStorage.getItem('uic_admin') === 'authenticated') {
-                showDashboard();
-            }
+            if (localStorage.getItem('uic_admin') === 'authenticated') { showDashboard(); }
         };
 
         function checkAdmin() {
@@ -130,87 +119,96 @@
             startSlider();
         }
 
-        function logOut() {
-            localStorage.removeItem('uic_admin');
-            location.reload();
+        function toggleSection(id) {
+            const el = document.getElementById(id);
+            const isVisible = el.style.display === 'block';
+            document.querySelectorAll('.section-content').forEach(s => s.style.display = 'none');
+            el.style.display = isVisible ? 'none' : 'block';
         }
 
         function loadAdminData() {
-            // Live Slide Sync
+            // Slider Preview
             db.ref('settings/slider').on('value', s => {
                 const d = s.val();
                 if(d){ 
-                    if(d.img1) { document.getElementById('img1').src=d.img1; document.getElementById('slide1-url').value=d.img1; }
-                    if(d.img2) { document.getElementById('img2').src=d.img2; document.getElementById('slide2-url').value=d.img2; }
+                    if(d.img1) document.getElementById('img1').src=d.img1;
+                    if(d.img2) document.getElementById('img2').src=d.img2;
                 }
             });
 
-            // Live Prayers Sync
+            // Prayers
             db.ref('prayers').on('value', s => {
                 const d = s.val();
-                const div = document.getElementById('admin-prayers');
-                div.innerHTML = d ? "" : "No requests yet.";
+                const div = document.getElementById('sec-prayers');
+                div.innerHTML = "";
                 if(d) Object.keys(d).reverse().forEach(k => {
-                    div.innerHTML += `<div class="admin-item"><span>${d[k].text}</span> <button class="delete-btn" onclick="deleteItem('prayers/${k}')">Delete</button></div>`;
+                    div.innerHTML += `<div class="admin-item">
+                        <div class="item-header"><span>${d[k].text}</span><button onclick="deleteItem('prayers/${k}')" style="background:none; border:none; color:red;">✕</button></div>
+                    </div>`;
                 });
             });
 
-            // Live Post Management Sync
-            const types = ['updates', 'sermons'];
-            types.forEach(type => {
-                db.ref(type).on('value', () => renderAllPosts());
+            // Listeners for Posts and Sermons
+            db.ref('updates').on('value', s => renderItems(s.val(), 'sec-posts', 'updates'));
+            db.ref('sermons').on('value', s => renderItems(s.val(), 'sec-sermons', 'sermons'));
+        }
+
+        function renderItems(data, containerId, type) {
+            const div = document.getElementById(containerId);
+            div.innerHTML = "";
+            if(!data) { div.innerHTML = "<p style='padding:10px;'>Nothing found.</p>"; return; }
+            
+            Object.keys(data).reverse().forEach(k => {
+                const item = data[k];
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'admin-item';
+                itemDiv.innerHTML = `
+                    <div class="item-header" onclick="toggleEdit('${k}')">
+                        <span>${item.text.substring(0, 30)}...</span>
+                        <span style="color:var(--gold); font-size:12px;">Edit ✎</span>
+                    </div>
+                    <div id="edit-${k}" class="edit-panel">
+                        <textarea id="txt-${k}">${item.text}</textarea>
+                        <input type="text" id="img-${k}" value="${item.image || ''}" placeholder="Image URL">
+                        <button class="save-btn" onclick="saveEdit('${type}','${k}')">Save Changes</button>
+                        <button class="delete-btn" onclick="deleteItem('${type}/${k}')">Delete Permanently</button>
+                    </div>
+                `;
+                div.appendChild(itemDiv);
             });
         }
 
-        async function renderAllPosts() {
-            const manageDiv = document.getElementById('admin-manage-posts');
-            let finalHtml = "";
-            const types = ['updates', 'sermons'];
-
-            for (const type of types) {
-                const snapshot = await db.ref(type).once('value');
-                const data = snapshot.val();
-                finalHtml += `<h4>${type}</h4>`;
-                if(data) {
-                    Object.keys(data).reverse().forEach(k => {
-                        finalHtml += `<div class="admin-item">
-                            <span>${data[k].text.substring(0,25)}...</span>
-                            <button class="delete-btn" onclick="deleteItem('${type}/${k}')">Delete</button>
-                        </div>`;
-                    });
-                } else { finalHtml += `<p style="font-size:11px; color:#666;">No posts here.</p>`; }
-            }
-            manageDiv.innerHTML = finalHtml;
+        function toggleEdit(id) {
+            const el = document.getElementById('edit-' + id);
+            el.style.display = (el.style.display === 'block') ? 'none' : 'block';
         }
 
-        function deleteItem(path) {
-            if(confirm("Permanently delete this?")) {
-                db.ref(path).remove();
-            }
+        function saveEdit(type, id) {
+            const newText = document.getElementById('txt-' + id).value;
+            const newImg = document.getElementById('img-' + id).value;
+            db.ref(`${type}/${id}`).update({ text: newText, image: newImg })
+            .then(() => alert("Updated successfully!"));
         }
+
+        function deleteItem(path) { if(confirm("Are you sure?")) db.ref(path).remove(); }
 
         function publishPost() {
             const type = document.getElementById('post-type').value;
             const text = document.getElementById('post-text').value;
             const image = document.getElementById('post-img').value;
             if(!text) return;
-            db.ref(type).push({ 
-                text, 
-                image, 
-                date: new Date().toLocaleDateString(), 
-                timestamp: new Date().getTime() 
-            }).then(() => {
-                document.getElementById('post-text').value = "";
-                document.getElementById('post-img').value = "";
-            });
+            db.ref(type).push({ text, image, date: new Date().toLocaleDateString(), timestamp: new Date().getTime() })
+            .then(() => { document.getElementById('post-text').value = ""; document.getElementById('post-img').value = ""; });
         }
 
         function updateSlides() {
             const img1 = document.getElementById('slide1-url').value;
             const img2 = document.getElementById('slide2-url').value;
-            db.ref('settings/slider').update({ img1, img2 }).then(() => alert("Slideshow updated!"));
+            db.ref('settings/slider').update({ img1, img2 });
         }
 
+        function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
+        
         function startSlider() {
             let cur = 0;
             setInterval(() => {
