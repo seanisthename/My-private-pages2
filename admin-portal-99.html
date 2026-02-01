@@ -3,87 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UIC Admin Dashboard</title>
+    <title>UICC Admin Portal</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); padding-bottom: 50px; }
         header { background: linear-gradient(135deg, #000c24, var(--navy)); color: var(--gold); padding: 20px; text-align: center; border-bottom: 3px solid var(--gold); }
-        
-        .slider-preview { width: 100%; height: 150px; position: relative; overflow: hidden; background: #000; margin-bottom: 10px; border-radius: 10px; border: 1px solid var(--gold); }
+        .slider-preview { width: 100%; height: 150px; position: relative; overflow: hidden; background: #000; margin-bottom: 15px; border-radius: 10px; border: 1px solid var(--gold); }
         .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: contain; }
         .active { opacity: 1; }
-
         .admin-content { padding: 15px; display: none; }
         .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 15px; border-top: 3px solid var(--gold); }
-        
         input, textarea, select { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #333; background: #2d2d2d; color: white; box-sizing: border-box; }
         .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        
         .menu-btn { background: #2d2d2d; color: var(--gold); border: 1px solid var(--gold); padding: 15px; border-radius: 10px; width: 100%; text-align: left; font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; cursor: pointer; }
-
         .section-content { display: none; margin-bottom: 20px; }
         .admin-item { background: #252525; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid var(--gold); }
-        
-        /* Edit Panel */
-        .edit-panel { background: #2a2a2a; padding: 10px; border-radius: 8px; margin-top: 10px; border: 1px solid #444; }
-        
-        /* Comments tucked away */
-        .comment-toggle { color: #50b7f5; font-size: 13px; cursor: pointer; margin-top: 10px; display: block; text-decoration: underline; }
-        .comment-box { background: #1a1a1a; padding: 10px; border-radius: 5px; margin-top: 5px; border-left: 2px solid #555; }
-        .admin-reply-view { color: var(--gold); font-size: 12px; margin-top: 5px; padding-left: 10px; border-left: 1px solid var(--gold); }
-        
-        .del-btn { background: #ff3b30; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 11px; cursor: pointer; margin-top: 5px; }
+        .edit-panel { background: #2a2a2a; padding: 12px; border-radius: 8px; margin-top: 10px; border: 1px solid #444; }
+        .comment-icon-btn { background: none; border: none; color: var(--gold); font-size: 18px; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 5px; }
+        .reply-box { background: #111; padding: 12px; border-radius: 8px; margin-top: 10px; border: 1px solid #333; }
+        .btn-row { display: flex; gap: 20px; margin-top: 10px; }
+        .reply-send { background: #28a745; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; flex: 2; cursor: pointer; }
+        .reply-del { background: #ff3b30; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; flex: 1; cursor: pointer; }
+        .del-post-btn { background: #ff3b30; color: white; border: none; padding: 8px; border-radius: 5px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; }
         #login-screen { max-width: 400px; margin: 50px auto; padding: 20px; }
     </style>
 </head>
 <body>
-
-    <header><h1>UIC Admin</h1></header>
-
+    <header><h1>UIC Admin Portal</h1></header>
     <div id="login-screen" class="card">
         <h3>Dashboard Access</h3>
         <input type="password" id="admin-key" placeholder="Enter Password">
         <button class="btn" onclick="checkAdmin()">Login</button>
     </div>
-
     <div id="dashboard" class="admin-content">
-        <div class="slider-preview" id="slider-preview-box">
-            <img id="img1" class="slide active" src="">
-            <img id="img2" class="slide" src="">
-        </div>
-
+        <div class="slider-preview"><img id="img1" class="slide active" src=""><img id="img2" class="slide" src=""></div>
         <div class="card">
             <h3>Publish Content</h3>
-            <select id="post-type">
-                <option value="updates">Updates (Home)</option>
-                <option value="sermons">Sermons</option>
-            </select>
+            <select id="post-type"><option value="updates">Updates (Home)</option><option value="sermons">Sermons</option></select>
             <textarea id="post-text" placeholder="Message..." rows="3"></textarea>
             <input type="text" id="post-img" placeholder="Image URL">
             <button class="btn" onclick="publishPost()">Publish</button>
         </div>
-
         <button class="menu-btn" onclick="toggleSection('sec-posts')">Manage Updates <span>▼</span></button>
         <div id="sec-posts" class="section-content"></div>
-
         <button class="menu-btn" onclick="toggleSection('sec-sermons')">Manage Sermons <span>▼</span></button>
         <div id="sec-sermons" class="section-content"></div>
-
         <button class="menu-btn" onclick="toggleSection('sec-prayers')">Prayers <span>▼</span></button>
         <div id="sec-prayers" class="section-content"></div>
-
         <div class="card">
-            <h3>Update Slideshow</h3>
-            <input type="text" id="slide1-url" placeholder="Slide 1 Image URL">
-            <input type="text" id="slide2-url" placeholder="Slide 2 Image URL">
-            <button class="btn" onclick="updateSlides()">Update Photos</button>
+            <h3>Slideshow Settings</h3>
+            <input type="text" id="slide1-url" placeholder="Slide 1 URL"><input type="text" id="slide2-url" placeholder="Slide 2 URL">
+            <button class="btn" onclick="updateSlides()">Update Slideshow</button>
         </div>
-
         <button class="btn" style="background:#444; color:white;" onclick="logOut()">Logout</button>
     </div>
-
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo",
@@ -120,19 +95,14 @@
                 const d = s.val();
                 if(d){ document.getElementById('img1').src=d.img1; document.getElementById('img2').src=d.img2; }
             });
-
             renderManager('updates', 'sec-posts');
             renderManager('sermons', 'sec-sermons');
-
             db.ref('prayers').on('value', s => {
                 const div = document.getElementById('sec-prayers');
                 div.innerHTML = "";
-                const data = s.val();
-                if(data) Object.keys(data).reverse().forEach(k => {
-                    div.innerHTML += `<div class="admin-item">
-                        <p>${data[k].text}</p>
-                        <button class="del-btn" onclick="deleteItem('prayers/${k}')">Delete</button>
-                    </div>`;
+                const d = s.val();
+                if(d) Object.keys(d).reverse().forEach(k => {
+                    div.innerHTML += `<div class="admin-item"><p>${d[k].text}</p><button onclick="deleteItem('prayers/${k}')" style="color:red; background:none; border:none; cursor:pointer;">Delete Request</button></div>`;
                 });
             });
         }
@@ -140,24 +110,24 @@
         function renderManager(type, containerId) {
             db.ref(type).on('value', s => {
                 const div = document.getElementById(containerId);
-                const data = s.val();
                 div.innerHTML = "";
+                const data = s.val();
                 if(data) Object.keys(data).reverse().forEach(k => {
                     const item = data[k];
                     const card = document.createElement('div');
                     card.className = 'admin-item';
                     card.innerHTML = `
-                        <div onclick="toggleEdit('${k}')" style="cursor:pointer;">
-                            <strong>${item.text.substring(0,30)}...</strong> <span style="color:var(--gold)">✎ Edit</span>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <strong onclick="toggleBlock('edit-${k}')" style="cursor:pointer; color:var(--gold);">✎ Edit Post</strong>
+                            <button class="comment-icon-btn" onclick="toggleBlock('comm-${k}')">💬 <span id="count-${k}">(0)</span></button>
                         </div>
-                        <div id="edit-box-${k}" class="edit-panel" style="display:none;">
-                            <textarea id="edit-text-${k}">${item.text}</textarea>
-                            <input type="text" id="edit-img-${k}" value="${item.image || ''}">
-                            <button class="btn" style="padding:8px; font-size:12px;" onclick="saveEdit('${type}','${k}')">Save Changes</button>
-                            <button class="del-btn" onclick="deleteItem('${type}/${k}')">Delete Post</button>
+                        <div id="edit-${k}" class="edit-panel" style="display:none;">
+                            <textarea id="tx-${k}">${item.text}</textarea>
+                            <input type="text" id="im-${k}" value="${item.image || ''}">
+                            <button class="btn" onclick="saveEdit('${type}','${k}')">Save Changes</button>
+                            <button class="del-post-btn" onclick="deleteItem('${type}/${k}')">DELETE POST</button>
                         </div>
-                        <span class="comment-toggle" onclick="toggleCommentsAdmin('${k}')">💬 View Comments</span>
-                        <div id="comments-admin-${k}" style="display:none; margin-top:10px;"></div>
+                        <div id="comm-${k}" style="display:none; margin-top:15px;"></div>
                     `;
                     div.appendChild(card);
                     loadCommentsAdmin(k);
@@ -165,49 +135,48 @@
             });
         }
 
-        function toggleEdit(id) {
-            const box = document.getElementById('edit-box-' + id);
-            box.style.display = box.style.display === 'block' ? 'none' : 'block';
-        }
-
-        function saveEdit(type, id) {
-            const text = document.getElementById('edit-text-' + id).value;
-            const image = document.getElementById('edit-img-' + id).value;
-            db.ref(`${type}/${id}`).update({ text, image }).then(() => alert("Saved!"));
-        }
-
-        function toggleCommentsAdmin(id) {
-            const box = document.getElementById('comments-admin-' + id);
-            box.style.display = box.style.display === 'block' ? 'none' : 'block';
+        function toggleBlock(id) {
+            const el = document.getElementById(id);
+            el.style.display = el.style.display === 'block' ? 'none' : 'block';
         }
 
         function loadCommentsAdmin(postId) {
             db.ref(`comments/${postId}`).on('value', s => {
-                const box = document.getElementById(`comments-admin-${postId}`);
+                const box = document.getElementById(`comm-${postId}`);
+                const countSpan = document.getElementById(`count-${postId}`);
                 const data = s.val();
                 box.innerHTML = "";
-                if(data) Object.keys(data).forEach(ck => {
-                    const c = data[ck];
-                    box.innerHTML += `
-                        <div class="comment-box">
-                            <small>${c.text}</small>
-                            ${c.adminReply ? `<div class="admin-reply-view"><strong>Admin:</strong> ${c.adminReply}</div>` : ''}
-                            <div style="display:flex; gap:5px; margin-top:5px;">
-                                <input type="text" id="reply-input-${ck}" placeholder="Reply..." style="padding:5px; margin:0;">
-                                <button onclick="sendReply('${postId}','${ck}')" style="background:var(--gold); border:none; padding:5px; border-radius:4px;">✓</button>
-                                <button onclick="deleteItem('comments/${postId}/${ck}')" style="background:red; border:none; color:white; padding:5px; border-radius:4px;">✕</button>
-                            </div>
-                        </div>
-                    `;
-                });
+                if(data) {
+                    const keys = Object.keys(data);
+                    countSpan.innerText = `(${keys.length})`;
+                    keys.forEach(ck => {
+                        const c = data[ck];
+                        box.innerHTML += `
+                            <div class="reply-box">
+                                <div style="font-size:14px;">Member: ${c.text}</div>
+                                ${c.adminReply ? `<div style="color:var(--gold); font-size:12px; margin-top:5px;">Your Reply: ${c.adminReply}</div>` : ''}
+                                <input type="text" id="rep-${ck}" placeholder="Type reply..." style="margin-top:10px;">
+                                <div class="btn-row">
+                                    <button class="reply-send" onclick="sendReply('${postId}','${ck}')">SEND REPLY</button>
+                                    <button class="reply-del" onclick="deleteItem('comments/${postId}/${ck}')">DELETE</button>
+                                </div>
+                            </div>`;
+                    });
+                }
             });
         }
 
         function sendReply(postId, commentId) {
-            const val = document.getElementById('reply-input-' + commentId).value;
+            const val = document.getElementById('rep-' + commentId).value;
             if(!val) return;
             db.ref(`comments/${postId}/${commentId}`).update({ adminReply: val })
-            .then(() => { document.getElementById('reply-input-' + commentId).value = ""; });
+            .then(() => { document.getElementById('rep-' + commentId).value = ""; alert("Reply Sent!"); });
+        }
+
+        function saveEdit(type, id) {
+            const text = document.getElementById('tx-' + id).value;
+            const image = document.getElementById('im-' + id).value;
+            db.ref(`${type}/${id}`).update({ text, image }).then(() => alert("Post Updated!"));
         }
 
         function publishPost() {
@@ -215,19 +184,18 @@
             const text = document.getElementById('post-text').value;
             const image = document.getElementById('post-img').value;
             if(!text) return;
-            db.ref(type).push({ text, image, date: new Date().toLocaleDateString(), timestamp: new Date().getTime() })
+            db.ref(type).push({ text, image, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 })
             .then(() => { document.getElementById('post-text').value = ""; alert("Published!"); });
         }
 
         function updateSlides() {
             const img1 = document.getElementById('slide1-url').value;
             const img2 = document.getElementById('slide2-url').value;
-            db.ref('settings/slider').update({ img1, img2 });
+            db.ref('settings/slider').update({ img1, img2 }).then(() => alert("Slides Updated!"));
         }
 
-        function deleteItem(path) { if(confirm("Confirm Delete?")) db.ref(path).remove(); }
+        function deleteItem(path) { if(confirm("Permanently delete?")) db.ref(path).remove(); }
         function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
-
         function startSlider() {
             let cur = 0;
             setInterval(() => {
@@ -238,7 +206,6 @@
                 s[cur].classList.add('active');
             }, 3500);
         }
-
         window.onload = () => { if(localStorage.getItem('uic_admin') === 'authenticated') showDashboard(); };
     </script>
 </body>
