@@ -15,14 +15,12 @@
         input, textarea, select { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #333; background: #2d2d2d; color: white; box-sizing: border-box; }
         .btn { background: var(--gold); color: #000; padding: 12px; border: none; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
         
-        /* THE LIVE PREVIEW (MEMBER VIEW REPLICA) */
         .live-preview-box { border: 2px solid #444; border-radius: 15px; overflow: hidden; margin-bottom: 20px; background: #000; }
         .preview-label { background: #444; color: white; font-size: 10px; text-align: center; padding: 4px; text-transform: uppercase; }
         .mini-slider { width: 100%; height: 160px; position: relative; overflow: hidden; background: #000; }
         .mini-slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: cover; }
         .mini-slide.active { opacity: 1; }
         
-        /* Existing Styles */
         .menu-btn { background: #2d2d2d; color: var(--gold); border: 1px solid var(--gold); padding: 15px; border-radius: 10px; width: 100%; text-align: left; font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; cursor: pointer; }
         .unread-badge { background: #ff3b30; color: white; padding: 2px 8px; border-radius: 50px; font-size: 12px; }
         .section-content { display: none; margin-bottom: 20px; }
@@ -49,6 +47,13 @@
 
     <div id="dashboard" class="admin-content">
         
+        <div class="card" style="border-top: 3px solid #40A5E7;">
+            <h3 style="color: #40A5E7;">Daily Devotional</h3>
+            <input type="text" id="devo-v-in" placeholder="Scripture (e.g. John 3:16)">
+            <textarea id="devo-t-in" placeholder="Today's message..." rows="2"></textarea>
+            <button class="btn" onclick="updateDevo()" style="background: #40A5E7; color: white;">Update Word for Today</button>
+        </div>
+
         <div class="preview-label">Live Member View Preview</div>
         <div class="live-preview-box">
             <div class="mini-slider">
@@ -100,6 +105,12 @@
         function showDashboard() { document.getElementById('login-screen').style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; loadAdminData(); startPreviewSlider(); }
         function toggleSection(id) { const el = document.getElementById(id); el.style.display = el.style.display === 'block' ? 'none' : 'block'; }
 
+        function updateDevo() {
+            const v = document.getElementById('devo-v-in').value;
+            const t = document.getElementById('devo-t-in').value;
+            db.ref('settings/devotional').set({ verse: v, text: t }).then(() => alert("Devotional Updated"));
+        }
+
         function updateSlider() {
             const img1 = document.getElementById('slide1').value;
             const img2 = document.getElementById('slide2').value;
@@ -108,7 +119,9 @@
         }
 
         function loadAdminData() {
-            // Live Preview Listener for Slider
+            db.ref('settings/devotional').on('value', s => {
+                const d = s.val(); if(d) { document.getElementById('devo-v-in').value = d.verse; document.getElementById('devo-t-in').value = d.text; }
+            });
             db.ref('settings/slider').on('value', s => {
                 const d = s.val();
                 if(d) {
@@ -118,10 +131,8 @@
                     document.getElementById('slide2').value = d.img2;
                 }
             });
-
             renderList('updates', 'sec-posts');
             renderList('sermons', 'sec-sermons');
-            
             db.ref('prayers').on('value', s => {
                 const div = document.getElementById('sec-prayers');
                 const badge = document.getElementById('unread-count-container');
@@ -140,13 +151,9 @@
         }
 
         function startPreviewSlider() {
-            let cur = 0;
-            setInterval(() => {
-                const s = document.querySelectorAll('.mini-slide');
-                if(s.length < 2) return;
-                s[cur].classList.remove('active');
-                cur = (cur + 1) % s.length;
-                s[cur].classList.add('active');
+            let cur = 0; setInterval(() => {
+                const s = document.querySelectorAll('.mini-slide'); if(s.length < 2) return;
+                s[cur].classList.remove('active'); cur = (cur + 1) % s.length; s[cur].classList.add('active');
             }, 8000);
         }
 
@@ -190,15 +197,12 @@
                 const data = s.val(); if(!box) return;
                 box.innerHTML = "";
                 if(data) {
-                    const keys = Object.keys(data);
-                    countSpan.innerText = keys.length;
+                    const keys = Object.keys(data); countSpan.innerText = keys.length;
                     keys.forEach(ck => {
                         const c = data[ck];
                         box.innerHTML += `
                             <div class="member-msg">
-                                <div style="color:var(--gold); font-weight:bold; font-size:12px; margin-bottom:2px;">
-                                    ${c.userName || 'Anonymous'}:
-                                </div>
+                                <div style="color:var(--gold); font-weight:bold; font-size:12px; margin-bottom:2px;">${c.userName || 'Anonymous'}:</div>
                                 <div>${c.text}</div>
                                 ${c.adminReply ? `<div class="bishop-reply"><strong>Admin:</strong> ${c.adminReply}</div>` : ''}
                                 <div class="reply-input-group">
@@ -213,16 +217,14 @@
         }
 
         function sendReply(pid, cid) {
-            const val = document.getElementById('rep-in-' + cid).value;
-            if(!val) return;
+            const val = document.getElementById('rep-in-' + cid).value; if(!val) return;
             db.ref(`comments/${pid}/${cid}`).update({ adminReply: val }).then(() => { alert("Reply sent"); });
         }
 
         function openPrayers() {
             toggleSection('sec-prayers');
             db.ref('prayers').once('value', s => {
-                const d = s.val();
-                if(d) Object.keys(d).forEach(k => { if(d[k].status === "unread") db.ref(`prayers/${k}`).update({ status: "read" }); });
+                const d = s.val(); if(d) Object.keys(d).forEach(k => { if(d[k].status === "unread") db.ref(`prayers/${k}`).update({ status: "read" }); });
             });
         }
 
