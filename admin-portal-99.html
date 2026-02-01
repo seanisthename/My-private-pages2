@@ -24,7 +24,7 @@
         
         .menu-btn { background: #2d2d2d; color: var(--gold); border: 1px solid var(--gold); padding: 18px; border-radius: 12px; width: 100%; text-align: left; font-size: 18px; font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; position: relative; }
 
-        .badge { background: #ff3b30; color: white; font-size: 12px; padding: 2px 8px; border-radius: 10px; margin-left: 10px; display: none; }
+        .badge { background: #ff3b30; color: white; font-size: 12px; padding: 2px 8px; border-radius: 10px; margin-left: 10px; display: none; min-width: 10px; text-align: center; }
 
         .section-content { display: none; margin-bottom: 20px; }
         .list-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -107,7 +107,8 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let lastCount = localStorage.getItem('prayerCount') || 0;
+        // Track seen count separately
+        let seenCount = parseInt(localStorage.getItem('prayerSeenCount')) || 0;
 
         window.onload = function() {
             if (localStorage.getItem('uic_admin') === 'authenticated') { showDashboard(); }
@@ -134,8 +135,15 @@
             document.querySelectorAll('.section-content').forEach(s => s.style.display = 'none');
             el.style.display = isVisible ? 'none' : 'block';
             
+            // RESET NOTIFICATION Logic
             if (id === 'sec-prayers' && !isVisible) {
-                document.getElementById('prayer-badge').style.display = 'none';
+                // Fetch the current total and set it as "seen"
+                db.ref('prayers').once('value', s => {
+                    const count = s.val() ? Object.keys(s.val()).length : 0;
+                    seenCount = count;
+                    localStorage.setItem('prayerSeenCount', seenCount);
+                    document.getElementById('prayer-badge').style.display = 'none';
+                });
             }
         }
 
@@ -154,17 +162,20 @@
                 const badge = document.getElementById('prayer-badge');
                 
                 const keys = d ? Object.keys(d) : [];
-                const currentCount = keys.length;
+                const currentTotal = keys.length;
 
-                if (currentCount > lastCount) {
-                    badge.innerText = currentCount - lastCount;
+                // Only show badge if current total is higher than what we've "seen"
+                if (currentTotal > seenCount) {
+                    badge.innerText = currentTotal - seenCount;
                     badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
                 }
 
                 div.innerHTML = `
                     <div class="list-header-row">
-                        <span class="total-info">Total Requests: ${currentCount}</span>
-                        ${currentCount > 0 ? `<button class="clear-link" onclick="deleteAllPrayers()">Clear All</button>` : ''}
+                        <span class="total-info">Total Requests: ${currentTotal}</span>
+                        ${currentTotal > 0 ? `<button class="clear-link" onclick="deleteAllPrayers()">Clear All</button>` : ''}
                     </div>
                 `;
                 
@@ -173,12 +184,6 @@
                         <div class="item-header"><span>${d[k].text}</span><button onclick="deleteItem('prayers/${k}')" style="background:none; border:none; color:red;">✕</button></div>
                     </div>`;
                 });
-
-                if (document.getElementById('sec-prayers').style.display === 'block') {
-                    lastCount = currentCount;
-                    localStorage.setItem('prayerCount', lastCount);
-                    badge.style.display = 'none';
-                }
             });
 
             db.ref('updates').on('value', s => renderItems(s.val(), 'sec-posts', 'updates'));
@@ -229,7 +234,10 @@
         function deleteAllPrayers() {
             if(confirm("Are you sure you want to delete ALL prayer requests?")) {
                 if(confirm("LAST WARNING: This cannot be undone. Delete all?")) {
-                    db.ref('prayers').remove();
+                    db.ref('prayers').remove().then(() => {
+                        seenCount = 0;
+                        localStorage.setItem('prayerSeenCount', 0);
+                    });
                 }
             }
         }
