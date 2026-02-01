@@ -40,6 +40,7 @@
         <div class="tab active" onclick="showTab('home', this)">HOME</div>
         <div class="tab" onclick="showTab('sermons', this)">SERMONS</div>
         <div class="tab" onclick="showTab('prayer', this)">PRAYER</div>
+        <div class="tab" onclick="showTab('about', this)">ABOUT US</div>
     </div>
     <div id="home" class="content-section active"><div id="updates-list"></div></div>
     <div id="sermons" class="content-section"><div id="sermons-list"></div></div>
@@ -47,6 +48,20 @@
         <div class="card"><h3>How can we pray for you?</h3><textarea id="prayer-text" style="width:100%; background:#2d2d2d; color:white; border-radius:8px; padding:10px; box-sizing:border-box; border:1px solid #444;" rows="4" placeholder="Remember to include your name..."></textarea>
 <button class="btn" style="margin-top:10px;" onclick="submitPrayer()">Submit Request</button></div>
     </div>
+
+    <div id="about" class="content-section">
+        <div class="card">
+            <h2 style="color: var(--gold); margin-top: 0;">Our Vision</h2>
+            <p>Seeing people getting saved and uniting the body of Christ in Love through the Holy Spirit.</p>
+            
+            <h2 style="color: var(--gold);">Contact Us</h2>
+            <p>+265 998 352 637</p>
+            
+            <h2 style="color: var(--gold);">Address</h2>
+            <p>Ndirande main market, next to Ndirande post office, Blantyre.</p>
+        </div>
+    </div>
+
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo",
