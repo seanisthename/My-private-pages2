@@ -59,6 +59,12 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // HELPER TO MAKE LINKS CLICKABLE
+        function linkify(text) {
+            const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+            return text.replace(urlPattern, '<a href="$1" target="_blank" style="color: var(--gold); text-decoration: underline;">$1</a>');
+        }
+
         function showTab(t, e) {
             document.querySelectorAll('.content-section, .tab').forEach(x => x.classList.remove('active'));
             document.getElementById(t).classList.add('active'); e.classList.add('active');
@@ -81,7 +87,7 @@
                     card.innerHTML = `
                         ${item.image ? `<img src="${item.image}">` : ''}
                         <span class="time-txt">${item.date} at ${timeStr}</span>
-                        <p>${item.text}</p>
+                        <p>${linkify(item.text)}</p>
                         <div class="interaction-bar">
                             <button class="comment-btn" onclick="toggleComments('${k}')">💬 <span id="count-${k}">(0)</span></button>
                             <button class="comment-btn" onclick="likePost('${path}','${k}')">❤️ <span id="likes-${k}">${item.likes || 0}</span></button>
