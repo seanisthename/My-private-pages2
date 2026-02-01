@@ -9,71 +9,49 @@
     <style>
         :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); }
-        
         header { background: linear-gradient(135deg, #000c24, var(--navy)); color: var(--gold); padding: 30px 20px; text-align: center; border-bottom: 3px solid var(--gold); }
         .logo-sub { color: #b0b0b0; font-size: 13px; margin-top: 5px; }
-
         .slider-container { width: 100%; height: 220px; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
         .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: cover; }
         .active { opacity: 1; }
-
         .nav-tabs { display: flex; background: #1a1a1a; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #333; }
         .tab { flex: 1; padding: 15px; text-align: center; color: #888; font-weight: bold; cursor: pointer; font-size: 13px; }
         .tab.active { color: var(--gold); border-bottom: 3px solid var(--gold); background: #252525; }
-
         .content-section { display: none; padding: 15px; animation: fadeIn 0.4s; }
         .content-section.active { display: block; }
-
         .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 20px; border-top: 3px solid var(--gold); position: relative; }
         .card img { width: 100%; border-radius: 8px; margin-bottom: 12px; }
-        
-        /* NEW BADGE STYLE */
         .new-badge { position: absolute; top: 10px; right: 10px; background: #ff3b30; color: white; padding: 3px 8px; border-radius: 5px; font-size: 10px; font-weight: bold; z-index: 5; }
-
-        /* COMMENT STYLES */
-        .interaction-bar { border-top: 1px solid #333; margin-top: 10px; padding-top: 10px; display: flex; align-items: center; }
-        .comment-btn { background: none; border: none; color: var(--gold); cursor: pointer; display: flex; align-items: center; font-size: 14px; gap: 5px; }
-        
-        .comment-section { display: none; margin-top: 10px; background: #181818; padding: 10px; border-radius: 8px; }
-        .comment-input-box { display: flex; gap: 5px; margin-bottom: 10px; }
+        .interaction-bar { border-top: 1px solid #333; margin-top: 10px; padding-top: 10px; display: flex; gap: 25px; }
+        .comment-btn { background: none; border: none; color: var(--gold); cursor: pointer; display: flex; align-items: center; font-size: 16px; gap: 5px; padding: 0; }
+        .comment-section { display: none; margin-top: 15px; background: #181818; padding: 10px; border-radius: 8px; }
+        .comment-input-box { display: flex; gap: 5px; margin-top: 10px; }
         .comment-input-box input { flex: 1; background: #2d2d2d; border: 1px solid #444; color: white; padding: 8px; border-radius: 5px; }
         .send-comment-btn { background: var(--gold); border: none; padding: 8px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        
-        .comments-display { max-height: 150px; overflow-y: auto; font-size: 13px; }
-        .single-comment { border-bottom: 1px solid #222; padding: 5px 0; color: #bbb; }
-
-        .prayer-input { width: 100%; padding: 15px; border-radius: 10px; background: #2d2d2d; color: white; border: 1px solid #444; margin-bottom: 10px; }
+        .comments-display { max-height: 250px; overflow-y: auto; font-size: 14px; }
+        .single-comment { border-bottom: 1px solid #222; padding: 10px 0; }
+        .admin-reply { color: var(--gold); font-size: 13px; margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--gold); background: rgba(212,175,55,0.05); padding-top: 5px; padding-bottom: 5px; }
+        .prayer-input { width: 100%; padding: 15px; border-radius: 10px; background: #2d2d2d; color: white; border: 1px solid #444; margin-bottom: 10px; box-sizing: border-box;}
         .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; }
-
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
-
     <header>
-        <h1 style="margin:0;">Union in Christ Church</h1>
-        <div class="logo-sub">Founder: Lady Bishop E. Chafulumira</div>
+        <h1 style="margin:0;">Union in Christ</h1>
+        <div class="logo-sub">Lady Bishop E. Chafulumira</div>
     </header>
-
     <div class="slider-container">
         <img id="img1" class="slide active" src="">
         <img id="img2" class="slide" src="">
     </div>
-
     <div class="nav-tabs">
         <div class="tab active" onclick="showTab('home', this)">HOME</div>
         <div class="tab" onclick="showTab('sermons', this)">SERMONS</div>
         <div class="tab" onclick="showTab('prayer', this)">PRAYER</div>
     </div>
-
-    <div id="home" class="content-section active">
-        <div id="updates-list"></div>
-    </div>
-
-    <div id="sermons" class="content-section">
-        <div id="sermons-list"></div>
-    </div>
-
+    <div id="home" class="content-section active"><div id="updates-list"></div></div>
+    <div id="sermons" class="content-section"><div id="sermons-list"></div></div>
     <div id="prayer" class="content-section">
         <div class="card">
             <h3>Prayer Request</h3>
@@ -82,7 +60,6 @@
             <p id="success-msg" style="display:none; color:#28a745; text-align:center;">Sent successfully.</p>
         </div>
     </div>
-
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo",
@@ -107,7 +84,6 @@
                 const d = s.val();
                 if(d){ document.getElementById('img1').src=d.img1; document.getElementById('img2').src=d.img2; }
             });
-
             renderCollection('updates', 'updates-list');
             renderCollection('sermons', 'sermons-list');
         }
@@ -118,11 +94,9 @@
                 list.innerHTML = "";
                 const data = s.val();
                 if(!data) return;
-
                 Object.keys(data).reverse().forEach(k => {
                     const item = data[k];
                     const isNew = (new Date().getTime() - item.timestamp) < (10 * 60 * 60 * 1000);
-                    
                     const card = document.createElement('div');
                     card.className = 'card';
                     card.innerHTML = `
@@ -131,20 +105,19 @@
                         <small style="color:var(--gold)">${item.date || ''}</small>
                         <p>${item.text}</p>
                         <div class="interaction-bar">
-                            <button class="comment-btn" onclick="toggleComments('${k}')">
-                                💬 Comments <span id="count-${k}"></span>
-                            </button>
+                            <button class="comment-btn" onclick="toggleComments('${k}')">💬 <span id="count-${k}">(0)</span></button>
+                            <button class="comment-btn" onclick="likePost('${refName}','${k}')">❤️ <span id="likes-${k}">${item.likes || 0}</span></button>
                         </div>
                         <div id="section-${k}" class="comment-section">
                             <div class="comments-display" id="display-${k}"></div>
                             <div class="comment-input-box">
                                 <input type="text" id="input-${k}" placeholder="Write a comment...">
-                                <button class="send-comment-btn" onclick="addComment('${refName}','${k}')">Send</button>
+                                <button class="send-comment-btn" onclick="addComment('${k}')">Send</button>
                             </div>
                         </div>
                     `;
                     list.appendChild(card);
-                    loadComments(refName, k);
+                    loadComments(k);
                 });
             });
         }
@@ -154,18 +127,14 @@
             el.style.display = el.style.display === 'block' ? 'none' : 'block';
         }
 
-        function addComment(type, postId) {
+        function addComment(postId) {
             const input = document.getElementById('input-' + postId);
-            const val = input.value;
-            if(!val) return;
-
-            db.ref(`comments/${postId}`).push({
-                text: val,
-                timestamp: new Date().getTime()
-            }).then(() => { input.value = ""; });
+            if(!input.value) return;
+            db.ref(`comments/${postId}`).push({ text: input.value, timestamp: new Date().getTime() })
+            .then(() => { input.value = ""; });
         }
 
-        function loadComments(type, postId) {
+        function loadComments(postId) {
             db.ref(`comments/${postId}`).on('value', s => {
                 const display = document.getElementById('display-' + postId);
                 const countSpan = document.getElementById('count-' + postId);
@@ -175,26 +144,30 @@
                     const keys = Object.keys(data);
                     countSpan.innerText = `(${keys.length})`;
                     keys.forEach(k => {
-                        display.innerHTML += `<div class="single-comment">${data[k].text}</div>`;
+                        const c = data[k];
+                        display.innerHTML += `<div class="single-comment">
+                            <div>${c.text}</div>
+                            ${c.adminReply ? `<div class="admin-reply"><strong>Bishop's Office:</strong> ${c.adminReply}</div>` : ''}
+                        </div>`;
                     });
-                } else {
-                    countSpan.innerText = "(0)";
                 }
             });
+        }
+
+        function likePost(type, id) {
+            db.ref(`${type}/${id}/likes`).transaction(c => (c || 0) + 1);
         }
 
         function submitPrayer() {
             const text = document.getElementById('prayer-text').value;
             if(!text) return;
-            db.ref('prayers').push({ text, timestamp: new Date().getTime() })
-            .then(() => {
+            db.ref('prayers').push({ text, timestamp: new Date().getTime() }).then(() => {
                 document.getElementById('prayer-text').value = "";
                 document.getElementById('success-msg').style.display = "block";
                 setTimeout(() => { document.getElementById('success-msg').style.display = "none"; }, 3000);
             });
         }
 
-        // Auto-Slider
         let cur = 0;
         setInterval(() => {
             const s = document.querySelectorAll('.slide');
@@ -203,7 +176,6 @@
             cur = (cur + 1) % s.length;
             s[cur].classList.add('active');
         }, 4000);
-
         window.onload = loadData;
     </script>
 </body>
