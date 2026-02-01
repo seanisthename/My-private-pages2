@@ -7,6 +7,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
+        /* Updated Dark Theme Variables */
         :root { 
             --gold: #D4AF37; 
             --navy: #001a4d; 
@@ -18,29 +19,102 @@
             --border: #333;
         }
 
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); padding-bottom: 70px; }
-        header { background: linear-gradient(135deg, #000c24, var(--navy)); color: var(--gold); padding: 40px 20px 20px; text-align: center; border-bottom: 3px solid var(--gold); }
+        body { 
+            margin: 0; 
+            font-family: 'Segoe UI', sans-serif; 
+            background: var(--dark-bg); 
+            color: var(--text-main);
+            padding-bottom: 70px; 
+        }
+
+        header { 
+            background: linear-gradient(135deg, #000c24, var(--navy)); 
+            color: var(--gold); 
+            padding: 40px 20px 20px; 
+            text-align: center; 
+            border-bottom: 3px solid var(--gold); 
+            position: relative; 
+        }
         
-        .new-label { position: absolute; top: 10px; right: 10px; background: var(--gold); color: #000; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
+        .admin-trigger { position: absolute; top: 15px; right: 15px; font-size: 20px; cursor: pointer; opacity: 0.6; }
+        
+        .new-label { 
+            position: absolute; top: 10px; right: 10px; 
+            background: var(--gold); color: #000; 
+            font-size: 10px; font-weight: bold; 
+            padding: 2px 8px; border-radius: 10px; 
+            text-transform: uppercase; 
+        }
+
         .slider-container { width: 100%; height: 25vh; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
         .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: contain; }
         .active { opacity: 1; }
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #1a1a1a; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid var(--border); z-index: 1000; }
-        .nav-btn { background: none; border: none; color: var(--text-dim); font-size: 11px; font-weight: bold; display: flex; flex-direction: column; align-items: center; }
+
+        .bottom-nav { 
+            position: fixed; bottom: 0; width: 100%; 
+            background: #1a1a1a; 
+            display: flex; justify-content: space-around; 
+            padding: 10px 0; border-top: 1px solid var(--border); 
+            z-index: 1000; 
+        }
+
+        .nav-btn { 
+            background: none; border: none; 
+            color: var(--text-dim); 
+            font-size: 11px; font-weight: bold; 
+            display: flex; flex-direction: column; align-items: center; 
+            transition: 0.3s;
+        }
+        .nav-btn:active { color: var(--gold); }
+
         .page { display: none; padding: 20px; }
         .active-page { display: block; }
-        .card { background: var(--card-bg); border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); border-top: 4px solid var(--gold); position: relative; }
+
+        /* Card Styling for Dark Mode */
+        .card { 
+            background: var(--card-bg); 
+            border-radius: 15px; padding: 20px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4); 
+            border-top: 4px solid var(--gold); 
+            position: relative; 
+        }
+
         h2, h3 { color: var(--gold); margin-top: 0; }
-        input, textarea, select { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid var(--border); box-sizing: border-box; background: var(--input-bg); color: white; }
-        .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; margin-top: 10px; cursor: pointer; }
-        .secondary-btn { background: #333; color: white; }
-        .update-img { width: 100%; border-radius: 10px; margin-top: 10px; object-fit: contain; max-height: 300px; background: #000; }
+
+        .content-link { color: #4d94ff; text-decoration: underline; word-break: break-all; font-weight: bold; }
+
+        input, textarea, select { 
+            width: 100%; padding: 12px; margin-top: 10px; 
+            border-radius: 8px; border: 1px solid var(--border); 
+            box-sizing: border-box; 
+            background: var(--input-bg);
+            color: white;
+        }
+
+        .btn { 
+            background: var(--gold); 
+            color: #000; 
+            padding: 15px; border: none; 
+            border-radius: 10px; width: 100%; 
+            font-weight: bold; margin-top: 10px; 
+            cursor: pointer; 
+        }
+
+        .update-img { 
+            width: 100%; border-radius: 10px; 
+            margin-top: 10px; object-fit: contain; 
+            max-height: 300px; background: #000; 
+        }
+        
         .admin-item { border-bottom: 1px solid var(--border); padding: 15px 0; color: var(--text-dim); }
+        .delete-btn { background: #cc0000; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; cursor: pointer; margin-top: 5px; }
+        .edit-btn { background: #b8860b; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; margin-right: 5px; cursor: pointer; margin-top: 5px; }
     </style>
 </head>
 <body>
-
     <header>
+        <div class="admin-trigger" onclick="showPage('admin-login')">🔑</div>
         <h1>Union in Christ Church</h1>
         <p style="color:var(--text-dim); font-size:12px;">Founder: Lady Bishop E. Chafulumira</p>
     </header>
@@ -61,33 +135,16 @@
     <div id="prayer" class="page">
         <div class="card">
             <h2>Prayer Request</h2>
-            <p style="font-size: 0.9em; color: var(--text-dim);">Your requests go directly to our intercessors.</p>
             <textarea id="prayer-text" placeholder="How can we pray for you? Remember to write your name"></textarea>
             <button class="btn" onclick="submitPrayer()">Send Request</button>
         </div>
     </div>
 
-    <div id="login-gate" class="page">
+    <div id="admin-login" class="page">
         <div class="card">
-            <h2>Access Portal</h2>
-            <p>Please enter your access code to proceed.</p>
-            <input type="password" id="universal-key" placeholder="Enter Access Code">
-            
-            <div style="margin-top: 20px;">
-                <button class="btn" onclick="handleLogin()">Login</button>
-            </div>
-            
-            <p style="font-size: 11px; color: var(--text-dim); margin-top: 20px; text-align: center;">
-                Members use the general password. <br>Admins use the private dashboard key.
-            </p>
-        </div>
-    </div>
-
-    <div id="member-area" class="page">
-        <div class="card">
-            <h2>Member Sanctuary</h2>
-            <p>Welcome, Church Member! Here you can find exclusive member resources.</p>
-            <button class="btn secondary-btn" onclick="showPage('home')">Back to Home</button>
+            <h2>Admin Entry</h2>
+            <input type="password" id="admin-key" placeholder="Password">
+            <button class="btn" onclick="checkAdmin()">Login</button>
         </div>
     </div>
 
@@ -118,18 +175,17 @@
             <div id="admin-prayers" style="margin-top: 15px;"></div>
         </div>
 
-        <button class="btn secondary-btn" style="margin-bottom: 80px;" onclick="showPage('home')">Log Out</button>
+        <button class="btn" style="background:#444; color: white; margin-bottom: 80px;" onclick="showPage('home')">Log Out</button>
     </div>
 
     <nav class="bottom-nav">
         <button class="nav-btn" onclick="showPage('home')">🏠<br>Home</button>
         <button class="nav-btn" onclick="showPage('sermons')">📖<br>Sermons</button>
         <button class="nav-btn" onclick="showPage('prayer')">🙏<br>Prayer</button>
-        <button class="nav-btn" onclick="showPage('login-gate')">👤<br>Login</button>
     </nav>
 
     <script>
-        // --- FIREBASE CONFIG ---
+        // ... (Paste your existing Firebase and Navigation scripts here, they will work perfectly with the new CSS)
         const firebaseConfig = {
             apiKey: "AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo",
             authDomain: "unioninchristapp.firebaseapp.com",
@@ -141,34 +197,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- NAVIGATION & LOGIC ---
-        function showPage(id) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
-            document.getElementById(id).classList.add('active-page');
-            document.getElementById('home-slider').style.display = (id==='home') ? 'block' : 'none';
-            window.scrollTo(0,0);
-        }
-
-        // DUAL LOGIN HANDLER
-        function handleLogin() {
-            const key = document.getElementById('universal-key').value;
-            
-            if (key === 'church111') {
-                // Admin Access
-                showPage('admin-dashboard');
-                loadAdminData();
-                document.getElementById('universal-key').value = "";
-            } else if (key === 'member2024') { 
-                // Member Access (You can change this password)
-                showPage('member-area');
-                document.getElementById('universal-key').value = "";
-            } else {
-                alert("Incorrect password. Please try again.");
-            }
-        }
-
-        // ... (Keep all your existing loadPublicList, submitPrayer, publishPost functions exactly as they were) ...
-        
         function linkify(text) {
             const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
             return text ? text.replace(urlPattern, '<a href="$1" target="_blank" class="content-link">$1</a>') : '';
@@ -177,7 +205,14 @@
         function isNew(dateStr) {
             const postDate = new Date(dateStr);
             const today = new Date();
-            return (Math.abs(today - postDate) / 36e5) < 24;
+            const diffInHours = Math.abs(today - postDate) / 36e5;
+            return diffInHours < 24;
+        }
+
+        function showPage(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+            document.getElementById(id).classList.add('active-page');
+            document.getElementById('home-slider').style.display = (id==='home') ? 'block' : 'none';
         }
 
         db.ref('settings/slider').on('value', s => {
@@ -220,54 +255,100 @@
                 const div = document.getElementById('admin-prayers');
                 div.innerHTML = d ? "" : "No requests.";
                 if(d) Object.keys(d).reverse().forEach(k => {
-                    div.innerHTML += `<div class="admin-item"><b>${d[k].date}</b>: ${d[k].text} <br> <button class="delete-btn" style="background:#cc0000; color:white; border:none; padding:5px 10px; border-radius:5px;" onclick="deleteItem('prayers/${k}')">Delete</button></div>`;
+                    div.innerHTML += `<div class="admin-item"><b>${d[k].date}</b>: ${d[k].text} <br> <button class="delete-btn" onclick="deleteItem('prayers/${k}')">Delete Request</button></div>`;
                 });
             });
 
             const manageDiv = document.getElementById('admin-manage-posts');
-            ['updates', 'sermons'].forEach(type => {
+            const paths = ['updates', 'sermons'];
+            manageDiv.innerHTML = "Loading posts...";
+            
+            paths.forEach(type => {
                 db.ref(type).on('value', s => {
                     const allData = s.val();
+                    const typeHeader = `<h4>${type.toUpperCase()}</h4>`;
                     let typeContainer = document.getElementById(`manage-${type}`);
                     if(!typeContainer) {
                         typeContainer = document.createElement('div');
                         typeContainer.id = `manage-${type}`;
                         manageDiv.appendChild(typeContainer);
                     }
-                    let html = `<h4>${type.toUpperCase()}</h4>`;
-                    if(allData) {
-                        Object.keys(allData).reverse().forEach(k => {
-                            html += `<div class="admin-item"><b>${allData[k].date}</b><br>${allData[k].text.substring(0,30)}...<br>
-                                <button onclick="deleteItem('${type}/${k}')" style="color:red; background:none; border:none;">Delete</button></div>`;
-                        });
+                    if(!allData) {
+                        typeContainer.innerHTML = typeHeader + "<p>None</p>";
+                        return;
                     }
+                    let html = typeHeader;
+                    Object.keys(allData).reverse().forEach(k => {
+                        const post = allData[k];
+                        html += `<div class="admin-item">
+                            <b>${post.date}</b><br>${post.text.substring(0,40)}...<br>
+                            <button class="edit-btn" onclick="editPost('${type}','${k}')">Edit Text</button>
+                            <button class="delete-btn" onclick="deleteItem('${type}/${k}')">Delete</button>
+                        </div>`;
+                    });
                     typeContainer.innerHTML = html;
+                    if(manageDiv.innerHTML.includes("Loading")) manageDiv.firstChild.remove();
                 });
             });
         }
 
         function deleteItem(path) { if(confirm("Delete permanently?")) db.ref(path).remove(); }
+        
+        function editPost(type, id) {
+            db.ref(`${type}/${id}`).once('value', s => {
+                const post = s.val();
+                const newText = prompt("Update message:", post.text);
+                if(newText !== null && newText !== "") {
+                    db.ref(`${type}/${id}`).update({ text: newText })
+                    .then(() => alert("Post Updated Successfully"));
+                }
+            });
+        }
+
         function submitPrayer() {
             const text = document.getElementById('prayer-text').value;
             if(!text) return;
-            db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), viewed: false })
-            .then(() => { alert("Sent."); document.getElementById('prayer-text').value = ""; });
+            db.ref('prayers').push({ 
+                text, 
+                date: new Date().toLocaleDateString(), 
+                timestamp: new Date().getTime(),
+                viewed: false 
+            }).then(() => {
+                alert("Request Sent.");
+                document.getElementById('prayer-text').value = "";
+            });
         }
+
         function publishPost() {
             const type = document.getElementById('post-type').value;
             const text = document.getElementById('post-text').value;
             const image = document.getElementById('post-img').value;
             if(!text) return;
-            db.ref(type).push({ text, image, date: new Date().toLocaleDateString(), timestamp: new Date().getTime() })
-            .then(() => { alert("Posted!"); document.getElementById('post-text').value = ""; document.getElementById('post-img').value = ""; });
+            db.ref(type).push({ 
+                text, 
+                image, 
+                date: new Date().toLocaleDateString(),
+                timestamp: new Date().getTime()
+            }).then(() => {
+                alert("Published!");
+                document.getElementById('post-text').value = "";
+                document.getElementById('post-img').value = "";
+            });
         }
+
         function updateSlides() {
             const img1 = document.getElementById('slide1-url').value;
             const img2 = document.getElementById('slide2-url').value;
             db.ref('settings/slider').update({ img1, img2 }).then(() => alert("Updated"));
         }
 
-        // SLIDER
+        function checkAdmin() {
+            if(document.getElementById('admin-key').value === 'church111') {
+                showPage('admin-dashboard');
+                loadAdminData();
+            } else { alert("Access Denied"); }
+        }
+
         let cur = 0;
         setInterval(() => {
             const s = document.querySelectorAll('.slide');
