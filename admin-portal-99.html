@@ -41,7 +41,7 @@
     </style>
 </head>
 <body>
-    <header><h1>UIC Admin Portal</h1></header>
+    <header><h1>UICC Admin Portal</h1></header>
     
     <div id="login-screen" class="card">
         <input type="password" id="admin-key" placeholder="Password"><button class="btn" onclick="checkAdmin()">Login</button>
@@ -197,7 +197,7 @@
                         box.innerHTML += `
                             <div class="member-msg">
                                 <div>${c.text}</div>
-                                ${c.adminReply ? `<div class="bishop-reply"><strong>Bishop:</strong> ${c.adminReply}</div>` : ''}
+                                ${c.adminReply ? `<div class="bishop-reply"><strong>Admin:</strong> ${c.adminReply}</div>` : ''}
                                 <div class="reply-input-group">
                                     <input type="text" id="rep-in-${ck}" placeholder="Reply...">
                                     <button class="send-reply-btn" onclick="sendReply('${postId}','${ck}')">Send</button>
