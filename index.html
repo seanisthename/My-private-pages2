@@ -31,6 +31,11 @@
         .send-comment-btn { background: var(--gold); border: none; padding: 8px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; }
         .admin-reply { color: var(--gold); font-size: 13px; margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--gold); background: rgba(212,175,55,0.05); padding-top: 5px; padding-bottom: 5px; }
         .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; }
+        
+        /* DEVOTIONAL STYLING */
+        .devo-card { background: linear-gradient(rgba(212, 175, 55, 0.1), rgba(0,0,0,0)); border: 1px solid var(--gold); border-radius: 15px; padding: 15px; margin-bottom: 20px; text-align: center; }
+        .devo-title { color: var(--gold); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: bold; }
+        
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
@@ -43,7 +48,16 @@
         <div class="tab" onclick="showTab('prayer', this)">PRAYER</div>
         <div class="tab" onclick="showTab('about', this)">ABOUT US</div>
     </div>
-    <div id="home" class="content-section active"><div id="updates-list"></div></div>
+    
+    <div id="home" class="content-section active">
+        <div id="devotional-display" class="devo-card" style="display:none;">
+            <div class="devo-title">✨ Word For Today</div>
+            <h3 id="devo-verse" style="margin: 5px 0; color: white;"></h3>
+            <p id="devo-text" style="font-style: italic; color: #ccc; margin-top: 10px;"></p>
+        </div>
+        <div id="updates-list"></div>
+    </div>
+
     <div id="sermons" class="content-section"><div id="sermons-list"></div></div>
     <div id="prayer" class="content-section">
         <div class="card"><h3>How can we pray for you?</h3><textarea id="prayer-text" style="width:100%; background:#2d2d2d; color:white; border-radius:8px; padding:10px; box-sizing:border-box; border:1px solid #444;" rows="4" placeholder="Remember to include your name..."></textarea>
@@ -85,6 +99,18 @@
 
         function loadData() {
             db.ref('settings/slider').on('value', s => { const d = s.val(); if(d){ document.getElementById('img1').src=d.img1; document.getElementById('img2').src=d.img2; } });
+            
+            // Listen for Devotional
+            db.ref('settings/devotional').on('value', s => {
+                const d = s.val();
+                const box = document.getElementById('devotional-display');
+                if(d && d.verse) {
+                    box.style.display = 'block';
+                    document.getElementById('devo-verse').innerText = d.verse;
+                    document.getElementById('devo-text').innerText = d.text;
+                } else { box.style.display = 'none'; }
+            });
+
             render('updates', 'updates-list');
             render('sermons', 'sermons-list');
         }
