@@ -3,118 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Union in Christ</title>
+    <title>Union in Christ - Members</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
-        /* Updated Dark Theme Variables */
-        :root { 
-            --gold: #D4AF37; 
-            --navy: #001a4d; 
-            --dark-bg: #121212; 
-            --card-bg: #1e1e1e; 
-            --text-main: #e0e0e0;
-            --text-dim: #b0b0b0;
-            --input-bg: #2d2d2d;
-            --border: #333;
-        }
-
-        body { 
-            margin: 0; 
-            font-family: 'Segoe UI', sans-serif; 
-            background: var(--dark-bg); 
-            color: var(--text-main);
-            padding-bottom: 70px; 
-        }
-
-        header { 
-            background: linear-gradient(135deg, #000c24, var(--navy)); 
-            color: var(--gold); 
-            padding: 40px 20px 20px; 
-            text-align: center; 
-            border-bottom: 3px solid var(--gold); 
-            position: relative; 
-        }
-        
-        .admin-trigger { position: absolute; top: 15px; right: 15px; font-size: 20px; cursor: pointer; opacity: 0.6; }
-        
-        .new-label { 
-            position: absolute; top: 10px; right: 10px; 
-            background: var(--gold); color: #000; 
-            font-size: 10px; font-weight: bold; 
-            padding: 2px 8px; border-radius: 10px; 
-            text-transform: uppercase; 
-        }
-
+        /* [KEEP ALL YOUR CSS FROM THE ORIGINAL FILE HERE] */
+        :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; --text-dim: #b0b0b0; --input-bg: #2d2d2d; --border: #333;}
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); padding-bottom: 70px; }
+        header { background: linear-gradient(135deg, #000c24, var(--navy)); color: var(--gold); padding: 40px 20px 20px; text-align: center; border-bottom: 3px solid var(--gold); position: relative; }
+        .new-label { position: absolute; top: 10px; right: 10px; background: var(--gold); color: #000; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
         .slider-container { width: 100%; height: 25vh; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
         .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: contain; }
         .active { opacity: 1; }
-
-        .bottom-nav { 
-            position: fixed; bottom: 0; width: 100%; 
-            background: #1a1a1a; 
-            display: flex; justify-content: space-around; 
-            padding: 10px 0; border-top: 1px solid var(--border); 
-            z-index: 1000; 
-        }
-
-        .nav-btn { 
-            background: none; border: none; 
-            color: var(--text-dim); 
-            font-size: 11px; font-weight: bold; 
-            display: flex; flex-direction: column; align-items: center; 
-            transition: 0.3s;
-        }
-        .nav-btn:active { color: var(--gold); }
-
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #1a1a1a; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid var(--border); z-index: 1000; }
+        .nav-btn { background: none; border: none; color: var(--text-dim); font-size: 11px; font-weight: bold; display: flex; flex-direction: column; align-items: center; transition: 0.3s;}
         .page { display: none; padding: 20px; }
         .active-page { display: block; }
-
-        /* Card Styling for Dark Mode */
-        .card { 
-            background: var(--card-bg); 
-            border-radius: 15px; padding: 20px; 
-            margin-bottom: 20px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4); 
-            border-top: 4px solid var(--gold); 
-            position: relative; 
-        }
-
-        h2, h3 { color: var(--gold); margin-top: 0; }
-
-        .content-link { color: #4d94ff; text-decoration: underline; word-break: break-all; font-weight: bold; }
-
-        input, textarea, select { 
-            width: 100%; padding: 12px; margin-top: 10px; 
-            border-radius: 8px; border: 1px solid var(--border); 
-            box-sizing: border-box; 
-            background: var(--input-bg);
-            color: white;
-        }
-
-        .btn { 
-            background: var(--gold); 
-            color: #000; 
-            padding: 15px; border: none; 
-            border-radius: 10px; width: 100%; 
-            font-weight: bold; margin-top: 10px; 
-            cursor: pointer; 
-        }
-
-        .update-img { 
-            width: 100%; border-radius: 10px; 
-            margin-top: 10px; object-fit: contain; 
-            max-height: 300px; background: #000; 
-        }
-        
-        .admin-item { border-bottom: 1px solid var(--border); padding: 15px 0; color: var(--text-dim); }
-        .delete-btn { background: #cc0000; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; cursor: pointer; margin-top: 5px; }
-        .edit-btn { background: #b8860b; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; margin-right: 5px; cursor: pointer; margin-top: 5px; }
+        .card { background: var(--card-bg); border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); border-top: 4px solid var(--gold); position: relative; }
+        h2 { color: var(--gold); margin-top: 0; }
+        input, textarea { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid var(--border); box-sizing: border-box; background: var(--input-bg); color: white;}
+        .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; margin-top: 10px; cursor: pointer; }
+        .update-img { width: 100%; border-radius: 10px; margin-top: 10px; object-fit: contain; max-height: 300px; background: #000; }
     </style>
 </head>
 <body>
     <header>
-        <div class="admin-trigger" onclick="showPage('admin-login')">🔑</div>
         <h1>Union in Christ Church</h1>
         <p style="color:var(--text-dim); font-size:12px;">Founder: Lady Bishop E. Chafulumira</p>
     </header>
@@ -140,44 +53,6 @@
         </div>
     </div>
 
-    <div id="admin-login" class="page">
-        <div class="card">
-            <h2>Admin Entry</h2>
-            <input type="password" id="admin-key" placeholder="Password">
-            <button class="btn" onclick="checkAdmin()">Login</button>
-        </div>
-    </div>
-
-    <div id="admin-dashboard" class="page">
-        <div class="card">
-            <h3>Update Slideshow</h3>
-            <input type="text" id="slide1-url" placeholder="Slide 1 Image Link">
-            <input type="text" id="slide2-url" placeholder="Slide 2 Image Link">
-            <button class="btn" onclick="updateSlides()">Save Slider</button>
-        </div>
-
-        <div class="card">
-            <h3>Create New Post</h3>
-            <select id="post-type"><option value="updates">Home Update</option><option value="sermons">Sermon Page</option></select>
-            <textarea id="post-text" placeholder="Message..."></textarea>
-            <input type="text" id="post-img" placeholder="Image Link (Optional)">
-            <button class="btn" onclick="publishPost()">Post Now</button>
-        </div>
-
-        <div class="card" style="border-top-color: #2196F3;">
-            <h3>Manage Posts</h3>
-            <div id="admin-manage-posts"></div>
-        </div>
-
-        <div class="card" style="border-top-color: #cc0000;">
-            <h3>🙏 New Prayer Requests (<span id="count-display">0</span>)</h3>
-            <button class="btn" style="background:#333; color: white; font-size: 10px; padding: 5px;" onclick="markAllRead()">Mark All as Viewed</button>
-            <div id="admin-prayers" style="margin-top: 15px;"></div>
-        </div>
-
-        <button class="btn" style="background:#444; color: white; margin-bottom: 80px;" onclick="showPage('home')">Log Out</button>
-    </div>
-
     <nav class="bottom-nav">
         <button class="nav-btn" onclick="showPage('home')">🏠<br>Home</button>
         <button class="nav-btn" onclick="showPage('sermons')">📖<br>Sermons</button>
@@ -185,7 +60,6 @@
     </nav>
 
     <script>
-        // ... (Paste your existing Firebase and Navigation scripts here, they will work perfectly with the new CSS)
         const firebaseConfig = {
             apiKey: "AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo",
             authDomain: "unioninchristapp.firebaseapp.com",
@@ -197,29 +71,19 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        function linkify(text) {
-            const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
-            return text ? text.replace(urlPattern, '<a href="$1" target="_blank" class="content-link">$1</a>') : '';
-        }
-
-        function isNew(dateStr) {
-            const postDate = new Date(dateStr);
-            const today = new Date();
-            const diffInHours = Math.abs(today - postDate) / 36e5;
-            return diffInHours < 24;
-        }
-
         function showPage(id) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
             document.getElementById(id).classList.add('active-page');
             document.getElementById('home-slider').style.display = (id==='home') ? 'block' : 'none';
         }
 
+        // LOAD SLIDER
         db.ref('settings/slider').on('value', s => {
             const d = s.val();
             if(d){ if(d.img1) document.getElementById('img1').src=d.img1; if(d.img2) document.getElementById('img2').src=d.img2; }
         });
 
+        // LOAD POSTS
         function loadPublicList(path, divId) {
             db.ref(path).on('value', s => {
                 const d = s.val();
@@ -227,126 +91,18 @@
                 div.innerHTML = "";
                 if(d) Object.keys(d).reverse().forEach(k => {
                     const item = d[k];
-                    const newTag = isNew(item.timestamp || item.date) ? `<span class="new-label">New</span>` : '';
-                    div.innerHTML += `<div class="card">${newTag}<b>${item.date}</b><p>${linkify(item.text)}</p>${item.image?`<img src="${item.image}" class="update-img">`:''}</div>`;
+                    div.innerHTML += `<div class="card"><b>${item.date}</b><p>${item.text}</p>${item.image?`<img src="${item.image}" class="update-img">`:''}</div>`;
                 });
             });
         }
         loadPublicList('updates', 'display-updates');
         loadPublicList('sermons', 'display-sermons');
 
-        db.ref('prayers').on('value', s => {
-            const d = s.val();
-            let unreadCount = 0;
-            if(d) Object.keys(d).forEach(k => { if(!d[k].viewed) unreadCount++; });
-            document.getElementById('count-display').innerText = unreadCount;
-        });
-
-        function markAllRead() {
-            db.ref('prayers').once('value', s => {
-                const d = s.val();
-                if(d) Object.keys(d).forEach(k => { db.ref(`prayers/${k}`).update({ viewed: true }); });
-            });
-        }
-
-        function loadAdminData() {
-            db.ref('prayers').on('value', s => {
-                const d = s.val();
-                const div = document.getElementById('admin-prayers');
-                div.innerHTML = d ? "" : "No requests.";
-                if(d) Object.keys(d).reverse().forEach(k => {
-                    div.innerHTML += `<div class="admin-item"><b>${d[k].date}</b>: ${d[k].text} <br> <button class="delete-btn" onclick="deleteItem('prayers/${k}')">Delete Request</button></div>`;
-                });
-            });
-
-            const manageDiv = document.getElementById('admin-manage-posts');
-            const paths = ['updates', 'sermons'];
-            manageDiv.innerHTML = "Loading posts...";
-            
-            paths.forEach(type => {
-                db.ref(type).on('value', s => {
-                    const allData = s.val();
-                    const typeHeader = `<h4>${type.toUpperCase()}</h4>`;
-                    let typeContainer = document.getElementById(`manage-${type}`);
-                    if(!typeContainer) {
-                        typeContainer = document.createElement('div');
-                        typeContainer.id = `manage-${type}`;
-                        manageDiv.appendChild(typeContainer);
-                    }
-                    if(!allData) {
-                        typeContainer.innerHTML = typeHeader + "<p>None</p>";
-                        return;
-                    }
-                    let html = typeHeader;
-                    Object.keys(allData).reverse().forEach(k => {
-                        const post = allData[k];
-                        html += `<div class="admin-item">
-                            <b>${post.date}</b><br>${post.text.substring(0,40)}...<br>
-                            <button class="edit-btn" onclick="editPost('${type}','${k}')">Edit Text</button>
-                            <button class="delete-btn" onclick="deleteItem('${type}/${k}')">Delete</button>
-                        </div>`;
-                    });
-                    typeContainer.innerHTML = html;
-                    if(manageDiv.innerHTML.includes("Loading")) manageDiv.firstChild.remove();
-                });
-            });
-        }
-
-        function deleteItem(path) { if(confirm("Delete permanently?")) db.ref(path).remove(); }
-        
-        function editPost(type, id) {
-            db.ref(`${type}/${id}`).once('value', s => {
-                const post = s.val();
-                const newText = prompt("Update message:", post.text);
-                if(newText !== null && newText !== "") {
-                    db.ref(`${type}/${id}`).update({ text: newText })
-                    .then(() => alert("Post Updated Successfully"));
-                }
-            });
-        }
-
         function submitPrayer() {
             const text = document.getElementById('prayer-text').value;
             if(!text) return;
-            db.ref('prayers').push({ 
-                text, 
-                date: new Date().toLocaleDateString(), 
-                timestamp: new Date().getTime(),
-                viewed: false 
-            }).then(() => {
-                alert("Request Sent.");
-                document.getElementById('prayer-text').value = "";
-            });
-        }
-
-        function publishPost() {
-            const type = document.getElementById('post-type').value;
-            const text = document.getElementById('post-text').value;
-            const image = document.getElementById('post-img').value;
-            if(!text) return;
-            db.ref(type).push({ 
-                text, 
-                image, 
-                date: new Date().toLocaleDateString(),
-                timestamp: new Date().getTime()
-            }).then(() => {
-                alert("Published!");
-                document.getElementById('post-text').value = "";
-                document.getElementById('post-img').value = "";
-            });
-        }
-
-        function updateSlides() {
-            const img1 = document.getElementById('slide1-url').value;
-            const img2 = document.getElementById('slide2-url').value;
-            db.ref('settings/slider').update({ img1, img2 }).then(() => alert("Updated"));
-        }
-
-        function checkAdmin() {
-            if(document.getElementById('admin-key').value === 'church111') {
-                showPage('admin-dashboard');
-                loadAdminData();
-            } else { alert("Access Denied"); }
+            db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), viewed: false })
+            .then(() => { alert("Request Sent."); document.getElementById('prayer-text').value = ""; });
         }
 
         let cur = 0;
