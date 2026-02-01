@@ -22,12 +22,15 @@
         
         .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 16px; }
         
-        /* Big Toggle Buttons */
-        .menu-btn { background: #2d2d2d; color: var(--gold); border: 1px solid var(--gold); padding: 18px; border-radius: 12px; width: 100%; text-align: left; font-size: 18px; font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; cursor: pointer; }
+        .menu-btn { background: #2d2d2d; color: var(--gold); border: 1px solid var(--gold); padding: 18px; border-radius: 12px; width: 100%; text-align: left; font-size: 18px; font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; position: relative; }
+
+        .badge { background: #ff3b30; color: white; font-size: 12px; padding: 2px 8px; border-radius: 10px; margin-left: 10px; display: none; }
 
         .section-content { display: none; margin-bottom: 20px; }
+        .list-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .total-info { font-size: 11px; color: #888; }
+        .clear-link { color: #ff3b30; font-size: 11px; text-decoration: underline; cursor: pointer; background: none; border: none; padding: 0; }
 
-        /* Item Rows */
         .admin-item { background: #252525; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid var(--gold); }
         .item-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .edit-panel { display: none; padding-top: 15px; border-top: 1px solid #444; margin-top: 10px; }
@@ -75,7 +78,11 @@
         <button class="menu-btn" onclick="toggleSection('sec-sermons')">Manage Sermons <span>▼</span></button>
         <div id="sec-sermons" class="section-content"></div>
 
-        <button class="menu-btn" onclick="toggleSection('sec-prayers')">Prayer Requests <span>▼</span></button>
+        <button class="menu-btn" onclick="toggleSection('sec-prayers')">
+            Prayer Requests 
+            <span id="prayer-badge" class="badge">0</span>
+            <span>▼</span>
+        </button>
         <div id="sec-prayers" class="section-content"></div>
 
         <div class="card" style="margin-top:20px;">
@@ -99,6 +106,8 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+
+        let lastCount = localStorage.getItem('prayerCount') || 0;
 
         window.onload = function() {
             if (localStorage.getItem('uic_admin') === 'authenticated') { showDashboard(); }
@@ -124,10 +133,13 @@
             const isVisible = el.style.display === 'block';
             document.querySelectorAll('.section-content').forEach(s => s.style.display = 'none');
             el.style.display = isVisible ? 'none' : 'block';
+            
+            if (id === 'sec-prayers' && !isVisible) {
+                document.getElementById('prayer-badge').style.display = 'none';
+            }
         }
 
         function loadAdminData() {
-            // Slider Preview
             db.ref('settings/slider').on('value', s => {
                 const d = s.val();
                 if(d){ 
@@ -136,27 +148,49 @@
                 }
             });
 
-            // Prayers
             db.ref('prayers').on('value', s => {
                 const d = s.val();
                 const div = document.getElementById('sec-prayers');
-                div.innerHTML = "";
-                if(d) Object.keys(d).reverse().forEach(k => {
+                const badge = document.getElementById('prayer-badge');
+                
+                const keys = d ? Object.keys(d) : [];
+                const currentCount = keys.length;
+
+                if (currentCount > lastCount) {
+                    badge.innerText = currentCount - lastCount;
+                    badge.style.display = 'inline-block';
+                }
+
+                div.innerHTML = `
+                    <div class="list-header-row">
+                        <span class="total-info">Total Requests: ${currentCount}</span>
+                        ${currentCount > 0 ? `<button class="clear-link" onclick="deleteAllPrayers()">Clear All</button>` : ''}
+                    </div>
+                `;
+                
+                if(d) keys.reverse().forEach(k => {
                     div.innerHTML += `<div class="admin-item">
                         <div class="item-header"><span>${d[k].text}</span><button onclick="deleteItem('prayers/${k}')" style="background:none; border:none; color:red;">✕</button></div>
                     </div>`;
                 });
+
+                if (document.getElementById('sec-prayers').style.display === 'block') {
+                    lastCount = currentCount;
+                    localStorage.setItem('prayerCount', lastCount);
+                    badge.style.display = 'none';
+                }
             });
 
-            // Listeners for Posts and Sermons
             db.ref('updates').on('value', s => renderItems(s.val(), 'sec-posts', 'updates'));
             db.ref('sermons').on('value', s => renderItems(s.val(), 'sec-sermons', 'sermons'));
         }
 
         function renderItems(data, containerId, type) {
             const div = document.getElementById(containerId);
-            div.innerHTML = "";
-            if(!data) { div.innerHTML = "<p style='padding:10px;'>Nothing found.</p>"; return; }
+            const count = data ? Object.keys(data).length : 0;
+            div.innerHTML = `<div class="list-header-row"><span class="total-info">Total Entries: ${count}</span></div>`;
+            
+            if(!data) { div.innerHTML += "<p style='padding:10px;'>Nothing found.</p>"; return; }
             
             Object.keys(data).reverse().forEach(k => {
                 const item = data[k];
@@ -191,6 +225,14 @@
         }
 
         function deleteItem(path) { if(confirm("Are you sure?")) db.ref(path).remove(); }
+
+        function deleteAllPrayers() {
+            if(confirm("Are you sure you want to delete ALL prayer requests?")) {
+                if(confirm("LAST WARNING: This cannot be undone. Delete all?")) {
+                    db.ref('prayers').remove();
+                }
+            }
+        }
 
         function publishPost() {
             const type = document.getElementById('post-type').value;
