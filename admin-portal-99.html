@@ -31,10 +31,11 @@
         .total-info { font-size: 11px; color: #888; }
         .clear-link { color: #ff3b30; font-size: 11px; text-decoration: underline; cursor: pointer; background: none; border: none; padding: 0; }
 
-        .admin-item { background: #252525; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid var(--gold); }
-        .item-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .edit-panel { display: none; padding-top: 15px; border-top: 1px solid #444; margin-top: 10px; }
+        .admin-item { background: #252525; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid var(--gold); position: relative; }
+        .item-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .timestamp { font-size: 10px; color: var(--gold); display: block; margin-top: 5px; opacity: 0.8; }
         
+        .edit-panel { display: none; padding-top: 15px; border-top: 1px solid #444; margin-top: 10px; }
         .delete-btn { background: #cc0000; color: white; border: none; padding: 10px; border-radius: 5px; margin-top: 10px; width: 100%; }
         .save-btn { background: #28a745; color: white; border: none; padding: 10px; border-radius: 5px; margin-top: 5px; width: 100%; }
         
@@ -107,7 +108,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Track seen count separately
         let seenCount = parseInt(localStorage.getItem('prayerSeenCount')) || 0;
 
         window.onload = function() {
@@ -135,9 +135,7 @@
             document.querySelectorAll('.section-content').forEach(s => s.style.display = 'none');
             el.style.display = isVisible ? 'none' : 'block';
             
-            // RESET NOTIFICATION Logic
             if (id === 'sec-prayers' && !isVisible) {
-                // Fetch the current total and set it as "seen"
                 db.ref('prayers').once('value', s => {
                     const count = s.val() ? Object.keys(s.val()).length : 0;
                     seenCount = count;
@@ -164,7 +162,6 @@
                 const keys = d ? Object.keys(d) : [];
                 const currentTotal = keys.length;
 
-                // Only show badge if current total is higher than what we've "seen"
                 if (currentTotal > seenCount) {
                     badge.innerText = currentTotal - seenCount;
                     badge.style.display = 'inline-block';
@@ -180,8 +177,17 @@
                 `;
                 
                 if(d) keys.reverse().forEach(k => {
+                    const prayer = d[k];
+                    const timeStr = prayer.timestamp ? new Date(prayer.timestamp).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'}) : 'Prior Entry';
+                    
                     div.innerHTML += `<div class="admin-item">
-                        <div class="item-header"><span>${d[k].text}</span><button onclick="deleteItem('prayers/${k}')" style="background:none; border:none; color:red;">✕</button></div>
+                        <div class="item-header">
+                            <div>
+                                <span style="display:block;">${prayer.text}</span>
+                                <span class="timestamp">${timeStr}</span>
+                            </div>
+                            <button onclick="deleteItem('prayers/${k}')" style="background:none; border:none; color:red; padding:0 5px;">✕</button>
+                        </div>
                     </div>`;
                 });
             });
@@ -203,7 +209,10 @@
                 itemDiv.className = 'admin-item';
                 itemDiv.innerHTML = `
                     <div class="item-header" onclick="toggleEdit('${k}')">
-                        <span>${item.text.substring(0, 30)}...</span>
+                        <div>
+                            <span>${item.text.substring(0, 40)}...</span>
+                            <span class="timestamp">${item.date || ''}</span>
+                        </div>
                         <span style="color:var(--gold); font-size:12px;">Edit ✎</span>
                     </div>
                     <div id="edit-${k}" class="edit-panel">
