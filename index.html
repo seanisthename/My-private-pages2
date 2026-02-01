@@ -34,7 +34,7 @@
     </style>
 </head>
 <body>
-    <header><h1>Union in Christ</h1><div class="logo-sub">Lady Bishop E. Chafulumira</div></header>
+    <header><h1>Union in Christ Church</h1><div class="logo-sub">Founder: Lady Bishop E. Chafulumira</div></header>
     <div class="slider-container"><img id="img1" class="slide active" src=""><img id="img2" class="slide" src=""></div>
     <div class="nav-tabs">
         <div class="tab active" onclick="showTab('home', this)">HOME</div>
@@ -44,7 +44,7 @@
     <div id="home" class="content-section active"><div id="updates-list"></div></div>
     <div id="sermons" class="content-section"><div id="sermons-list"></div></div>
     <div id="prayer" class="content-section">
-        <div class="card"><h3>Prayer Request</h3><textarea id="prayer-text" style="width:100%; background:#2d2d2d; color:white; border-radius:8px; padding:10px;" rows="4" placeholder="Your prayer request..."></textarea><button class="btn" style="margin-top:10px;" onclick="submitPrayer()">Submit Request</button></div>
+        <div class="card"><h3>Prayer Request</h3><textarea id="prayer-text" style="width:100%; background:#2d2d2d; color:white; border-radius:8px; padding:10px;" rows="4" placeholder="Remember to include your name..."></textarea><button class="btn" style="margin-top:10px;" onclick="submitPrayer()">Submit Request</button></div>
     </div>
     <script>
         const firebaseConfig = {
@@ -106,14 +106,14 @@
                 const data = s.val(); box.innerHTML = "";
                 if(data) {
                     const keys = Object.keys(data); count.innerText = `(${keys.length})`;
-                    keys.forEach(k => { const c = data[k]; box.innerHTML += `<div style="padding:5px 0; border-bottom:1px solid #222;">${c.text}${c.adminReply ? `<div class="admin-reply"><strong>Bishop:</strong> ${c.adminReply}</div>` : ''}</div>`; });
+                    keys.forEach(k => { const c = data[k]; box.innerHTML += `<div style="padding:5px 0; border-bottom:1px solid #222;">${c.text}${c.adminReply ? `<div class="admin-reply"><strong>Admin:</strong> ${c.adminReply}</div>` : ''}</div>`; });
                 }
             });
         }
         function likePost(p, id) { db.ref(`${p}/${id}/likes`).transaction(c => (c || 0) + 1); }
         function submitPrayer() {
             const text = document.getElementById('prayer-text').value; if(!text) return;
-            db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), status: "unread" }).then(() => { alert("Prayer Sent"); document.getElementById('prayer-text').value=""; });
+            db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), status: "unread" }).then(() => { alert("Your Prayer request has been Sent successfully"); document.getElementById('prayer-text').value=""; });
         }
         let cur = 0; setInterval(() => {
             const s = document.querySelectorAll('.slide'); if(s.length<2) return;
