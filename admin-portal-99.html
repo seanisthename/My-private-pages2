@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UIC Admin Dashboard</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        /* Use the same CSS as above, plus the admin-specific styles */
+        :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; --border: #333; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); padding: 20px; }
+        .card { background: var(--card-bg); border-radius: 15px; padding: 20px; margin-bottom: 20px; border-top: 4px solid var(--gold); }
+        h3 { color: var(--gold); }
+        input, textarea, select { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid var(--border); background: #2d2d2d; color: white; }
+        .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .admin-item { border-bottom: 1px solid var(--border); padding: 10px 0; }
+        .delete-btn { background: #cc0000; color: white; border: none; padding: 5px; border-radius: 5px; margin-top: 5px; cursor: pointer; }
+        #login-screen { max-width: 400px; margin: 100px auto; }
+        #dashboard { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen" class="card">
+        <h3>Admin Login</h3>
+        <input type="password" id="admin-key" placeholder="Enter Password">
+        <button class="btn" onclick="checkAdmin()">Enter Dashboard</button>
+    </div>
+
+    <div id="dashboard">
+        <h2>Church Management</h2>
+        
+        <div class="card">
+            <h3>Update Slideshow</h3>
+            <input type="text" id="slide1-url" placeholder="Slide 1 Image Link">
+            <input type="text" id="slide2-url" placeholder="Slide 2 Image Link">
+            <button class="btn" onclick="updateSlides()">Save Images</button>
+        </div>
+
+        <div class="card">
+            <h3>Post New Content</h3>
+            <select id="post-type"><option value="updates">Home Update</option><option value="sermons">Sermon</option></select>
+            <textarea id="post-text" placeholder="Write message..."></textarea>
+            <input type="text" id="post-img" placeholder="Image Link (Optional)">
+            <button class="btn" onclick="publishPost()">Post Now</button>
+        </div>
+
+        <div class="card">
+            <h3>Manage Posts</h3>
+            <div id="admin-manage-posts"></div>
+        </div>
+
+        <div class="card" style="border-top-color: #cc0000;">
+            <h3>Prayer Requests</h3>
+            <div id="admin-prayers"></div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo",
+            authDomain: "unioninchristapp.firebaseapp.com",
+            databaseURL: "https://unioninchristapp-default-rtdb.firebaseio.com",
+            projectId: "unioninchristapp",
+            storageBucket: "unioninchristapp.firebasestorage.app",
+            appId: "1:68198927662:web:1ffa7ec16b35d4be88bebf"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function checkAdmin() {
+            if(document.getElementById('admin-key').value === 'church111') {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                loadAdminData();
+            } else { alert("Wrong Password"); }
+        }
+
+        function loadAdminData() {
+            // Load Prayers
+            db.ref('prayers').on('value', s => {
+                const d = s.val();
+                const div = document.getElementById('admin-prayers');
+                div.innerHTML = "";
+                if(d) Object.keys(d).reverse().forEach(k => {
+                    div.innerHTML += `<div class="admin-item"><b>${d[k].date}</b>: ${d[k].text} <br> <button class="delete-btn" onclick="deleteItem('prayers/${k}')">Remove</button></div>`;
+                });
+            });
+
+            // Load Posts to Delete
+            const manageDiv = document.getElementById('admin-manage-posts');
+            ['updates', 'sermons'].forEach(type => {
+                db.ref(type).on('value', s => {
+                    const data = s.val();
+                    let html = `<h4>${type.toUpperCase()}</h4>`;
+                    if(data) Object.keys(data).reverse().forEach(k => {
+                        html += `<div class="admin-item">${data[k].text.substring(0,30)}... <button class="delete-btn" onclick="deleteItem('${type}/${k}')">Delete</button></div>`;
+                    });
+                    manageDiv.innerHTML += html;
+                });
+            });
+        }
+
+        function deleteItem(path) { if(confirm("Delete this?")) db.ref(path).remove(); }
+
+        function publishPost() {
+            const type = document.getElementById('post-type').value;
+            const text = document.getElementById('post-text').value;
+            const image = document.getElementById('post-img').value;
+            db.ref(type).push({ text, image, date: new Date().toLocaleDateString() })
+            .then(() => { alert("Posted!"); location.reload(); });
+        }
+
+        function updateSlides() {
+            const img1 = document.getElementById('slide1-url').value;
+            const img2 = document.getElementById('slide2-url').value;
+            db.ref('settings/slider').update({ img1, img2 }).then(() => alert("Slider Updated"));
+        }
+    </script>
+</body>
+</html>
