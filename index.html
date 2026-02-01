@@ -8,33 +8,44 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); overflow-x: hidden; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); }
         
-        header { background: linear-gradient(135deg, #000c24, var(--navy)); color: var(--gold); padding: 40px 20px; text-align: center; border-bottom: 3px solid var(--gold); }
-        .logo-sub { color: #b0b0b0; font-size: 14px; margin-top: 5px; letter-spacing: 1px; }
+        header { background: linear-gradient(135deg, #000c24, var(--navy)); color: var(--gold); padding: 30px 20px; text-align: center; border-bottom: 3px solid var(--gold); }
+        .logo-sub { color: #b0b0b0; font-size: 13px; margin-top: 5px; }
 
-        .slider-container { width: 100%; height: 250px; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
+        .slider-container { width: 100%; height: 220px; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
         .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: cover; }
         .active { opacity: 1; }
 
-        .nav-tabs { display: flex; background: #1a1a1a; sticky: top; top: 0; z-index: 100; border-bottom: 1px solid #333; }
-        .tab { flex: 1; padding: 15px; text-align: center; color: #888; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.3s; }
+        .nav-tabs { display: flex; background: #1a1a1a; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #333; }
+        .tab { flex: 1; padding: 15px; text-align: center; color: #888; font-weight: bold; cursor: pointer; font-size: 13px; }
         .tab.active { color: var(--gold); border-bottom: 3px solid var(--gold); background: #252525; }
 
-        .content-section { display: none; padding: 20px; animation: fadeIn 0.5s; }
+        .content-section { display: none; padding: 15px; animation: fadeIn 0.4s; }
         .content-section.active { display: block; }
 
-        .card { background: var(--card-bg); border-radius: 15px; padding: 20px; margin-bottom: 20px; border-top: 4px solid var(--gold); box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .card img { width: 100%; border-radius: 10px; margin-bottom: 15px; }
-        .card h3 { color: var(--gold); margin-top: 0; }
-        .card p { line-height: 1.6; color: #ccc; }
-
-        .prayer-input { width: 100%; padding: 15px; border-radius: 10px; border: 1px solid #444; background: #2d2d2d; color: white; box-sizing: border-box; font-size: 16px; margin-bottom: 10px; }
-        .btn { background: var(--gold); color: #000; padding: 15px 30px; border: none; border-radius: 10px; width: 100%; font-weight: bold; font-size: 16px; cursor: pointer; }
+        .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 20px; border-top: 3px solid var(--gold); position: relative; }
+        .card img { width: 100%; border-radius: 8px; margin-bottom: 12px; }
         
-        #success-msg { color: #28a745; text-align: center; display: none; margin-top: 10px; font-weight: bold; }
+        /* NEW BADGE STYLE */
+        .new-badge { position: absolute; top: 10px; right: 10px; background: #ff3b30; color: white; padding: 3px 8px; border-radius: 5px; font-size: 10px; font-weight: bold; z-index: 5; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* COMMENT STYLES */
+        .interaction-bar { border-top: 1px solid #333; margin-top: 10px; padding-top: 10px; display: flex; align-items: center; }
+        .comment-btn { background: none; border: none; color: var(--gold); cursor: pointer; display: flex; align-items: center; font-size: 14px; gap: 5px; }
+        
+        .comment-section { display: none; margin-top: 10px; background: #181818; padding: 10px; border-radius: 8px; }
+        .comment-input-box { display: flex; gap: 5px; margin-bottom: 10px; }
+        .comment-input-box input { flex: 1; background: #2d2d2d; border: 1px solid #444; color: white; padding: 8px; border-radius: 5px; }
+        .send-comment-btn { background: var(--gold); border: none; padding: 8px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        
+        .comments-display { max-height: 150px; overflow-y: auto; font-size: 13px; }
+        .single-comment { border-bottom: 1px solid #222; padding: 5px 0; color: #bbb; }
+
+        .prayer-input { width: 100%; padding: 15px; border-radius: 10px; background: #2d2d2d; color: white; border: 1px solid #444; margin-bottom: 10px; }
+        .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -45,8 +56,8 @@
     </header>
 
     <div class="slider-container">
-        <img id="img1" class="slide active" src="https://via.placeholder.com/800x400/000000/D4AF37?text=Welcome+to+UIC">
-        <img id="img2" class="slide" src="https://via.placeholder.com/800x400/000000/D4AF37?text=Sunday+Service">
+        <img id="img1" class="slide active" src="">
+        <img id="img2" class="slide" src="">
     </div>
 
     <div class="nav-tabs">
@@ -56,22 +67,19 @@
     </div>
 
     <div id="home" class="content-section active">
-        <h2 style="color:var(--gold)">Latest Updates</h2>
-        <div id="updates-list">Loading updates...</div>
+        <div id="updates-list"></div>
     </div>
 
     <div id="sermons" class="content-section">
-        <h2 style="color:var(--gold)">Sunday Sermons</h2>
-        <div id="sermons-list">Loading sermons...</div>
+        <div id="sermons-list"></div>
     </div>
 
     <div id="prayer" class="content-section">
         <div class="card">
             <h3>Prayer Request</h3>
-            <p>How can we pray for you? Remember to write your name.</p>
-            <textarea id="prayer-text" class="prayer-input" rows="4" placeholder="Write your prayer request here with your name..."></textarea>
+            <textarea id="prayer-text" class="prayer-input" rows="4" placeholder="How can we pray for you?"></textarea>
             <button class="btn" onclick="submitPrayer()">Submit Request</button>
-            <div id="success-msg">✔ Request Sent to the administration</div>
+            <p id="success-msg" style="display:none; color:#28a745; text-align:center;">Sent successfully.</p>
         </div>
     </div>
 
@@ -92,71 +100,109 @@
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             el.classList.add('active');
-            window.scrollTo(0,0);
         }
 
         function loadData() {
-            // Load Slider Images
             db.ref('settings/slider').on('value', s => {
                 const d = s.val();
-                if(d) {
-                    if(d.img1) document.getElementById('img1').src = d.img1;
-                    if(d.img2) document.getElementById('img2').src = d.img2;
+                if(d){ document.getElementById('img1').src=d.img1; document.getElementById('img2').src=d.img2; }
+            });
+
+            renderCollection('updates', 'updates-list');
+            renderCollection('sermons', 'sermons-list');
+        }
+
+        function renderCollection(refName, containerId) {
+            db.ref(refName).on('value', s => {
+                const list = document.getElementById(containerId);
+                list.innerHTML = "";
+                const data = s.val();
+                if(!data) return;
+
+                Object.keys(data).reverse().forEach(k => {
+                    const item = data[k];
+                    const isNew = (new Date().getTime() - item.timestamp) < (10 * 60 * 60 * 1000);
+                    
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        ${isNew ? '<span class="new-badge">NEW</span>' : ''}
+                        ${item.image ? `<img src="${item.image}">` : ''}
+                        <small style="color:var(--gold)">${item.date || ''}</small>
+                        <p>${item.text}</p>
+                        <div class="interaction-bar">
+                            <button class="comment-btn" onclick="toggleComments('${k}')">
+                                💬 Comments <span id="count-${k}"></span>
+                            </button>
+                        </div>
+                        <div id="section-${k}" class="comment-section">
+                            <div class="comments-display" id="display-${k}"></div>
+                            <div class="comment-input-box">
+                                <input type="text" id="input-${k}" placeholder="Write a comment...">
+                                <button class="send-comment-btn" onclick="addComment('${refName}','${k}')">Send</button>
+                            </div>
+                        </div>
+                    `;
+                    list.appendChild(card);
+                    loadComments(refName, k);
+                });
+            });
+        }
+
+        function toggleComments(id) {
+            const el = document.getElementById('section-' + id);
+            el.style.display = el.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function addComment(type, postId) {
+            const input = document.getElementById('input-' + postId);
+            const val = input.value;
+            if(!val) return;
+
+            db.ref(`comments/${postId}`).push({
+                text: val,
+                timestamp: new Date().getTime()
+            }).then(() => { input.value = ""; });
+        }
+
+        function loadComments(type, postId) {
+            db.ref(`comments/${postId}`).on('value', s => {
+                const display = document.getElementById('display-' + postId);
+                const countSpan = document.getElementById('count-' + postId);
+                const data = s.val();
+                display.innerHTML = "";
+                if(data) {
+                    const keys = Object.keys(data);
+                    countSpan.innerText = `(${keys.length})`;
+                    keys.forEach(k => {
+                        display.innerHTML += `<div class="single-comment">${data[k].text}</div>`;
+                    });
+                } else {
+                    countSpan.innerText = "(0)";
                 }
-            });
-
-            // Load Updates
-            db.ref('updates').on('value', s => {
-                const list = document.getElementById('updates-list');
-                list.innerHTML = "";
-                const data = s.val();
-                if(data) Object.keys(data).reverse().forEach(k => {
-                    list.innerHTML += `<div class="card">
-                        ${data[k].image ? `<img src="${data[k].image}">` : ''}
-                        <small style="color:var(--gold)">${data[k].date || ''}</small>
-                        <p>${data[k].text}</p>
-                    </div>`;
-                });
-            });
-
-            // Load Sermons
-            db.ref('sermons').on('value', s => {
-                const list = document.getElementById('sermons-list');
-                list.innerHTML = "";
-                const data = s.val();
-                if(data) Object.keys(data).reverse().forEach(k => {
-                    list.innerHTML += `<div class="card">
-                        ${data[k].image ? `<img src="${data[k].image}">` : ''}
-                        <small style="color:var(--gold)">${data[k].date || ''}</small>
-                        <p>${data[k].text}</p>
-                    </div>`;
-                });
             });
         }
 
         function submitPrayer() {
             const text = document.getElementById('prayer-text').value;
-            if(!text) { alert("Please write something first."); return; }
-
-            db.ref('prayers').push({
-                text: text,
-                timestamp: new Date().getTime() // INCLUDES TIME FOR ADMIN
-            }).then(() => {
+            if(!text) return;
+            db.ref('prayers').push({ text, timestamp: new Date().getTime() })
+            .then(() => {
                 document.getElementById('prayer-text').value = "";
-                const msg = document.getElementById('success-msg');
-                msg.style.display = "block";
-                setTimeout(() => { msg.style.display = "none"; }, 4000);
+                document.getElementById('success-msg').style.display = "block";
+                setTimeout(() => { document.getElementById('success-msg').style.display = "none"; }, 3000);
             });
         }
 
-        // Slideshow Logic
+        // Auto-Slider
         let cur = 0;
         setInterval(() => {
-            const slides = document.querySelectorAll('.slide');
-            slides[cur].classList.remove('active');
-            cur = (cur + 1) % slides.length;
-            slides[cur].classList.add('active');
-        }, 5000);
+            const s = document.querySelectorAll('.slide');
+            if(s.length<2)return;
+            s[cur].classList.remove('active');
+            cur = (cur + 1) % s.length;
+            s[cur].classList.add('active');
+        }, 4000);
 
         window.onload = loadData;
     </script>
