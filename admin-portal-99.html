@@ -196,6 +196,9 @@
                         const c = data[ck];
                         box.innerHTML += `
                             <div class="member-msg">
+                                <div style="color:var(--gold); font-weight:bold; font-size:12px; margin-bottom:2px;">
+                                    ${c.userName || 'Anonymous'}:
+                                </div>
                                 <div>${c.text}</div>
                                 ${c.adminReply ? `<div class="bishop-reply"><strong>Admin:</strong> ${c.adminReply}</div>` : ''}
                                 <div class="reply-input-group">
