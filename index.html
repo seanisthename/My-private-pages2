@@ -125,7 +125,7 @@
         let cur = 0; setInterval(() => {
             const s = document.querySelectorAll('.slide'); if(s.length<2) return;
             s[cur].classList.remove('active'); cur = (cur+1)%s.length; s[cur].classList.add('active');
-        }, 4000);
+        }, 8000);
         window.onload = loadData;
     </script>
 </body>
