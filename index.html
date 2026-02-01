@@ -3,61 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Union in Christ - Members</title>
+    <title>Union in Christ Church</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
-        /* [KEEP ALL YOUR CSS FROM THE ORIGINAL FILE HERE] */
-        :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; --text-dim: #b0b0b0; --input-bg: #2d2d2d; --border: #333;}
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); padding-bottom: 70px; }
-        header { background: linear-gradient(135deg, #000c24, var(--navy)); color: var(--gold); padding: 40px 20px 20px; text-align: center; border-bottom: 3px solid var(--gold); position: relative; }
-        .new-label { position: absolute; top: 10px; right: 10px; background: var(--gold); color: #000; font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
-        .slider-container { width: 100%; height: 25vh; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
-        .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: contain; }
+        :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); overflow-x: hidden; }
+        
+        header { background: linear-gradient(135deg, #000c24, var(--navy)); color: var(--gold); padding: 40px 20px; text-align: center; border-bottom: 3px solid var(--gold); }
+        .logo-sub { color: #b0b0b0; font-size: 14px; margin-top: 5px; letter-spacing: 1px; }
+
+        .slider-container { width: 100%; height: 250px; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
+        .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: cover; }
         .active { opacity: 1; }
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #1a1a1a; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid var(--border); z-index: 1000; }
-        .nav-btn { background: none; border: none; color: var(--text-dim); font-size: 11px; font-weight: bold; display: flex; flex-direction: column; align-items: center; transition: 0.3s;}
-        .page { display: none; padding: 20px; }
-        .active-page { display: block; }
-        .card { background: var(--card-bg); border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); border-top: 4px solid var(--gold); position: relative; }
-        h2 { color: var(--gold); margin-top: 0; }
-        input, textarea { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid var(--border); box-sizing: border-box; background: var(--input-bg); color: white;}
-        .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; margin-top: 10px; cursor: pointer; }
-        .update-img { width: 100%; border-radius: 10px; margin-top: 10px; object-fit: contain; max-height: 300px; background: #000; }
+
+        .nav-tabs { display: flex; background: #1a1a1a; sticky: top; top: 0; z-index: 100; border-bottom: 1px solid #333; }
+        .tab { flex: 1; padding: 15px; text-align: center; color: #888; font-weight: bold; cursor: pointer; font-size: 14px; transition: 0.3s; }
+        .tab.active { color: var(--gold); border-bottom: 3px solid var(--gold); background: #252525; }
+
+        .content-section { display: none; padding: 20px; animation: fadeIn 0.5s; }
+        .content-section.active { display: block; }
+
+        .card { background: var(--card-bg); border-radius: 15px; padding: 20px; margin-bottom: 20px; border-top: 4px solid var(--gold); box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .card img { width: 100%; border-radius: 10px; margin-bottom: 15px; }
+        .card h3 { color: var(--gold); margin-top: 0; }
+        .card p { line-height: 1.6; color: #ccc; }
+
+        .prayer-input { width: 100%; padding: 15px; border-radius: 10px; border: 1px solid #444; background: #2d2d2d; color: white; box-sizing: border-box; font-size: 16px; margin-bottom: 10px; }
+        .btn { background: var(--gold); color: #000; padding: 15px 30px; border: none; border-radius: 10px; width: 100%; font-weight: bold; font-size: 16px; cursor: pointer; }
+        
+        #success-msg { color: #28a745; text-align: center; display: none; margin-top: 10px; font-weight: bold; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
+
     <header>
-        <h1>Union in Christ Church</h1>
-        <p style="color:var(--text-dim); font-size:12px;">Founder: Lady Bishop E. Chafulumira</p>
+        <h1 style="margin:0;">Union in Christ Church</h1>
+        <div class="logo-sub">Founder: Lady Bishop E. Chafulumira</div>
     </header>
 
-    <div id="home-slider" class="slider-container">
-        <img id="img1" class="slide active" src="https://via.placeholder.com/800x400/121212/D4AF37?text=Welcome">
-        <img id="img2" class="slide" src="https://via.placeholder.com/800x400/121212/D4AF37?text=Union+In+Christ">
+    <div class="slider-container">
+        <img id="img1" class="slide active" src="https://via.placeholder.com/800x400/000000/D4AF37?text=Welcome+to+UIC">
+        <img id="img2" class="slide" src="https://via.placeholder.com/800x400/000000/D4AF37?text=Sunday+Service">
     </div>
 
-    <div id="home" class="page active-page">
-        <div class="card"><h2>Latest Updates</h2><div id="display-updates"></div></div>
+    <div class="nav-tabs">
+        <div class="tab active" onclick="showTab('home', this)">HOME</div>
+        <div class="tab" onclick="showTab('sermons', this)">SERMONS</div>
+        <div class="tab" onclick="showTab('prayer', this)">PRAYER</div>
     </div>
 
-    <div id="sermons" class="page">
-        <div class="card"><h2>Sunday Sermons</h2><div id="display-sermons"></div></div>
+    <div id="home" class="content-section active">
+        <h2 style="color:var(--gold)">Latest Updates</h2>
+        <div id="updates-list">Loading updates...</div>
     </div>
 
-    <div id="prayer" class="page">
+    <div id="sermons" class="content-section">
+        <h2 style="color:var(--gold)">Sunday Sermons</h2>
+        <div id="sermons-list">Loading sermons...</div>
+    </div>
+
+    <div id="prayer" class="content-section">
         <div class="card">
-            <h2>Prayer Request</h2>
-            <textarea id="prayer-text" placeholder="How can we pray for you? Remember to write your name"></textarea>
-            <button class="btn" onclick="submitPrayer()">Send Request</button>
+            <h3>Prayer Request</h3>
+            <p>Share your burden with us. Our prayer warriors will stand with you in faith.</p>
+            <textarea id="prayer-text" class="prayer-input" rows="4" placeholder="Write your prayer request here..."></textarea>
+            <button class="btn" onclick="submitPrayer()">Submit Request</button>
+            <div id="success-msg">✔ Request Sent to the Bishop</div>
         </div>
     </div>
-
-    <nav class="bottom-nav">
-        <button class="nav-btn" onclick="showPage('home')">🏠<br>Home</button>
-        <button class="nav-btn" onclick="showPage('sermons')">📖<br>Sermons</button>
-        <button class="nav-btn" onclick="showPage('prayer')">🙏<br>Prayer</button>
-    </nav>
 
     <script>
         const firebaseConfig = {
@@ -71,48 +87,78 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        function showPage(id) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
-            document.getElementById(id).classList.add('active-page');
-            document.getElementById('home-slider').style.display = (id==='home') ? 'block' : 'none';
+        function showTab(tabId, el) {
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            el.classList.add('active');
+            window.scrollTo(0,0);
         }
 
-        // LOAD SLIDER
-        db.ref('settings/slider').on('value', s => {
-            const d = s.val();
-            if(d){ if(d.img1) document.getElementById('img1').src=d.img1; if(d.img2) document.getElementById('img2').src=d.img2; }
-        });
-
-        // LOAD POSTS
-        function loadPublicList(path, divId) {
-            db.ref(path).on('value', s => {
+        function loadData() {
+            // Load Slider Images
+            db.ref('settings/slider').on('value', s => {
                 const d = s.val();
-                const div = document.getElementById(divId);
-                div.innerHTML = "";
-                if(d) Object.keys(d).reverse().forEach(k => {
-                    const item = d[k];
-                    div.innerHTML += `<div class="card"><b>${item.date}</b><p>${item.text}</p>${item.image?`<img src="${item.image}" class="update-img">`:''}</div>`;
+                if(d) {
+                    if(d.img1) document.getElementById('img1').src = d.img1;
+                    if(d.img2) document.getElementById('img2').src = d.img2;
+                }
+            });
+
+            // Load Updates
+            db.ref('updates').on('value', s => {
+                const list = document.getElementById('updates-list');
+                list.innerHTML = "";
+                const data = s.val();
+                if(data) Object.keys(data).reverse().forEach(k => {
+                    list.innerHTML += `<div class="card">
+                        ${data[k].image ? `<img src="${data[k].image}">` : ''}
+                        <small style="color:var(--gold)">${data[k].date || ''}</small>
+                        <p>${data[k].text}</p>
+                    </div>`;
+                });
+            });
+
+            // Load Sermons
+            db.ref('sermons').on('value', s => {
+                const list = document.getElementById('sermons-list');
+                list.innerHTML = "";
+                const data = s.val();
+                if(data) Object.keys(data).reverse().forEach(k => {
+                    list.innerHTML += `<div class="card">
+                        ${data[k].image ? `<img src="${data[k].image}">` : ''}
+                        <small style="color:var(--gold)">${data[k].date || ''}</small>
+                        <p>${data[k].text}</p>
+                    </div>`;
                 });
             });
         }
-        loadPublicList('updates', 'display-updates');
-        loadPublicList('sermons', 'display-sermons');
 
         function submitPrayer() {
             const text = document.getElementById('prayer-text').value;
-            if(!text) return;
-            db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), viewed: false })
-            .then(() => { alert("Request Sent."); document.getElementById('prayer-text').value = ""; });
+            if(!text) { alert("Please write something first."); return; }
+
+            db.ref('prayers').push({
+                text: text,
+                timestamp: new Date().getTime() // INCLUDES TIME FOR ADMIN
+            }).then(() => {
+                document.getElementById('prayer-text').value = "";
+                const msg = document.getElementById('success-msg');
+                msg.style.display = "block";
+                setTimeout(() => { msg.style.display = "none"; }, 4000);
+            });
         }
 
+        // Slideshow Logic
         let cur = 0;
         setInterval(() => {
-            const s = document.querySelectorAll('.slide');
-            if(s.length<2) return;
-            s[cur].classList.remove('active');
-            cur = (cur + 1) % s.length;
-            s[cur].classList.add('active');
+            const slides = document.querySelectorAll('.slide');
+            slides[cur].classList.remove('active');
+            cur = (cur + 1) % slides.length;
+            slides[cur].classList.add('active');
         }, 5000);
+
+        window.onload = loadData;
     </script>
 </body>
 </html>
