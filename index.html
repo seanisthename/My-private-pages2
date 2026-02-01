@@ -32,9 +32,9 @@
         .admin-reply { color: var(--gold); font-size: 13px; margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--gold); background: rgba(212,175,55,0.05); padding-top: 5px; padding-bottom: 5px; }
         .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; }
         
-        /* DEVOTIONAL STYLING */
-        .devo-card { background: linear-gradient(rgba(212, 175, 55, 0.1), rgba(0,0,0,0)); border: 1px solid var(--gold); border-radius: 15px; padding: 15px; margin-bottom: 20px; text-align: center; }
+        .devo-card { background: linear-gradient(rgba(212, 175, 55, 0.1), rgba(0,0,0,0)); border: 1px solid var(--gold); border-radius: 15px; padding: 15px; margin-bottom: 20px; text-align: center; position: relative; }
         .devo-title { color: var(--gold); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: bold; }
+        .devo-close { position: absolute; right: 10px; top: 10px; color: #777; font-size: 18px; cursor: pointer; padding: 5px; }
         
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
@@ -51,6 +51,7 @@
     
     <div id="home" class="content-section active">
         <div id="devotional-display" class="devo-card" style="display:none;">
+            <div class="devo-close" onclick="closeDevo()">&times;</div>
             <div class="devo-title">✨ Word For Today</div>
             <h3 id="devo-verse" style="margin: 5px 0; color: white;"></h3>
             <p id="devo-text" style="font-style: italic; color: #ccc; margin-top: 10px;"></p>
@@ -97,14 +98,20 @@
             document.getElementById(t).classList.add('active'); e.classList.add('active');
         }
 
+        function closeDevo() {
+            const verse = document.getElementById('devo-verse').innerText;
+            localStorage.setItem('hidden_verse', verse);
+            document.getElementById('devotional-display').style.display = 'none';
+        }
+
         function loadData() {
             db.ref('settings/slider').on('value', s => { const d = s.val(); if(d){ document.getElementById('img1').src=d.img1; document.getElementById('img2').src=d.img2; } });
             
-            // Listen for Devotional
             db.ref('settings/devotional').on('value', s => {
                 const d = s.val();
                 const box = document.getElementById('devotional-display');
-                if(d && d.verse) {
+                const lastHidden = localStorage.getItem('hidden_verse');
+                if(d && d.verse && d.verse !== lastHidden) {
                     box.style.display = 'block';
                     document.getElementById('devo-verse').innerText = d.verse;
                     document.getElementById('devo-text').innerText = d.text;
