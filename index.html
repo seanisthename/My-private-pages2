@@ -25,8 +25,9 @@
         .interaction-bar { border-top: 1px solid #333; margin-top: 10px; padding-top: 10px; display: flex; gap: 25px; }
         .comment-btn { background: none; border: none; color: var(--gold); cursor: pointer; display: flex; align-items: center; font-size: 16px; gap: 5px; padding: 0; }
         .comment-section { display: none; margin-top: 15px; background: #181818; padding: 10px; border-radius: 8px; }
-        .comment-input-box { display: flex; gap: 5px; margin-top: 10px; }
-        .comment-input-box input { flex: 1; background: #2d2d2d; border: 1px solid #444; color: white; padding: 8px; border-radius: 5px; }
+        .comment-input-box { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+        .comment-input-box input { background: #2d2d2d; border: 1px solid #444; color: white; padding: 8px; border-radius: 5px; }
+        .comment-input-box input:disabled { background: #1a1a1a; color: #555; cursor: not-allowed; }
         .send-comment-btn { background: var(--gold); border: none; padding: 8px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; }
         .admin-reply { color: var(--gold); font-size: 13px; margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--gold); background: rgba(212,175,55,0.05); padding-top: 5px; padding-bottom: 5px; }
         .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; }
@@ -53,10 +54,8 @@
         <div class="card">
             <h2 style="color: var(--gold); margin-top: 0;">Our Vision</h2>
             <p>Seeing people getting saved and uniting the body of Christ in Love through the Holy Spirit.</p>
-            
             <h2 style="color: var(--gold);">Contact Us</h2>
             <p>+265 998 352 637</p>
-            
             <h2 style="color: var(--gold);">Address</h2>
             <p>Ndirande main market, next to Ndirande post office, Blantyre.</p>
         </div>
@@ -74,7 +73,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // HELPER TO MAKE LINKS CLICKABLE
         function linkify(text) {
             const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
             return text.replace(urlPattern, '<a href="$1" target="_blank" style="color: var(--gold); text-decoration: underline;">$1</a>');
@@ -95,8 +93,12 @@
             db.ref(path).on('value', s => {
                 const list = document.getElementById(divId); list.innerHTML = "";
                 const data = s.val(); if(!data) return;
+                const likedPosts = JSON.parse(localStorage.getItem('likedPosts')) || [];
+                const savedName = localStorage.getItem('userName') || '';
+
                 Object.keys(data).reverse().forEach(k => {
                     const item = data[k];
+                    const isLiked = likedPosts.includes(k);
                     const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
                     const card = document.createElement('div'); card.className = 'card';
                     card.innerHTML = `
@@ -105,10 +107,17 @@
                         <p>${linkify(item.text)}</p>
                         <div class="interaction-bar">
                             <button class="comment-btn" onclick="toggleComments('${k}')">💬 <span id="count-${k}">(0)</span></button>
-                            <button class="comment-btn" onclick="likePost('${path}','${k}')">❤️ <span id="likes-${k}">${item.likes || 0}</span></button>
+                            <button class="comment-btn" id="likebtn-${k}" style="color: ${isLiked ? '#ff4d4d' : 'var(--gold)'}" onclick="likePost('${path}','${k}')">❤️ <span id="likes-${k}">${item.likes || 0}</span></button>
                         </div>
-                        <div id="section-${k}" class="comment-section"><div id="display-${k}"></div>
-                            <div class="comment-input-box"><input type="text" id="in-${k}" placeholder="Comment..."><button class="send-comment-btn" onclick="addComment('${k}')">Send</button></div>
+                        <div id="section-${k}" class="comment-section">
+                            <div id="display-${k}"></div>
+                            <div class="comment-input-box">
+                                <input type="text" id="name-${k}" placeholder="Your Name" value="${savedName}" oninput="validateName('${k}')">
+                                <div style="display:flex; gap:5px;">
+                                    <input type="text" id="in-${k}" placeholder="Comment..." ${!savedName ? 'disabled' : ''} style="flex:1;">
+                                    <button class="send-comment-btn" onclick="addComment('${k}')">Send</button>
+                                </div>
+                            </div>
                         </div>`;
                     list.appendChild(card);
                     loadComments(k);
@@ -116,11 +125,36 @@
             });
         }
 
-        function toggleComments(id) { const el = document.getElementById('section-' + id); el.style.display = el.style.display === 'block' ? 'none' : 'block'; }
-        function addComment(id) {
-            const val = document.getElementById('in-' + id).value; if(!val) return;
-            db.ref(`comments/${id}`).push({ text: val, timestamp: new Date().getTime() }).then(() => document.getElementById('in-' + id).value = "");
+        function validateName(id) {
+            const nameVal = document.getElementById('name-' + id).value.trim();
+            const commentInput = document.getElementById('in-' + id);
+            commentInput.disabled = (nameVal === "");
         }
+
+        function likePost(p, id) {
+            let likedPosts = JSON.parse(localStorage.getItem('likedPosts')) || [];
+            const hasLiked = likedPosts.includes(id);
+            if (hasLiked) {
+                db.ref(`${p}/${id}/likes`).transaction(c => (c || 1) - 1);
+                likedPosts = likedPosts.filter(i => i !== id);
+            } else {
+                db.ref(`${p}/${id}/likes`).transaction(c => (c || 0) + 1);
+                likedPosts.push(id);
+            }
+            localStorage.setItem('likedPosts', JSON.stringify(likedPosts));
+        }
+
+        function toggleComments(id) { const el = document.getElementById('section-' + id); el.style.display = el.style.display === 'block' ? 'none' : 'block'; }
+        
+        function addComment(id) {
+            const name = document.getElementById('name-' + id).value;
+            const text = document.getElementById('in-' + id).value;
+            if(!name || !text) return;
+            localStorage.setItem('userName', name);
+            db.ref(`comments/${id}`).push({ userName: name, text: text, timestamp: new Date().getTime() })
+              .then(() => document.getElementById('in-' + id).value = "");
+        }
+
         function loadComments(id) {
             db.ref(`comments/${id}`).on('value', s => {
                 const box = document.getElementById('display-' + id);
@@ -128,15 +162,23 @@
                 const data = s.val(); box.innerHTML = "";
                 if(data) {
                     const keys = Object.keys(data); count.innerText = `(${keys.length})`;
-                    keys.forEach(k => { const c = data[k]; box.innerHTML += `<div style="padding:5px 0; border-bottom:1px solid #222;">${c.text}${c.adminReply ? `<div class="admin-reply"><strong>Admin:</strong> ${c.adminReply}</div>` : ''}</div>`; });
+                    keys.forEach(k => { 
+                        const c = data[k]; 
+                        box.innerHTML += `<div style="padding:8px 0; border-bottom:1px solid #222;">
+                            <strong style="color:var(--gold); font-size:12px;">${c.userName || 'Anonymous'}</strong>
+                            <div style="margin-top:2px;">${c.text}</div>
+                            ${c.adminReply ? `<div class="admin-reply"><strong>Admin:</strong> ${c.adminReply}</div>` : ''}
+                        </div>`; 
+                    });
                 }
             });
         }
-        function likePost(p, id) { db.ref(`${p}/${id}/likes`).transaction(c => (c || 0) + 1); }
+
         function submitPrayer() {
             const text = document.getElementById('prayer-text').value; if(!text) return;
             db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), status: "unread" }).then(() => { alert("Your Prayer request has been Sent successfully"); document.getElementById('prayer-text').value=""; });
         }
+        
         let cur = 0; setInterval(() => {
             const s = document.querySelectorAll('.slide'); if(s.length<2) return;
             s[cur].classList.remove('active'); cur = (cur+1)%s.length; s[cur].classList.add('active');
