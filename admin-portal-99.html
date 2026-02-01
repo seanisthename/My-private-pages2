@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UICC Admin Portal</title>
+    <title>UIC Admin Portal</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
@@ -19,46 +19,51 @@
         .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .menu-btn { background: #2d2d2d; color: var(--gold); border: 1px solid var(--gold); padding: 15px; border-radius: 10px; width: 100%; text-align: left; font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; cursor: pointer; }
         .section-content { display: none; margin-bottom: 20px; }
-        .admin-item { background: #252525; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid var(--gold); }
-        .edit-panel { background: #2a2a2a; padding: 12px; border-radius: 8px; margin-top: 10px; border: 1px solid #444; }
-        .comment-icon-btn { background: none; border: none; color: var(--gold); font-size: 18px; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 5px; }
-        .reply-box { background: #111; padding: 12px; border-radius: 8px; margin-top: 10px; border: 1px solid #333; }
+        .admin-item { background: #252525; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid var(--gold); }
+        .time-badge { font-size: 10px; color: #888; }
+        .interaction-row { display: flex; gap: 15px; margin: 10px 0; align-items: center; }
+        .comment-icon-btn { background: none; border: none; color: var(--gold); font-size: 18px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .reply-box { background: #111; padding: 10px; border-radius: 8px; margin-top: 10px; }
         .btn-row { display: flex; gap: 20px; margin-top: 10px; }
         .reply-send { background: #28a745; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; flex: 2; cursor: pointer; }
         .reply-del { background: #ff3b30; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; flex: 1; cursor: pointer; }
-        .del-post-btn { background: #ff3b30; color: white; border: none; padding: 8px; border-radius: 5px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; }
         #login-screen { max-width: 400px; margin: 50px auto; padding: 20px; }
     </style>
 </head>
 <body>
     <header><h1>UIC Admin Portal</h1></header>
     <div id="login-screen" class="card">
-        <h3>Dashboard Access</h3>
-        <input type="password" id="admin-key" placeholder="Enter Password">
+        <h3>Access Dashboard</h3>
+        <input type="password" id="admin-key" placeholder="Password">
         <button class="btn" onclick="checkAdmin()">Login</button>
     </div>
     <div id="dashboard" class="admin-content">
         <div class="slider-preview"><img id="img1" class="slide active" src=""><img id="img2" class="slide" src=""></div>
         <div class="card">
-            <h3>Publish Content</h3>
-            <select id="post-type"><option value="updates">Updates (Home)</option><option value="sermons">Sermons</option></select>
-            <textarea id="post-text" placeholder="Message..." rows="3"></textarea>
-            <input type="text" id="post-img" placeholder="Image URL">
+            <h3>New Post</h3>
+            <select id="post-type"><option value="updates">Home Updates</option><option value="sermons">Sermons</option></select>
+            <textarea id="post-text" placeholder="Write message..." rows="3"></textarea>
+            <input type="text" id="post-img" placeholder="Image URL (optional)">
             <button class="btn" onclick="publishPost()">Publish</button>
         </div>
-        <button class="menu-btn" onclick="toggleSection('sec-posts')">Manage Updates <span>▼</span></button>
+
+        <button class="menu-btn" onclick="toggleSection('sec-posts')">Updates <span id="count-btn-updates">(0)</span></button>
         <div id="sec-posts" class="section-content"></div>
-        <button class="menu-btn" onclick="toggleSection('sec-sermons')">Manage Sermons <span>▼</span></button>
+
+        <button class="menu-btn" onclick="toggleSection('sec-sermons')">Sermons <span id="count-btn-sermons">(0)</span></button>
         <div id="sec-sermons" class="section-content"></div>
-        <button class="menu-btn" onclick="toggleSection('sec-prayers')">Prayers <span>▼</span></button>
+
+        <button class="menu-btn" onclick="toggleSection('sec-prayers')">Prayers <span id="count-btn-prayers">(0)</span></button>
         <div id="sec-prayers" class="section-content"></div>
+
         <div class="card">
-            <h3>Slideshow Settings</h3>
+            <h3>Slideshow</h3>
             <input type="text" id="slide1-url" placeholder="Slide 1 URL"><input type="text" id="slide2-url" placeholder="Slide 2 URL">
-            <button class="btn" onclick="updateSlides()">Update Slideshow</button>
+            <button class="btn" onclick="updateSlides()">Update Photos</button>
         </div>
         <button class="btn" style="background:#444; color:white;" onclick="logOut()">Logout</button>
     </div>
+
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo",
@@ -71,94 +76,77 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        function checkAdmin() {
-            if(document.getElementById('admin-key').value === 'church111') {
-                localStorage.setItem('uic_admin', 'authenticated');
-                showDashboard();
-            } else { alert("Wrong Password"); }
-        }
-
-        function showDashboard() {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('dashboard').style.display = 'block';
-            loadAdminData();
-            startSlider();
-        }
-
-        function toggleSection(id) {
-            const el = document.getElementById(id);
-            el.style.display = el.style.display === 'block' ? 'none' : 'block';
-        }
+        function checkAdmin() { if(document.getElementById('admin-key').value === 'church111') { localStorage.setItem('uic_admin', 'authenticated'); showDashboard(); } else alert("Denied"); }
+        function showDashboard() { document.getElementById('login-screen').style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; loadAdminData(); startSlider(); }
+        function toggleSection(id) { const el = document.getElementById(id); el.style.display = el.style.display === 'block' ? 'none' : 'block'; }
 
         function loadAdminData() {
-            db.ref('settings/slider').on('value', s => {
-                const d = s.val();
-                if(d){ document.getElementById('img1').src=d.img1; document.getElementById('img2').src=d.img2; }
-            });
+            db.ref('settings/slider').on('value', s => { const d = s.val(); if(d){ document.getElementById('img1').src=d.img1; document.getElementById('img2').src=d.img2; } });
+            
             renderManager('updates', 'sec-posts');
             renderManager('sermons', 'sec-sermons');
+            
             db.ref('prayers').on('value', s => {
                 const div = document.getElementById('sec-prayers');
-                div.innerHTML = "";
-                const d = s.val();
-                if(d) Object.keys(d).reverse().forEach(k => {
-                    div.innerHTML += `<div class="admin-item"><p>${d[k].text}</p><button onclick="deleteItem('prayers/${k}')" style="color:red; background:none; border:none; cursor:pointer;">Delete Request</button></div>`;
-                });
+                const btnCount = document.getElementById('count-btn-prayers');
+                const d = s.val(); div.innerHTML = "";
+                if(d) {
+                    const keys = Object.keys(d); btnCount.innerText = `(${keys.length})`;
+                    keys.reverse().forEach(k => {
+                        div.innerHTML += `<div class="admin-item"><span class="time-badge">${d[k].date}</span><p>${d[k].text}</p><button onclick="deleteItem('prayers/${k}')" style="color:red; background:none; border:none; cursor:pointer;">Delete Prayer</button></div>`;
+                    });
+                } else { btnCount.innerText = "(0)"; }
             });
         }
 
         function renderManager(type, containerId) {
             db.ref(type).on('value', s => {
                 const div = document.getElementById(containerId);
-                div.innerHTML = "";
-                const data = s.val();
-                if(data) Object.keys(data).reverse().forEach(k => {
-                    const item = data[k];
-                    const card = document.createElement('div');
-                    card.className = 'admin-item';
-                    card.innerHTML = `
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <strong onclick="toggleBlock('edit-${k}')" style="cursor:pointer; color:var(--gold);">✎ Edit Post</strong>
-                            <button class="comment-icon-btn" onclick="toggleBlock('comm-${k}')">💬 <span id="count-${k}">(0)</span></button>
-                        </div>
-                        <div id="edit-${k}" class="edit-panel" style="display:none;">
-                            <textarea id="tx-${k}">${item.text}</textarea>
-                            <input type="text" id="im-${k}" value="${item.image || ''}">
-                            <button class="btn" onclick="saveEdit('${type}','${k}')">Save Changes</button>
-                            <button class="del-post-btn" onclick="deleteItem('${type}/${k}')">DELETE POST</button>
-                        </div>
-                        <div id="comm-${k}" style="display:none; margin-top:15px;"></div>
-                    `;
-                    div.appendChild(card);
-                    loadCommentsAdmin(k);
-                });
+                const btnCount = document.getElementById('count-btn-' + type);
+                div.innerHTML = ""; const data = s.val();
+                if(data) {
+                    const keys = Object.keys(data); btnCount.innerText = `(${keys.length})`;
+                    keys.reverse().forEach(k => {
+                        const item = data[k];
+                        const time = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+                        const card = document.createElement('div'); card.className = 'admin-item';
+                        card.innerHTML = `
+                            <span class="time-badge">${item.date} at ${time}</span>
+                            <textarea id="tx-${k}" style="margin:10px 0;">${item.text}</textarea>
+                            <div class="interaction-row">
+                                <span title="Likes">❤️ ${item.likes || 0}</span>
+                                <button class="comment-icon-btn" onclick="toggleBlock('comm-${k}')">💬 <span id="count-${k}">(0)</span></button>
+                            </div>
+                            <div id="comm-${k}" style="display:none; border-top:1px solid #444; padding-top:10px;"></div>
+                            <button class="btn" style="padding:8px; font-size:12px;" onclick="saveEdit('${type}','${k}')">Save Text</button>
+                            <button onclick="deleteItem('${type}/${k}')" style="color:red; background:none; border:none; margin-top:10px; cursor:pointer;">Delete Post</button>
+                        `;
+                        div.appendChild(card);
+                        loadCommentsAdmin(k);
+                    });
+                } else { btnCount.innerText = "(0)"; }
             });
         }
 
-        function toggleBlock(id) {
-            const el = document.getElementById(id);
-            el.style.display = el.style.display === 'block' ? 'none' : 'block';
-        }
+        function toggleBlock(id) { const el = document.getElementById(id); el.style.display = el.style.display === 'block' ? 'none' : 'block'; }
 
         function loadCommentsAdmin(postId) {
             db.ref(`comments/${postId}`).on('value', s => {
                 const box = document.getElementById(`comm-${postId}`);
                 const countSpan = document.getElementById(`count-${postId}`);
-                const data = s.val();
-                box.innerHTML = "";
+                const data = s.val(); box.innerHTML = "";
                 if(data) {
-                    const keys = Object.keys(data);
-                    countSpan.innerText = `(${keys.length})`;
+                    const keys = Object.keys(data); countSpan.innerText = `(${keys.length})`;
                     keys.forEach(ck => {
                         const c = data[ck];
                         box.innerHTML += `
                             <div class="reply-box">
-                                <div style="font-size:14px;">Member: ${c.text}</div>
-                                ${c.adminReply ? `<div style="color:var(--gold); font-size:12px; margin-top:5px;">Your Reply: ${c.adminReply}</div>` : ''}
-                                <input type="text" id="rep-${ck}" placeholder="Type reply..." style="margin-top:10px;">
+                                <small>Member: ${c.text}</small>
+                                ${c.adminReply ? `<div style="color:var(--gold); font-size:11px;">You replied: ${c.adminReply}</div>` : ''}
+                                <input type="text" id="rep-${ck}" placeholder="Type reply...">
                                 <div class="btn-row">
-                                    <button class="reply-send" onclick="sendReply('${postId}','${ck}')">SEND REPLY</button>
-                                    <button class="reply-del" onclick="deleteItem('comments/${postId}/${ck}')">DELETE</button>
+                                    <button class="reply-send" onclick="sendReply('${postId}','${ck}')">REPLY</button>
+                                    <button class="reply-del" onclick="deleteItem('comments/${postId}/${ck}')">DEL</button>
                                 </div>
                             </div>`;
                     });
@@ -166,44 +154,37 @@
             });
         }
 
-        function sendReply(postId, commentId) {
-            const val = document.getElementById('rep-' + commentId).value;
-            if(!val) return;
-            db.ref(`comments/${postId}/${commentId}`).update({ adminReply: val })
-            .then(() => { document.getElementById('rep-' + commentId).value = ""; alert("Reply Sent!"); });
+        function sendReply(pid, cid) {
+            const v = document.getElementById('rep-' + cid).value; if(!v) return;
+            db.ref(`comments/${pid}/${cid}`).update({ adminReply: v }).then(() => { document.getElementById('rep-' + cid).value = ""; alert("Sent"); });
         }
 
-        function saveEdit(type, id) {
-            const text = document.getElementById('tx-' + id).value;
-            const image = document.getElementById('im-' + id).value;
-            db.ref(`${type}/${id}`).update({ text, image }).then(() => alert("Post Updated!"));
+        function saveEdit(t, id) {
+            const txt = document.getElementById('tx-' + id).value;
+            db.ref(`${t}/${id}`).update({ text: txt }).then(() => alert("Updated"));
         }
 
         function publishPost() {
-            const type = document.getElementById('post-type').value;
-            const text = document.getElementById('post-text').value;
-            const image = document.getElementById('post-img').value;
-            if(!text) return;
-            db.ref(type).push({ text, image, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 })
-            .then(() => { document.getElementById('post-text').value = ""; alert("Published!"); });
+            const t = document.getElementById('post-type').value;
+            const txt = document.getElementById('post-text').value;
+            const img = document.getElementById('post-img').value;
+            if(!txt) return;
+            db.ref(t).push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 })
+            .then(() => { document.getElementById('post-text').value = ""; alert("Success"); });
         }
 
         function updateSlides() {
-            const img1 = document.getElementById('slide1-url').value;
-            const img2 = document.getElementById('slide2-url').value;
-            db.ref('settings/slider').update({ img1, img2 }).then(() => alert("Slides Updated!"));
+            const i1 = document.getElementById('slide1-url').value;
+            const i2 = document.getElementById('slide2-url').value;
+            db.ref('settings/slider').update({ img1: i1, img2: i2 }).then(() => alert("Updated"));
         }
 
-        function deleteItem(path) { if(confirm("Permanently delete?")) db.ref(path).remove(); }
+        function deleteItem(p) { if(confirm("Delete?")) db.ref(p).remove(); }
         function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
         function startSlider() {
-            let cur = 0;
-            setInterval(() => {
-                const s = document.querySelectorAll('.slide');
-                if(s.length < 2) return;
-                s[cur].classList.remove('active');
-                cur = (cur + 1) % s.length;
-                s[cur].classList.add('active');
+            let cur = 0; setInterval(() => {
+                const s = document.querySelectorAll('.slide'); if(s.length < 2) return;
+                s[cur].classList.remove('active'); cur = (cur + 1) % s.length; s[cur].classList.add('active');
             }, 3500);
         }
         window.onload = () => { if(localStorage.getItem('uic_admin') === 'authenticated') showDashboard(); };
