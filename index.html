@@ -21,16 +21,14 @@
         .content-section.active { display: block; }
         .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 20px; border-top: 3px solid var(--gold); position: relative; }
         .card img { width: 100%; border-radius: 8px; margin-bottom: 12px; }
-        .new-badge { position: absolute; top: 10px; right: 10px; background: #ff3b30; color: white; padding: 3px 8px; border-radius: 5px; font-size: 10px; font-weight: bold; z-index: 5; }
+        .time-txt { font-size: 10px; color: #777; display: block; margin-bottom: 5px; }
         .interaction-bar { border-top: 1px solid #333; margin-top: 10px; padding-top: 10px; display: flex; gap: 25px; }
         .comment-btn { background: none; border: none; color: var(--gold); cursor: pointer; display: flex; align-items: center; font-size: 16px; gap: 5px; padding: 0; }
         .comment-section { display: none; margin-top: 15px; background: #181818; padding: 10px; border-radius: 8px; }
         .comment-input-box { display: flex; gap: 5px; margin-top: 10px; }
         .comment-input-box input { flex: 1; background: #2d2d2d; border: 1px solid #444; color: white; padding: 8px; border-radius: 5px; }
         .send-comment-btn { background: var(--gold); border: none; padding: 8px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        .single-comment { border-bottom: 1px solid #222; padding: 10px 0; }
         .admin-reply { color: var(--gold); font-size: 13px; margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--gold); background: rgba(212,175,55,0.05); padding-top: 5px; padding-bottom: 5px; }
-        .time-txt { font-size: 10px; color: #777; display: block; margin-bottom: 5px; }
         .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
@@ -46,7 +44,7 @@
     <div id="home" class="content-section active"><div id="updates-list"></div></div>
     <div id="sermons" class="content-section"><div id="sermons-list"></div></div>
     <div id="prayer" class="content-section">
-        <div class="card"><h3>Prayer Request</h3><textarea id="prayer-text" style="width:100%; background:#2d2d2d; color:white; border-radius:8px; padding:10px;" rows="4"></textarea><button class="btn" style="margin-top:10px;" onclick="submitPrayer()">Submit Request</button></div>
+        <div class="card"><h3>Prayer Request</h3><textarea id="prayer-text" style="width:100%; background:#2d2d2d; color:white; border-radius:8px; padding:10px;" rows="4" placeholder="Your prayer request..."></textarea><button class="btn" style="margin-top:10px;" onclick="submitPrayer()">Submit Request</button></div>
     </div>
     <script>
         const firebaseConfig = {
@@ -77,22 +75,18 @@
                 const data = s.val(); if(!data) return;
                 Object.keys(data).reverse().forEach(k => {
                     const item = data[k];
-                    const time = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+                    const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
                     const card = document.createElement('div'); card.className = 'card';
                     card.innerHTML = `
                         ${item.image ? `<img src="${item.image}">` : ''}
-                        <span class="time-txt">${item.date} at ${time}</span>
+                        <span class="time-txt">${item.date} at ${timeStr}</span>
                         <p>${item.text}</p>
                         <div class="interaction-bar">
                             <button class="comment-btn" onclick="toggleComments('${k}')">💬 <span id="count-${k}">(0)</span></button>
                             <button class="comment-btn" onclick="likePost('${path}','${k}')">❤️ <span id="likes-${k}">${item.likes || 0}</span></button>
                         </div>
-                        <div id="section-${k}" class="comment-section">
-                            <div id="display-${k}"></div>
-                            <div class="comment-input-box">
-                                <input type="text" id="in-${k}" placeholder="Write a comment...">
-                                <button class="send-comment-btn" onclick="addComment('${k}')">Send</button>
-                            </div>
+                        <div id="section-${k}" class="comment-section"><div id="display-${k}"></div>
+                            <div class="comment-input-box"><input type="text" id="in-${k}" placeholder="Comment..."><button class="send-comment-btn" onclick="addComment('${k}')">Send</button></div>
                         </div>`;
                     list.appendChild(card);
                     loadComments(k);
@@ -101,12 +95,10 @@
         }
 
         function toggleComments(id) { const el = document.getElementById('section-' + id); el.style.display = el.style.display === 'block' ? 'none' : 'block'; }
-
         function addComment(id) {
             const val = document.getElementById('in-' + id).value; if(!val) return;
             db.ref(`comments/${id}`).push({ text: val, timestamp: new Date().getTime() }).then(() => document.getElementById('in-' + id).value = "");
         }
-
         function loadComments(id) {
             db.ref(`comments/${id}`).on('value', s => {
                 const box = document.getElementById('display-' + id);
@@ -114,20 +106,15 @@
                 const data = s.val(); box.innerHTML = "";
                 if(data) {
                     const keys = Object.keys(data); count.innerText = `(${keys.length})`;
-                    keys.forEach(k => {
-                        const c = data[k];
-                        box.innerHTML += `<div class="single-comment"><div>${c.text}</div>${c.adminReply ? `<div class="admin-reply"><strong>Bishop:</strong> ${c.adminReply}</div>` : ''}</div>`;
-                    });
+                    keys.forEach(k => { const c = data[k]; box.innerHTML += `<div style="padding:5px 0; border-bottom:1px solid #222;">${c.text}${c.adminReply ? `<div class="admin-reply"><strong>Bishop:</strong> ${c.adminReply}</div>` : ''}</div>`; });
                 }
             });
         }
-
         function likePost(p, id) { db.ref(`${p}/${id}/likes`).transaction(c => (c || 0) + 1); }
         function submitPrayer() {
             const text = document.getElementById('prayer-text').value; if(!text) return;
-            db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), timestamp: new Date().getTime() }).then(() => { alert("Sent"); document.getElementById('prayer-text').value=""; });
+            db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), status: "unread" }).then(() => { alert("Prayer Sent"); document.getElementById('prayer-text').value=""; });
         }
-
         let cur = 0; setInterval(() => {
             const s = document.querySelectorAll('.slide'); if(s.length<2) return;
             s[cur].classList.remove('active'); cur = (cur+1)%s.length; s[cur].classList.add('active');
