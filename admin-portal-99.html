@@ -20,7 +20,12 @@
         .admin-item { background: #252525; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid var(--gold); }
         .time-badge { font-size: 11px; color: #888; display: block; margin-bottom: 8px; }
         
-        /* Messaging Styles */
+        /* Preview & Slider Styles */
+        #img-preview { width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-top: 10px; display: none; border: 1px solid var(--gold); }
+        .slider-inputs { display: flex; gap: 10px; margin-top: 10px; }
+        .post-img-thumb { width: 100%; border-radius: 5px; margin-bottom: 10px; max-height: 200px; object-fit: cover; }
+
+        /* Messaging */
         .interaction-row { display: flex; gap: 20px; margin: 12px 0; align-items: center; border-top: 1px solid #333; padding-top: 10px; }
         .msg-icon-btn { background: none; border: none; color: var(--gold); font-size: 18px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .comment-container { display: none; background: #1a1a1a; border-radius: 8px; padding: 10px; margin-top: 10px; }
@@ -34,18 +39,28 @@
     </style>
 </head>
 <body>
-    <header><h1>UIC Admin Portal</h1></header>
+    <header><h1>UICC Admin Portal</h1></header>
     
     <div id="login-screen" class="card">
         <input type="password" id="admin-key" placeholder="Password"><button class="btn" onclick="checkAdmin()">Login</button>
     </div>
 
     <div id="dashboard" class="admin-content">
+        
+        <div class="card">
+            <h3>App Slider Images</h3>
+            <p style="font-size: 11px; color: #888;">Paste image URLs here to change the top sliding pictures.</p>
+            <input type="text" id="slide1" placeholder="Image URL 1">
+            <input type="text" id="slide2" placeholder="Image URL 2">
+            <button class="btn" onclick="updateSlider()" style="background: #28a745; color: white;">Update Slider Pictures</button>
+        </div>
+
         <div class="card">
             <h3>New Post</h3>
             <select id="post-type"><option value="updates">Home Updates</option><option value="sermons">Sermons</option></select>
             <textarea id="post-text" placeholder="What's on your mind, Bishop?" rows="3"></textarea>
-            <input type="text" id="post-img" placeholder="Image URL (optional)">
+            <input type="text" id="post-img" placeholder="Paste Image URL here..." oninput="showPreview(this.value)">
+            <img id="img-preview" src="">
             <button class="btn" onclick="publishPost()">Publish Post</button>
         </div>
 
@@ -77,11 +92,31 @@
         function showDashboard() { document.getElementById('login-screen').style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; loadAdminData(); }
         function toggleSection(id) { const el = document.getElementById(id); el.style.display = el.style.display === 'block' ? 'none' : 'block'; }
 
+        // Live Preview Logic
+        function showPreview(url) {
+            const img = document.getElementById('img-preview');
+            if(url) { img.src = url; img.style.display = 'block'; }
+            else { img.style.display = 'none'; }
+        }
+
+        // Slider Update Logic
+        function updateSlider() {
+            const img1 = document.getElementById('slide1').value;
+            const img2 = document.getElementById('slide2').value;
+            if(!img1 || !img2) return alert("Please fill both image URLs");
+            db.ref('settings/slider').set({ img1, img2 }).then(() => alert("Slider Updated Successfully!"));
+        }
+
         function loadAdminData() {
+            // Load current slider values into inputs
+            db.ref('settings/slider').once('value', s => {
+                const d = s.val();
+                if(d) { document.getElementById('slide1').value = d.img1; document.getElementById('slide2').value = d.img2; }
+            });
+
             renderList('updates', 'sec-posts');
             renderList('sermons', 'sec-sermons');
             
-            // Prayer Logic (Unread & Total)
             db.ref('prayers').on('value', s => {
                 const div = document.getElementById('sec-prayers');
                 const badge = document.getElementById('unread-count-container');
@@ -112,6 +147,7 @@
                         const postCard = document.createElement('div');
                         postCard.className = 'admin-item';
                         postCard.innerHTML = `
+                            ${item.image ? `<img src="${item.image}" class="post-img-thumb">` : ''}
                             <span class="time-badge">${item.date} at ${time}</span>
                             <textarea id="edit-${k}" rows="2">${item.text}</textarea>
                             <div class="interaction-row">
@@ -135,7 +171,8 @@
             db.ref(`comments/${postId}`).on('value', s => {
                 const box = document.getElementById(`comm-box-${postId}`);
                 const countSpan = document.getElementById(`c-count-${postId}`);
-                const data = s.val(); box.innerHTML = "";
+                const data = s.val(); if(!box) return;
+                box.innerHTML = "";
                 if(data) {
                     const keys = Object.keys(data);
                     countSpan.innerText = keys.length;
@@ -146,7 +183,7 @@
                                 <div>${c.text}</div>
                                 ${c.adminReply ? `<div class="bishop-reply"><strong>Bishop:</strong> ${c.adminReply}</div>` : ''}
                                 <div class="reply-input-group">
-                                    <input type="text" id="rep-in-${ck}" placeholder="Reply to member...">
+                                    <input type="text" id="rep-in-${ck}" placeholder="Reply...">
                                     <button class="send-reply-btn" onclick="sendReply('${postId}','${ck}')">Send</button>
                                     <button onclick="deleteItem('comments/${postId}/${ck}')" style="background:none; border:none; color:#ff3b30; font-size:11px; cursor:pointer;">Del</button>
                                 </div>
@@ -176,7 +213,10 @@
             const img = document.getElementById('post-img').value;
             if(!txt) return;
             db.ref(t).push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => { 
-                document.getElementById('post-text').value=""; alert("Post Published"); 
+                document.getElementById('post-text').value=""; 
+                document.getElementById('post-img').value="";
+                document.getElementById('img-preview').style.display='none';
+                alert("Post Published"); 
             });
         }
 
