@@ -3,57 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UIC Admin Dashboard</title>
+    <title>UICC Admin Dashboard</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
-        /* Use the same CSS as above, plus the admin-specific styles */
+        /* Shared Styles from Member Page */
         :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; --border: #333; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); padding: 20px; }
-        .card { background: var(--card-bg); border-radius: 15px; padding: 20px; margin-bottom: 20px; border-top: 4px solid var(--gold); }
-        h3 { color: var(--gold); }
-        input, textarea, select { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid var(--border); background: #2d2d2d; color: white; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); padding-bottom: 40px; }
+        
+        header { background: linear-gradient(135deg, #000c24, var(--navy)); color: var(--gold); padding: 30px 20px; text-align: center; border-bottom: 3px solid var(--gold); }
+        .slider-container { width: 100%; height: 20vh; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
+        .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: contain; }
+        .active { opacity: 1; }
+
+        /* Admin Specific UI */
+        .admin-content { padding: 20px; }
+        .card { background: var(--card-bg); border-radius: 15px; padding: 20px; margin-bottom: 20px; border-top: 4px solid var(--gold); box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+        h3 { color: var(--gold); margin-top: 0; }
+        input, textarea, select { width: 100%; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid var(--border); background: #2d2d2d; color: white; box-sizing: border-box; }
         .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .admin-item { border-bottom: 1px solid var(--border); padding: 10px 0; }
-        .delete-btn { background: #cc0000; color: white; border: none; padding: 5px; border-radius: 5px; margin-top: 5px; cursor: pointer; }
-        #login-screen { max-width: 400px; margin: 100px auto; }
+        .admin-item { border-bottom: 1px solid var(--border); padding: 10px 0; font-size: 14px; }
+        .delete-btn { background: #cc0000; color: white; border: none; padding: 5px 10px; border-radius: 5px; margin-top: 5px; cursor: pointer; }
+        
+        #login-screen { max-width: 400px; margin: 100px auto; padding: 20px; }
         #dashboard { display: none; }
+        .preview-label { background: #333; color: var(--gold); font-size: 10px; padding: 2px 8px; border-radius: 5px; text-transform: uppercase; margin-bottom: 10px; display: inline-block; }
     </style>
 </head>
 <body>
 
     <div id="login-screen" class="card">
-        <h3>Admin Login</h3>
+        <h3>Admin Access</h3>
         <input type="password" id="admin-key" placeholder="Enter Password">
         <button class="btn" onclick="checkAdmin()">Enter Dashboard</button>
     </div>
 
     <div id="dashboard">
-        <h2>Church Management</h2>
         
-        <div class="card">
-            <h3>Update Slideshow</h3>
-            <input type="text" id="slide1-url" placeholder="Slide 1 Image Link">
-            <input type="text" id="slide2-url" placeholder="Slide 2 Image Link">
-            <button class="btn" onclick="updateSlides()">Save Images</button>
+        <header>
+            <h1>Union in Christ Church</h1>
+            <p style="color:#b0b0b0; font-size:12px;">Founder: Lady Bishop E. Chafulumira</p>
+        </header>
+
+        <div class="slider-container">
+            <img id="img1" class="slide active" src="">
+            <img id="img2" class="slide" src="">
         </div>
 
-        <div class="card">
-            <h3>Post New Content</h3>
-            <select id="post-type"><option value="updates">Home Update</option><option value="sermons">Sermon</option></select>
-            <textarea id="post-text" placeholder="Write message..."></textarea>
-            <input type="text" id="post-img" placeholder="Image Link (Optional)">
-            <button class="btn" onclick="publishPost()">Post Now</button>
-        </div>
+        <div class="admin-content">
+            <div class="preview-label">Live Preview Mode</div>
+            
+            <div class="card">
+                <h3>Update Slideshow</h3>
+                <p style="font-size: 11px; color: #b0b0b0;">Paste image URLs below to change the pictures above.</p>
+                <input type="text" id="slide1-url" placeholder="Slide 1 Image URL">
+                <input type="text" id="slide2-url" placeholder="Slide 2 Image URL">
+                <button class="btn" onclick="updateSlides()">Save & Update Pictures</button>
+            </div>
 
-        <div class="card">
-            <h3>Manage Posts</h3>
-            <div id="admin-manage-posts"></div>
-        </div>
+            <div class="card">
+                <h3>Post to Member Portal</h3>
+                <select id="post-type">
+                    <option value="updates">Latest Updates (Home)</option>
+                    <option value="sermons">Sunday Sermons Page</option>
+                </select>
+                <textarea id="post-text" placeholder="Write your message here..."></textarea>
+                <input type="text" id="post-img" placeholder="Optional Image URL">
+                <button class="btn" onclick="publishPost()">Post Now</button>
+            </div>
 
-        <div class="card" style="border-top-color: #cc0000;">
-            <h3>Prayer Requests</h3>
-            <div id="admin-prayers"></div>
+            <div class="card">
+                <h3>Manage Existing Posts</h3>
+                <div id="admin-manage-posts"></div>
+            </div>
+
+            <div class="card" style="border-top-color: #cc0000;">
+                <h3>Incoming Prayer Requests</h3>
+                <div id="admin-prayers"></div>
+            </div>
+
+            <button class="btn" style="background:#444; color:white;" onclick="location.reload()">Log Out</button>
         </div>
     </div>
 
@@ -74,48 +103,70 @@
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('dashboard').style.display = 'block';
                 loadAdminData();
-            } else { alert("Wrong Password"); }
+                startSlider();
+            } else { alert("Access Denied"); }
         }
 
         function loadAdminData() {
-            // Load Prayers
+            // Live Slide Sync
+            db.ref('settings/slider').on('value', s => {
+                const d = s.val();
+                if(d){ 
+                    if(d.img1) { document.getElementById('img1').src=d.img1; document.getElementById('slide1-url').value=d.img1; }
+                    if(d.img2) { document.getElementById('img2').src=d.img2; document.getElementById('slide2-url').value=d.img2; }
+                }
+            });
+
+            // Prayers
             db.ref('prayers').on('value', s => {
                 const d = s.val();
                 const div = document.getElementById('admin-prayers');
-                div.innerHTML = "";
+                div.innerHTML = d ? "" : "No requests yet.";
                 if(d) Object.keys(d).reverse().forEach(k => {
                     div.innerHTML += `<div class="admin-item"><b>${d[k].date}</b>: ${d[k].text} <br> <button class="delete-btn" onclick="deleteItem('prayers/${k}')">Remove</button></div>`;
                 });
             });
 
-            // Load Posts to Delete
+            // Posts Management
             const manageDiv = document.getElementById('admin-manage-posts');
             ['updates', 'sermons'].forEach(type => {
                 db.ref(type).on('value', s => {
                     const data = s.val();
                     let html = `<h4>${type.toUpperCase()}</h4>`;
                     if(data) Object.keys(data).reverse().forEach(k => {
-                        html += `<div class="admin-item">${data[k].text.substring(0,30)}... <button class="delete-btn" onclick="deleteItem('${type}/${k}')">Delete</button></div>`;
+                        html += `<div class="admin-item">${data[k].text.substring(0,40)}... <button class="delete-btn" onclick="deleteItem('${type}/${k}')">Delete</button></div>`;
                     });
-                    manageDiv.innerHTML += html;
+                    manageDiv.innerHTML = html; // Simple refresh for this demo
                 });
             });
         }
 
-        function deleteItem(path) { if(confirm("Delete this?")) db.ref(path).remove(); }
+        function deleteItem(path) { if(confirm("Permanently delete?")) db.ref(path).remove(); }
 
         function publishPost() {
             const type = document.getElementById('post-type').value;
             const text = document.getElementById('post-text').value;
             const image = document.getElementById('post-img').value;
-            db.ref(type).push({ text, image, date: new Date().toLocaleDateString() })
-            .then(() => { alert("Posted!"); location.reload(); });
+            if(!text) return;
+            db.ref(type).push({ text, image, date: new Date().toLocaleDateString(), timestamp: new Date().getTime() })
+            .then(() => { alert("Success! Posted to Member Portal."); document.getElementById('post-text').value=""; });
         }
 
         function updateSlides() {
             const img1 = document.getElementById('slide1-url').value;
             const img2 = document.getElementById('slide2-url').value;
-            db.ref('settings/slider').update({ img1, img2 }).then(() => alert("Slider Updated"));
+            db.ref('settings/slider').update({ img1, img2 }).then(() => alert("Slideshow Updated!"));
+        }
+
+        function startSlider() {
+            let cur = 0;
+            setInterval(() => {
+                const s = document.querySelectorAll('.slide');
+                if(s.length < 2) return;
+                s[cur].classList.remove('active');
+                cur = (cur + 1) % s.length;
+                s[cur].classList.add('active');
+            }, 4000);
         }
     </script>
 </body>
