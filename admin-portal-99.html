@@ -504,5 +504,24 @@
             list.prepend(item);
         }
     </script>
+
+    <script>
+        window.resetBell = function() {
+            // Force reset of global memory variable
+            bellCount = 0;
+            
+            // Clear storage and visual elements
+            localStorage.setItem('uic_notif_count', 0);
+            const list = document.getElementById('notif-list');
+            if (list) list.innerHTML = "";
+            
+            // Update the UI immediately
+            const b = document.getElementById('bell-count');
+            if (b) {
+                b.innerText = "0";
+                b.style.display = "none";
+            }
+        };
+    </script>
 </body>
 </html>
