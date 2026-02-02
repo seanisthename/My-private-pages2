@@ -364,7 +364,8 @@
         function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
         window.onload = () => { if(localStorage.getItem('uic_admin') === 'authenticated') showDashboard(); };
 
-        let bellCount = 0;
+        // PERSISTENT NOTIFICATION LOGIC
+        let bellCount = parseInt(localStorage.getItem('uic_notif_count')) || 0;
         let initialLoadDone = false;
 
         function toggleDropdown() {
@@ -375,6 +376,9 @@
         }
 
         function initBellWatcher() {
+            // Restore visual count on load
+            updateBellUI();
+
             db.ref('comments').on('child_added', (postSnap) => {
                 const postId = postSnap.key;
                 db.ref(`comments/${postId}`).on('child_added', (commSnap) => {
@@ -394,8 +398,9 @@
 
         function addNotifItem(user, text, targetId, typeLabel) {
             bellCount++;
-            const b = document.getElementById('bell-count');
-            b.innerText = bellCount; b.style.display = "block";
+            localStorage.setItem('uic_notif_count', bellCount);
+            updateBellUI();
+            
             const list = document.getElementById('notif-list');
             const item = document.createElement('div');
             item.className = 'notif-item';
@@ -405,6 +410,16 @@
                 document.getElementById('notif-dropdown').style.display = 'none';
             };
             list.prepend(item);
+        }
+
+        function updateBellUI() {
+            const b = document.getElementById('bell-count');
+            if (bellCount > 0) {
+                b.innerText = bellCount;
+                b.style.display = "block";
+            } else {
+                b.style.display = "none";
+            }
         }
 
         function goToPost(id) {
@@ -422,7 +437,8 @@
 
         function resetBell() {
             bellCount = 0;
-            document.getElementById('bell-count').style.display = "none";
+            localStorage.setItem('uic_notif_count', 0);
+            updateBellUI();
         }
     </script>
 </body>
