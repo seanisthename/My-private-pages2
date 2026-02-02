@@ -35,12 +35,16 @@
         .send-reply-btn { background: #28a745; color: white; border: none; padding: 0 15px; border-radius: 5px; cursor: pointer; }
         .bishop-reply { color: var(--gold); font-size: 12px; margin-top: 5px; padding-left: 10px; border-left: 2px solid var(--gold); }
         
-        /* NEW STYLES FOR THE BUTTONS */
         .big-sermon-btn { flex: 1; padding: 25px 10px; border-radius: 15px; border: 2px solid var(--gold); background: #1a1a1a; color: white; font-weight: bold; cursor: pointer; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .big-sermon-btn:active { background: var(--gold); color: black; }
         .sermon-type-container { display: none; margin-top: 15px; background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px dashed var(--gold); }
 
         #login-screen { max-width: 400px; margin: 50px auto; padding: 20px; }
+
+        /* NEW MODERATION STYLES */
+        .mod-panel { background: #1a1a1a; border: 1px solid #ff3b30 !important; border-radius: 12px; padding: 15px; }
+        .mod-item { background: #252525; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #ff3b30; }
+        .mod-meta { font-size: 11px; color: var(--gold); margin-bottom: 4px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -113,6 +117,13 @@
         <button class="menu-btn" onclick="toggleSection('sec-prayers')">Prayers <span id="unread-count-container">(0)</span></button>
         <div id="sec-prayers" class="section-content"></div>
 
+        <button class="menu-btn" style="border-color: #ff3b30; color: #ff3b30;" onclick="toggleSection('sec-moderation')">
+            Global Comment Feed <span id="mod-count">(0)</span>
+        </button>
+        <div id="sec-moderation" class="section-content mod-panel">
+            <div id="global-comment-list"></div>
+        </div>
+
         <button class="btn" style="background:#444; color:white;" onclick="logOut()">Logout</button>
     </div>
 
@@ -128,14 +139,20 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // UI HELPERS
         function showSermonUpload(type) {
             document.getElementById('audio-form').style.display = type === 'audio' ? 'block' : 'none';
             document.getElementById('video-form').style.display = type === 'video' ? 'block' : 'none';
         }
 
         function checkAdmin() { if(document.getElementById('admin-key').value === 'church111') { localStorage.setItem('uic_admin', 'authenticated'); showDashboard(); } else alert("Access Denied"); }
-        function showDashboard() { document.getElementById('login-screen').style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; loadAdminData(); startPreviewSlider(); }
+        
+        function showDashboard() { 
+            document.getElementById('login-screen').style.display = 'none'; 
+            document.getElementById('dashboard').style.display = 'block'; 
+            loadAdminData(); 
+            startPreviewSlider();
+            initGlobalCommentMonitor(); // Initialize the new monitor
+        }
         
         function toggleSection(id) { 
             const el = document.getElementById(id); 
@@ -267,6 +284,33 @@
             });
         }
 
+        function initGlobalCommentMonitor() {
+            db.ref('comments').on('value', s => {
+                const list = document.getElementById('global-comment-list');
+                const badge = document.getElementById('mod-count');
+                const data = s.val();
+                list.innerHTML = "";
+                let total = 0;
+                if(data) {
+                    Object.keys(data).forEach(postId => {
+                        const postComments = data[postId];
+                        Object.keys(postComments).forEach(commId => {
+                            total++;
+                            const c = postComments[commId];
+                            list.innerHTML += `
+                                <div class="mod-item">
+                                    <div class="mod-meta">From User: ${c.userName || 'Anonymous'}</div>
+                                    <div style="margin-bottom:8px;">${c.text}</div>
+                                    <button onclick="deleteItem('comments/${postId}/${commId}')" style="background:#ff3b30; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; font-size:12px;">Delete Comment</button>
+                                </div>`;
+                        });
+                    });
+                }
+                badge.innerText = `(${total})`;
+                if(total === 0) list.innerHTML = "<p style='color:#888; text-align:center;'>No comments to show.</p>";
+            });
+        }
+
         function sendReply(pid, cid) {
             const val = document.getElementById('rep-in-' + cid).value; if(!val) return;
             db.ref(`comments/${pid}/${cid}`).update({ adminReply: val }).then(() => { alert("Reply sent"); });
@@ -290,7 +334,6 @@
             });
         }
 
-        // NEW PUBLISH UPDATE FUNCTION
         function publishUpdate() {
             const txt = document.getElementById('update-text').value;
             const img = document.getElementById('update-img').value;
