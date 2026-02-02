@@ -35,6 +35,11 @@
         .send-reply-btn { background: #28a745; color: white; border: none; padding: 0 15px; border-radius: 5px; cursor: pointer; }
         .bishop-reply { color: var(--gold); font-size: 12px; margin-top: 5px; padding-left: 10px; border-left: 2px solid var(--gold); }
         
+        /* NEW STYLES FOR THE BUTTONS */
+        .big-sermon-btn { flex: 1; padding: 25px 10px; border-radius: 15px; border: 2px solid var(--gold); background: #1a1a1a; color: white; font-weight: bold; cursor: pointer; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .big-sermon-btn:active { background: var(--gold); color: black; }
+        .sermon-type-container { display: none; margin-top: 15px; background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px dashed var(--gold); }
+
         #login-screen { max-width: 400px; margin: 50px auto; padding: 20px; }
     </style>
 </head>
@@ -70,11 +75,26 @@
         </div>
 
         <div class="card">
-            <h3>New Post</h3>
-            <select id="post-type"><option value="updates">Home Updates</option><option value="sermons">Sermons</option></select>
-            <textarea id="post-text" placeholder="Write message..." rows="3"></textarea>
-            <input type="text" id="post-img" placeholder="Paste Post Image URL here...">
-            <button class="btn" onclick="publishPost()">Publish Post</button>
+            <h3>Manage Sermons</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <button class="big-sermon-btn" onclick="showSermonUpload('video')"><span>🎥</span>VIDEO SERMON</button>
+                <button class="big-sermon-btn" onclick="showSermonUpload('audio')"><span>🔊</span>AUDIO SERMON</button>
+            </div>
+
+            <div id="audio-form" class="sermon-type-container">
+                <h4 style="margin:0; color:var(--gold);">Upload Audio Link</h4>
+                <p style="font-size: 11px; opacity: 0.7;">Paste your Archive.org direct MP3 link below</p>
+                <input type="text" id="audio-title" placeholder="Sermon Title">
+                <input type="text" id="audio-link" placeholder="Paste .mp3 Link here">
+                <button class="btn" onclick="publishAudio()">Publish Audio Sermon</button>
+            </div>
+
+            <div id="video-form" class="sermon-type-container">
+                <h4 style="margin:0; color:var(--gold);">Post Home Updates/Videos</h4>
+                <textarea id="post-text" placeholder="Sermon description..." rows="3"></textarea>
+                <input type="text" id="post-img" placeholder="Paste Post Image/Video URL here...">
+                <button class="btn" onclick="publishPost()">Publish Video/Post</button>
+            </div>
         </div>
 
         <button class="menu-btn" onclick="toggleSection('sec-posts')">Updates <span id="count-btn-updates">(0)</span></button>
@@ -100,6 +120,12 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+
+        // UI HELPERS
+        function showSermonUpload(type) {
+            document.getElementById('audio-form').style.display = type === 'audio' ? 'block' : 'none';
+            document.getElementById('video-form').style.display = type === 'video' ? 'block' : 'none';
+        }
 
         function checkAdmin() { if(document.getElementById('admin-key').value === 'church111') { localStorage.setItem('uic_admin', 'authenticated'); showDashboard(); } else alert("Access Denied"); }
         function showDashboard() { document.getElementById('login-screen').style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; loadAdminData(); startPreviewSlider(); }
@@ -221,19 +247,30 @@
             db.ref(`comments/${pid}/${cid}`).update({ adminReply: val }).then(() => { alert("Reply sent"); });
         }
 
-        function openPrayers() {
-            toggleSection('sec-prayers');
-            db.ref('prayers').once('value', s => {
-                const d = s.val(); if(d) Object.keys(d).forEach(k => { if(d[k].status === "unread") db.ref(`prayers/${k}`).update({ status: "read" }); });
+        // NEW: Publish Audio Logic
+        function publishAudio() {
+            const title = document.getElementById('audio-title').value;
+            const link = document.getElementById('audio-link').value;
+            if(!title || !link) return alert("Fill both title and link");
+            
+            db.ref('sermons').push({ 
+                text: title + " " + link, // This stores it so the member app's linkify can find it
+                date: new Date().toLocaleDateString(), 
+                timestamp: new Date().getTime(), 
+                likes: 0 
+            }).then(() => { 
+                document.getElementById('audio-title').value=""; 
+                document.getElementById('audio-link').value=""; 
+                alert("Audio Sermon Published!"); 
             });
         }
 
         function publishPost() {
-            const t = document.getElementById('post-type').value;
             const txt = document.getElementById('post-text').value;
             const img = document.getElementById('post-img').value;
             if(!txt) return;
-            db.ref(t).push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => { 
+            // Default to 'sermons' section based on your preference
+            db.ref('sermons').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => { 
                 document.getElementById('post-text').value=""; document.getElementById('post-img').value=""; alert("Post Published"); 
             });
         }
