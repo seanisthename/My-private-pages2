@@ -407,7 +407,6 @@
             const list = document.getElementById('notif-list');
             const item = document.createElement('div');
             item.className = 'notif-item';
-            // Unique ID to help with individual removal
             const uniqueId = 'notif-' + Date.now();
             item.id = uniqueId; 
             
@@ -430,21 +429,17 @@
             }
         }
 
-        // Handle viewing a single notification and counting down
         function viewNotification(notifDivId, targetId) {
             const item = document.getElementById(notifDivId);
             if(item) {
                 item.style.opacity = "0";
                 setTimeout(() => item.remove(), 300);
             }
-
-            // Count down
             if (bellCount > 0) {
                 bellCount--;
                 localStorage.setItem('uic_notif_count', bellCount);
                 updateBellUI();
             }
-
             goToPost(targetId);
             document.getElementById('notif-dropdown').style.display = 'none';
         }
@@ -462,13 +457,20 @@
             }
         }
 
-        // "Delete All" logic
-        function resetBell() {
+        // UNIFIED RESET FUNCTION
+        window.resetBell = function() {
             bellCount = 0;
             localStorage.setItem('uic_notif_count', 0);
-            updateBellUI();
-            document.getElementById('notif-list').innerHTML = "";
-        }
+            
+            const list = document.getElementById('notif-list');
+            if (list) list.innerHTML = "";
+            
+            const b = document.getElementById('bell-count');
+            if (b) {
+                b.innerText = "0";
+                b.style.display = "none";
+            }
+        };
 
         function initReplyWatcher() {
             db.ref('comments').on('child_added', (postSnap) => {
@@ -491,7 +493,6 @@
             bellCount++;
             localStorage.setItem('uic_notif_count', bellCount);
             updateBellUI();
-            
             const list = document.getElementById('notif-list');
             const item = document.createElement('div');
             const uniqueId = 'notif-' + Date.now();
@@ -503,25 +504,6 @@
             };
             list.prepend(item);
         }
-    </script>
-
-    <script>
-        window.resetBell = function() {
-            // Force reset of global memory variable
-            bellCount = 0;
-            
-            // Clear storage and visual elements
-            localStorage.setItem('uic_notif_count', 0);
-            const list = document.getElementById('notif-list');
-            if (list) list.innerHTML = "";
-            
-            // Update the UI immediately
-            const b = document.getElementById('bell-count');
-            if (b) {
-                b.innerText = "0";
-                b.style.display = "none";
-            }
-        };
     </script>
 </body>
 </html>
