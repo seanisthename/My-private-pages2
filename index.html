@@ -9,7 +9,60 @@
     <style>
         :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); }
-        header { background: linear-gradient(135deg, #40A5E7, var(--navy)); color: var(--gold); padding: 30px 20px; text-align: center; border-bottom: 3px solid var(--gold); }
+        
+        /* Header and Bell Styles */
+        header { 
+            background: linear-gradient(135deg, #40A5E7, var(--navy)); 
+            color: var(--gold); 
+            padding: 30px 20px; 
+            text-align: center; 
+            border-bottom: 3px solid var(--gold); 
+            position: relative;
+        }
+        .bell-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+            z-index: 1100;
+        }
+        .bell-icon { font-size: 24px; }
+        .bell-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: red;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        /* Dropdown Panel */
+        .notif-dropdown {
+            position: fixed;
+            top: 60px;
+            right: 10px;
+            width: 280px;
+            max-height: 400px;
+            background: var(--card-bg);
+            border: 1px solid var(--gold);
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            display: none;
+            z-index: 1001;
+            overflow-y: auto;
+        }
+        .notif-header {
+            padding: 10px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #252525;
+        }
+
         .logo-sub { color: #b0b0b0; font-size: 13px; margin-top: 5px; }
         .slider-container { width: 100%; height: 220px; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
         .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: cover; }
@@ -17,8 +70,6 @@
         .nav-tabs { display: flex; background: #1a1a1a; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #333; overflow-x: auto; }
         .tab { flex: 1; padding: 15px; text-align: center; color: #888; font-weight: bold; cursor: pointer; font-size: 11px; min-width: 80px; position: relative; }
         .tab.active { color: var(--gold); border-bottom: 3px solid var(--gold); background: #252525; }
-        
-        .notif-badge { position: absolute; top: 8px; right: 5px; background: red; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; display: none; }
         
         .content-section { display: none; padding: 15px; animation: fadeIn 0.4s; }
         .content-section.active { display: block; }
@@ -51,7 +102,7 @@
         .search-box input { background: transparent; border: none; color: white; font-size: 11px; outline: none; width: 100%; margin-left: 5px; }
         .search-icon { font-size: 12px; color: var(--gold); }
 
-        .notif-item { padding: 12px; border-bottom: 1px solid #333; cursor: pointer; font-size: 14px; }
+        .notif-item { padding: 12px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; color: #eee; }
         .notif-item:active { background: #252525; }
         .notif-item small { color: #777; display: block; margin-top: 4px; }
 
@@ -68,13 +119,31 @@
     </style>
 </head>
 <body>
-    <header><h1>Union in Christ Church</h1><div class="logo-sub">Founder: Lady Bishop E. Chafulumira</div></header>
+    <header>
+        <div class="bell-container" onclick="toggleNotifDropdown()">
+            <span class="bell-icon">🔔</span>
+            <span id="notif-count" class="bell-badge">0</span>
+        </div>
+        <h1>Union in Christ Church</h1>
+        <div class="logo-sub">Founder: Lady Bishop E. Chafulumira</div>
+    </header>
+
+    <div id="notif-dropdown" class="notif-dropdown">
+        <div class="notif-header">
+            <span style="color:var(--gold); font-weight:bold;">Notifications</span>
+            <button onclick="clearNotifs()" style="background:none; border:none; color:#777; font-size:11px; cursor:pointer;">Clear</button>
+        </div>
+        <div id="notif-list">
+            <p style="padding:20px; text-align:center; color:#555; font-size:12px;">No new alerts</p>
+        </div>
+    </div>
+
     <div class="slider-container"><img id="img1" class="slide active" src=""><img id="img2" class="slide" src=""></div>
+    
     <div class="nav-tabs">
         <div class="tab active" onclick="showTab('home', this)">HOME</div>
         <div class="tab" onclick="showTab('sermons', this)">SERMONS</div>
         <div class="tab" onclick="showTab('prayer', this)">PRAYER</div>
-        <div class="tab" onclick="showTab('notifs', this)">ALERTS <span id="notif-count" class="notif-badge">0</span></div>
         <div class="tab" onclick="showTab('about', this)">ABOUT</div>
     </div>
     
@@ -101,18 +170,6 @@
     <div id="prayer" class="content-section">
         <div class="card"><h3>How can we pray for you?</h3><textarea id="prayer-text" style="width:100%; background:#2d2d2d; color:white; border-radius:8px; padding:10px; box-sizing:border-box; border:1px solid #444;" rows="4" placeholder="Remember to include your name..."></textarea>
         <button class="btn" style="margin-top:10px;" onclick="submitPrayer()">Submit Request</button></div>
-    </div>
-
-    <div id="notifs" class="content-section">
-        <div class="card" style="padding:0;">
-            <div style="padding:15px; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0; color:var(--gold);">Notifications</h3>
-                <button onclick="clearNotifs()" style="background:none; border:none; color:#777; font-size:11px; cursor:pointer;">Clear All</button>
-            </div>
-            <div id="notif-list">
-                <p style="padding:20px; text-align:center; color:#555;">No new alerts</p>
-            </div>
-        </div>
     </div>
 
     <div id="about" class="content-section">
@@ -142,6 +199,23 @@
         let userNotifId = localStorage.getItem('userNotifId') || 'user_' + Math.random().toString(36).substr(2, 9);
         localStorage.setItem('userNotifId', userNotifId);
 
+        // Toggle Notification Dropdown
+        function toggleNotifDropdown() {
+            const dd = document.getElementById('notif-dropdown');
+            dd.style.display = (dd.style.display === 'block') ? 'none' : 'block';
+            if(dd.style.display === 'none') {
+                 // Optionally clear badge when closed
+                 // document.getElementById('notif-count').style.display = 'none';
+            }
+        }
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', function(e) {
+            if (!document.querySelector('.bell-container').contains(e.target) && !document.getElementById('notif-dropdown').contains(e.target)){
+                document.getElementById('notif-dropdown').style.display = 'none';
+            }
+        });
+
         function filterPosts(inputId, listId) {
             const query = document.getElementById(inputId).value.toLowerCase();
             const cards = document.querySelectorAll(`#${listId} .card`);
@@ -168,7 +242,6 @@
         function showTab(t, e) {
             document.querySelectorAll('.content-section, .tab').forEach(x => x.classList.remove('active'));
             document.getElementById(t).classList.add('active'); e.classList.add('active');
-            if(t === 'notifs') { document.getElementById('notif-count').style.display = 'none'; }
         }
 
         function closeDevo() {
@@ -199,7 +272,11 @@
                 const list = document.getElementById('notif-list');
                 const badge = document.getElementById('notif-count');
                 const data = s.val();
-                if(!data) { list.innerHTML = '<p style="padding:20px; text-align:center; color:#555;">No new alerts</p>'; badge.style.display='none'; return; }
+                if(!data) { 
+                    list.innerHTML = '<p style="padding:20px; text-align:center; color:#555; font-size:12px;">No new alerts</p>'; 
+                    badge.style.display='none'; 
+                    return; 
+                }
                 
                 list.innerHTML = "";
                 const keys = Object.keys(data).reverse();
@@ -212,6 +289,7 @@
                     div.className = 'notif-item';
                     div.onclick = () => {
                         showTab(n.tab, document.querySelector(`.tab[onclick*="${n.tab}"]`));
+                        document.getElementById('notif-dropdown').style.display = 'none';
                         setTimeout(() => {
                             const target = document.getElementById('section-' + n.postId);
                             if(target) {
@@ -223,7 +301,7 @@
                         }, 500);
                         db.ref(`notifications/${userNotifId}/${k}`).remove();
                     };
-                    div.innerHTML = `<strong>${n.from}</strong> ${n.msg || 'replied to your comment'} <small>${new Date(n.time).toLocaleTimeString()}</small>`;
+                    div.innerHTML = `<strong>${n.from}</strong> ${n.msg || 'replied'} <small>${new Date(n.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small>`;
                     list.appendChild(div);
                 });
             });
@@ -320,12 +398,9 @@
                         const c = data[ck]; 
                         let threadHTML = "";
 
-                        // Handle Admin Reply Notification Logic
                         if(c.adminReply) {
                             totalInteractions++;
                             threadHTML += `<div class="reply-item"><strong style="color:var(--gold)">Admin:</strong> ${c.adminReply}</div>`;
-                            
-                            // If this comment belongs to current user, ensure they get a notification for the admin reply
                             const lastAdminNotif = localStorage.getItem('notified_admin_' + ck);
                             if(c.userNotifId === userNotifId && lastAdminNotif !== c.adminReply) {
                                 db.ref(`notifications/${userNotifId}`).push({
