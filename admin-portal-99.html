@@ -17,7 +17,10 @@
         .bell-badge { position: absolute; top: -5px; right: -8px; background: #ff3b30; color: white; font-size: 10px; font-weight: bold; border-radius: 50%; padding: 2px 6px; display: none; border: 2px solid var(--navy); }
         
         #notif-dropdown { display: none; position: absolute; top: 60px; right: 10px; width: 280px; background: #252525; border: 1px solid var(--gold); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 2000; max-height: 400px; overflow-y: auto; }
-        .notif-item { padding: 12px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; transition: background 0.2s; }
+        .notif-header { padding: 10px; border-bottom: 1px solid var(--gold); font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; }
+        .clear-all-btn { color: #ff3b30; cursor: pointer; font-size: 10px; text-transform: uppercase; border: 1px solid #ff3b30; padding: 2px 5px; border-radius: 4px; }
+        
+        .notif-item { padding: 12px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; transition: background 0.2s, opacity 0.3s; }
         .notif-item:hover { background: #333; }
         .notif-item b { color: var(--gold); display: block; margin-bottom: 3px; }
         .notif-item span { color: #888; font-size: 11px; display: block; margin-top: 5px; font-style: italic; }
@@ -66,7 +69,10 @@
             <span id="bell-count" class="bell-badge">0</span>
         </div>
         <div id="notif-dropdown">
-            <div style="padding:10px; border-bottom:1px solid var(--gold); font-size:12px; font-weight:bold;">Recent Activity</div>
+            <div class="notif-header">
+                <span>RECENT ACTIVITY</span>
+                <span class="clear-all-btn" onclick="resetBell()">Delete All</span>
+            </div>
             <div id="notif-list"></div>
         </div>
     </header>
@@ -98,20 +104,65 @@
             <button class="btn" onclick="updateDevo()" style="background: #40A5E7; color: white;">Update Word for Today</button>
         </div>
 
+        <div class="card" style="border-top: 3px solid #f39c12;">
+            <h3 style="color: #f39c12;">Post New Update</h3>
+            <textarea id="update-text" placeholder="General announcement or update text..." rows="3"></textarea>
+            <input type="text" id="update-img" placeholder="Paste Image URL for update (optional)...">
+            <button class="btn" onclick="publishUpdate()" style="background: #f39c12; color: white;">Publish to Updates</button>
+        </div>
+
+        <div class="card">
+            <h3>Manage Sermons</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <button class="big-sermon-btn" onclick="showSermonUpload('video')"><span>🎥</span>VIDEO SERMON</button>
+                <button class="big-sermon-btn" onclick="showSermonUpload('audio')"><span>🔊</span>AUDIO SERMON</button>
+            </div>
+
+            <div id="audio-form" class="sermon-type-container">
+                <h4 style="margin:0; color:var(--gold);">Upload Audio Link</h4>
+                <input type="text" id="audio-title" placeholder="Sermon Title">
+                <input type="text" id="audio-link" placeholder="Paste .mp3 Link here">
+                <button class="btn" onclick="publishAudio()">Publish Audio Sermon</button>
+            </div>
+
+            <div id="video-form" class="sermon-type-container">
+                <h4 style="margin:0; color:var(--gold);">Post Video Sermon</h4>
+                <textarea id="post-text" placeholder="Sermon description..." rows="3"></textarea>
+                <input type="text" id="post-img" placeholder="Paste Video URL here...">
+                <button class="btn" onclick="publishPost()">Publish Video Sermon</button>
+            </div>
+        </div>
+
         <button class="menu-btn" onclick="toggleSection('sec-posts')">Updates <span id="count-btn-updates">(0)</span></button>
         <div id="sec-posts" class="section-content">
-            <div class="admin-search-wrap"><div class="admin-search-box"><span class="search-icon">🔍</span><input type="text" id="search-updates" placeholder="Search updates..." onkeyup="filterAdminList('search-updates', 'updates-list-admin')"></div></div>
+            <div class="admin-search-wrap">
+                <div class="admin-search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="search-updates" placeholder="Search updates..." onkeyup="filterAdminList('search-updates', 'updates-list-admin')">
+                </div>
+            </div>
             <div id="updates-list-admin"></div>
         </div>
 
         <button class="menu-btn" onclick="toggleSection('sec-sermons')">Sermons <span id="count-btn-sermons">(0)</span></button>
         <div id="sec-sermons" class="section-content">
-            <div class="admin-search-wrap"><div class="admin-search-box"><span class="search-icon">🔍</span><input type="text" id="search-sermons" placeholder="Search sermons..." onkeyup="filterAdminList('search-sermons', 'sermons-list-admin')"></div></div>
+            <div class="admin-search-wrap">
+                <div class="admin-search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="search-sermons" placeholder="Search sermons..." onkeyup="filterAdminList('search-sermons', 'sermons-list-admin')">
+                </div>
+            </div>
             <div id="sermons-list-admin"></div>
         </div>
 
         <button class="menu-btn" onclick="toggleSection('sec-prayers')">Prayers <span id="unread-count-container">(0)</span></button>
         <div id="sec-prayers" class="section-content">
+            <div class="admin-search-wrap">
+                <div class="admin-search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="search-prayers" placeholder="Search prayers..." onkeyup="filterAdminList('search-prayers', 'prayers-list-admin')">
+                </div>
+            </div>
             <div id="prayers-list-admin"></div>
         </div>
 
@@ -119,7 +170,6 @@
     </div>
 
     <script>
-        // --- EXISTING CONFIG & CORE FUNCTIONS (Unchanged) ---
         const firebaseConfig = {
             apiKey: "AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo",
             authDomain: "unioninchristapp.firebaseapp.com",
@@ -140,14 +190,49 @@
             initBellWatcher();
         }
 
+        function filterAdminList(inputId, containerId) {
+            const query = document.getElementById(inputId).value.toLowerCase();
+            const items = document.querySelectorAll(`#${containerId} .admin-item`);
+            items.forEach(item => {
+                const text = item.innerText.toLowerCase();
+                item.style.display = text.includes(query) ? "block" : "none";
+            });
+        }
+
+        function showSermonUpload(type) {
+            document.getElementById('audio-form').style.display = type === 'audio' ? 'block' : 'none';
+            document.getElementById('video-form').style.display = type === 'video' ? 'block' : 'none';
+        }
+
         function toggleSection(id) { 
             const el = document.getElementById(id); 
             el.style.display = el.style.display !== 'block' ? 'block' : 'none'; 
         }
 
+        function updateDevo() {
+            const v = document.getElementById('devo-v-in').value;
+            const t = document.getElementById('devo-t-in').value;
+            db.ref('settings/devotional').set({ verse: v, text: t }).then(() => alert("Devotional Updated"));
+        }
+
+        function updateSlider() {
+            const img1 = document.getElementById('slide1').value;
+            const img2 = document.getElementById('slide2').value;
+            db.ref('settings/slider').set({ img1, img2 }).then(() => alert("Slider Updated"));
+        }
+
         function loadAdminData() {
+            db.ref('settings/devotional').on('value', s => {
+                const d = s.val(); if(d) { document.getElementById('devo-v-in').value = d.verse; document.getElementById('devo-t-in').value = d.text; }
+            });
             db.ref('settings/slider').on('value', s => {
-                const d = s.val(); if(d) { document.getElementById('p-img1').src = d.img1; document.getElementById('p-img2').src = d.img2; }
+                const d = s.val();
+                if(d) {
+                    document.getElementById('p-img1').src = d.img1;
+                    document.getElementById('p-img2').src = d.img2;
+                    document.getElementById('slide1').value = d.img1;
+                    document.getElementById('slide2').value = d.img2;
+                }
             });
             renderList('updates', 'updates-list-admin');
             renderList('sermons', 'sermons-list-admin');
@@ -160,7 +245,7 @@
                     const unread = keys.filter(k => d[k].status === "unread").length;
                     badge.innerHTML = unread > 0 ? `<span class="unread-badge">${unread}</span>` : `(0)`;
                     keys.reverse().forEach(k => {
-                        div.innerHTML += `<div class="admin-item"><p>${d[k].text}</p></div>`;
+                        div.innerHTML += `<div class="admin-item"><p>${d[k].text}</p><button onclick="deleteItem('prayers/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button></div>`;
                     });
                 }
             });
@@ -186,9 +271,17 @@
                         postCard.className = 'admin-item';
                         postCard.id = 'post-' + k;
                         postCard.innerHTML = `
-                            <p>${item.text}</p>
-                            <button class="msg-icon-btn" onclick="toggleSection('comm-box-${k}')">💬 <span id="c-count-${k}">0</span></button>
+                            ${item.image ? `<img src="${item.image}" style="width:100%; border-radius:5px; margin-bottom:10px;">` : ''}
+                            <textarea id="edit-${k}" rows="2">${item.text}</textarea>
+                            <div class="interaction-row">
+                                <span style="color:#ff3b30; font-size:14px;">❤️ ${item.likes || 0}</span>
+                                <button class="msg-icon-btn" onclick="toggleSection('comm-box-${k}')">💬 <span id="c-count-${k}">0</span></button>
+                            </div>
                             <div id="comm-box-${k}" class="comment-container"></div>
+                            <div style="display:flex; justify-content: space-between; margin-top:10px;">
+                                <button onclick="saveEdit('${type}','${k}')" style="color:var(--gold); background:none; border:none; cursor:pointer; font-weight:bold;">Save Changes</button>
+                                <button onclick="deleteItem('${type}/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete Post</button>
+                            </div>
                         `;
                         div.appendChild(postCard);
                         loadComments(k);
@@ -202,18 +295,128 @@
                 const box = document.getElementById(`comm-box-${postId}`);
                 const countSpan = document.getElementById(`c-count-${postId}`);
                 const data = s.val(); if(!box) return; box.innerHTML = "";
+                let totalCount = 0; 
                 if(data) {
-                    countSpan.innerText = Object.keys(data).length;
                     Object.keys(data).forEach(ck => {
-                        box.innerHTML += `<div class="member-msg"><b>${data[ck].userName}:</b> ${data[ck].text}</div>`;
+                        totalCount++; const c = data[ck];
+                        let html = `<div class="member-msg"><div style="color:var(--gold); font-weight:bold; font-size:12px;">${c.userName || 'Member'}:</div><div>${c.text}</div>`;
+                        if(c.adminReply) { totalCount++; html += `<div class="bishop-reply"><strong>Admin:</strong> ${c.adminReply}</div>`; }
+                        
+                        html += `
+                            <div class="reply-input-group">
+                                <input type="text" id="reply-to-${ck}" placeholder="Type reply...">
+                                <button class="send-reply-btn" onclick="sendAdminReply('${postId}', '${ck}')">Reply</button>
+                            </div>
+                        `;
+
+                        if(c.replies) {
+                            Object.keys(c.replies).forEach(rk => {
+                                totalCount++; const r = c.replies[rk];
+                                html += `<div class="thread-reply"><div style="color:#888; font-size:11px;">↳ ${r.userName}:</div><div style="font-size:13px;">${r.text}</div></div>`;
+                            });
+                        }
+                        html += `</div>`; box.innerHTML += html;
                     });
                 }
+                countSpan.innerText = totalCount;
             });
         }
 
-        // --- UPDATED NOTIFICATION LOGIC (Fixing the badge count) ---
+        function sendAdminReply(postId, commentId) {
+            const input = document.getElementById(`reply-to-${commentId}`);
+            const text = input.value;
+            if(!text) return;
+            db.ref(`comments/${postId}/${commentId}`).update({ adminReply: text }).then(() => {
+                input.value = "";
+            });
+        }
+
+        function publishAudio() {
+            const title = document.getElementById('audio-title').value;
+            const link = document.getElementById('audio-link').value;
+            db.ref('sermons').push({ text: title + " " + link, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
+                alert("Audio Sermon has been posted successfully!");
+                document.getElementById('audio-title').value = "";
+                document.getElementById('audio-link').value = "";
+            });
+        }
+
+        function publishPost() {
+            const txt = document.getElementById('post-text').value;
+            const img = document.getElementById('post-img').value;
+            db.ref('sermons').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
+                alert("Video Sermon has been posted successfully!");
+                document.getElementById('post-text').value = "";
+                document.getElementById('post-img').value = "";
+            });
+        }
+
+        function publishUpdate() {
+            const txt = document.getElementById('update-text').value;
+            const img = document.getElementById('update-img').value;
+            db.ref('updates').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
+                alert("Update has been posted successfully!");
+                document.getElementById('update-text').value = "";
+                document.getElementById('update-img').value = "";
+            });
+        }
+
+        function saveEdit(type, id) {
+            const newText = document.getElementById('edit-' + id).value;
+            db.ref(`${type}/${id}`).update({ text: newText });
+        }
+
+        function deleteItem(path) { if(confirm("Delete?")) db.ref(path).remove(); }
+        function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
+        window.onload = () => { if(localStorage.getItem('uic_admin') === 'authenticated') showDashboard(); };
+
+        // PERSISTENT NOTIFICATION LOGIC
         let bellCount = parseInt(localStorage.getItem('uic_notif_count')) || 0;
         let initialLoadDone = false;
+
+        function toggleDropdown() {
+            const d = document.getElementById('notif-dropdown');
+            const isOpen = d.style.display === 'block';
+            d.style.display = isOpen ? 'none' : 'block';
+        }
+
+        function initBellWatcher() {
+            updateBellUI();
+            db.ref('comments').on('child_added', (postSnap) => {
+                const postId = postSnap.key;
+                db.ref(`comments/${postId}`).on('child_added', (commSnap) => {
+                    const c = commSnap.val();
+                    if (initialLoadDone && c.userName !== "Admin") {
+                        addNotifItem(c.userName, c.text, postId, 'Commented');
+                    }
+                });
+            });
+            db.ref('prayers').on('child_added', (snap) => {
+                if (initialLoadDone) {
+                    addNotifItem("Member", snap.val().text, 'sec-prayers', 'New Prayer Request');
+                }
+            });
+            db.ref('settings').once('value', () => { setTimeout(() => { initialLoadDone = true; initReplyWatcher(); }, 3000); });
+        }
+
+        function addNotifItem(user, text, targetId, typeLabel) {
+            bellCount++;
+            localStorage.setItem('uic_notif_count', bellCount);
+            updateBellUI();
+            
+            const list = document.getElementById('notif-list');
+            const item = document.createElement('div');
+            item.className = 'notif-item';
+            // Unique ID to help with individual removal
+            const uniqueId = 'notif-' + Date.now();
+            item.id = uniqueId; 
+            
+            item.innerHTML = `<b>${typeLabel}: ${user}</b> ${text.substring(0,40)}... <span>Click to view</span>`;
+            item.onclick = () => {
+                viewNotification(uniqueId, targetId);
+            };
+            list.prepend(item);
+        }
 
         function updateBellUI() {
             const b = document.getElementById('bell-count');
@@ -227,78 +430,79 @@
             }
         }
 
-        function toggleDropdown() {
-            const d = document.getElementById('notif-dropdown');
-            const isOpen = d.style.display === 'block';
-            d.style.display = isOpen ? 'none' : 'block';
-            
-            // Optional: If you want clicking the bell to clear everything at once:
-            // resetBell(); 
-        }
+        // Handle viewing a single notification and counting down
+        function viewNotification(notifDivId, targetId) {
+            const item = document.getElementById(notifDivId);
+            if(item) {
+                item.style.opacity = "0";
+                setTimeout(() => item.remove(), 300);
+            }
 
-        function resetBell() {
-            bellCount = 0;
-            localStorage.setItem('uic_notif_count', 0);
-            updateBellUI();
-        }
-
-        function goToPost(id) {
-            // Decrement bellCount when a notification is acted upon
+            // Count down
             if (bellCount > 0) {
                 bellCount--;
                 localStorage.setItem('uic_notif_count', bellCount);
                 updateBellUI();
             }
 
+            goToPost(targetId);
+            document.getElementById('notif-dropdown').style.display = 'none';
+        }
+
+        function goToPost(id) {
             const el = document.getElementById('post-' + id) || document.getElementById(id);
             if (el) {
                 const section = el.closest('.section-content');
                 if (section) section.style.display = 'block';
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                
                 const commBox = document.getElementById('comm-box-' + id);
                 if (commBox) commBox.style.display = 'block';
-                
                 el.style.backgroundColor = '#333';
                 setTimeout(() => el.style.backgroundColor = '', 2000);
             }
         }
 
-        function addNotifItem(user, text, targetId, typeLabel) {
+        // "Delete All" logic
+        function resetBell() {
+            bellCount = 0;
+            localStorage.setItem('uic_notif_count', 0);
+            updateBellUI();
+            document.getElementById('notif-list').innerHTML = "";
+        }
+
+        function initReplyWatcher() {
+            db.ref('comments').on('child_added', (postSnap) => {
+                const postId = postSnap.key;
+                db.ref(`comments/${postId}`).on('child_added', (commSnap) => {
+                    const commentId = commSnap.key;
+                    const commentData = commSnap.val();
+                    db.ref(`comments/${postId}/${commentId}/replies`).on('child_added', (replySnap) => {
+                        const reply = replySnap.val();
+                        if (initialLoadDone && reply.userName !== "Admin") {
+                            const titleText = `${reply.userName} replied to ${commentData.userName}'s comment`;
+                            addDetailedNotifItem(titleText, reply.text, postId);
+                        }
+                    });
+                });
+            });
+        }
+
+        function addDetailedNotifItem(title, text, postId) {
             bellCount++;
             localStorage.setItem('uic_notif_count', bellCount);
             updateBellUI();
             
             const list = document.getElementById('notif-list');
             const item = document.createElement('div');
+            const uniqueId = 'notif-' + Date.now();
+            item.id = uniqueId;
             item.className = 'notif-item';
-            item.innerHTML = `<b>${typeLabel}: ${user}</b> ${text.substring(0,40)}... <span>Click to view</span>`;
+            item.innerHTML = `<b>${title}</b> ${text.substring(0,40)}... <span>Click to open reply</span>`;
             item.onclick = () => {
-                goToPost(targetId);
-                item.style.opacity = "0.5"; // Mark as read visually
-                document.getElementById('notif-dropdown').style.display = 'none';
+                viewNotification(uniqueId, postId);
             };
             list.prepend(item);
         }
-
-        function initBellWatcher() {
-            updateBellUI();
-            db.ref('comments').on('child_added', (postSnap) => {
-                const postId = postSnap.key;
-                db.ref(`comments/${postId}`).on('child_added', (commSnap) => {
-                    if (initialLoadDone && commSnap.val().userName !== "Admin") {
-                        addNotifItem(commSnap.val().userName, commSnap.val().text, postId, 'Comment');
-                    }
-                });
-            });
-            db.ref('prayers').on('child_added', (snap) => {
-                if (initialLoadDone) addNotifItem("Member", snap.val().text, 'sec-prayers', 'Prayer');
-            });
-            setTimeout(() => { initialLoadDone = true; }, 3000);
-        }
-
-        function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
-        window.onload = () => { if(localStorage.getItem('uic_admin') === 'authenticated') showDashboard(); };
     </script>
 </body>
 </html>
