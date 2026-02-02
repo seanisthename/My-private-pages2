@@ -129,7 +129,26 @@
 
         function checkAdmin() { if(document.getElementById('admin-key').value === 'church111') { localStorage.setItem('uic_admin', 'authenticated'); showDashboard(); } else alert("Access Denied"); }
         function showDashboard() { document.getElementById('login-screen').style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; loadAdminData(); startPreviewSlider(); }
-        function toggleSection(id) { const el = document.getElementById(id); el.style.display = el.style.display === 'block' ? 'none' : 'block'; }
+        
+        function toggleSection(id) { 
+            const el = document.getElementById(id); 
+            const isOpening = el.style.display !== 'block';
+            el.style.display = isOpening ? 'block' : 'none'; 
+            
+            // Fix for counter: Mark all as read when opening Prayers section
+            if (isOpening && id === 'sec-prayers') {
+                db.ref('prayers').once('value', s => {
+                    const data = s.val();
+                    if(data) {
+                        Object.keys(data).forEach(k => {
+                            if(data[k].status === "unread") {
+                                db.ref(`prayers/${k}`).update({ status: "read" });
+                            }
+                        });
+                    }
+                });
+            }
+        }
 
         function updateDevo() {
             const v = document.getElementById('devo-v-in').value;
@@ -247,14 +266,13 @@
             db.ref(`comments/${pid}/${cid}`).update({ adminReply: val }).then(() => { alert("Reply sent"); });
         }
 
-        // NEW: Publish Audio Logic
         function publishAudio() {
             const title = document.getElementById('audio-title').value;
             const link = document.getElementById('audio-link').value;
             if(!title || !link) return alert("Fill both title and link");
             
             db.ref('sermons').push({ 
-                text: title + " " + link, // This stores it so the member app's linkify can find it
+                text: title + " " + link, 
                 date: new Date().toLocaleDateString(), 
                 timestamp: new Date().getTime(), 
                 likes: 0 
@@ -269,7 +287,6 @@
             const txt = document.getElementById('post-text').value;
             const img = document.getElementById('post-img').value;
             if(!txt) return;
-            // Default to 'sermons' section based on your preference
             db.ref('sermons').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => { 
                 document.getElementById('post-text').value=""; document.getElementById('post-img').value=""; alert("Post Published"); 
             });
