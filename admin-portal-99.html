@@ -17,10 +17,7 @@
         .bell-badge { position: absolute; top: -5px; right: -8px; background: #ff3b30; color: white; font-size: 10px; font-weight: bold; border-radius: 50%; padding: 2px 6px; display: none; border: 2px solid var(--navy); }
         
         #notif-dropdown { display: none; position: absolute; top: 60px; right: 10px; width: 280px; background: #252525; border: 1px solid var(--gold); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 2000; max-height: 400px; overflow-y: auto; }
-        .notif-header { padding: 10px; border-bottom: 1px solid var(--gold); font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; }
-        .clear-all-btn { color: #ff3b30; cursor: pointer; font-size: 10px; text-transform: uppercase; border: 1px solid #ff3b30; padding: 2px 5px; border-radius: 4px; }
-        
-        .notif-item { padding: 12px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; transition: background 0.2s, opacity 0.3s; }
+        .notif-item { padding: 12px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; transition: background 0.2s; }
         .notif-item:hover { background: #333; }
         .notif-item b { color: var(--gold); display: block; margin-bottom: 3px; }
         .notif-item span { color: #888; font-size: 11px; display: block; margin-top: 5px; font-style: italic; }
@@ -69,10 +66,7 @@
             <span id="bell-count" class="bell-badge">0</span>
         </div>
         <div id="notif-dropdown">
-            <div class="notif-header">
-                <span>RECENT ACTIVITY</span>
-                <span class="clear-all-btn" onclick="resetBell()">Delete All</span>
-            </div>
+            <div style="padding:10px; border-bottom:1px solid var(--gold); font-size:12px; font-weight:bold;">Recent Activity</div>
             <div id="notif-list"></div>
         </div>
     </header>
@@ -378,10 +372,13 @@
             const d = document.getElementById('notif-dropdown');
             const isOpen = d.style.display === 'block';
             d.style.display = isOpen ? 'none' : 'block';
+            if (!isOpen) resetBell();
         }
 
         function initBellWatcher() {
+            // Restore visual count on load
             updateBellUI();
+
             db.ref('comments').on('child_added', (postSnap) => {
                 const postId = postSnap.key;
                 db.ref(`comments/${postId}`).on('child_added', (commSnap) => {
@@ -396,7 +393,7 @@
                     addNotifItem("Member", snap.val().text, 'sec-prayers', 'New Prayer Request');
                 }
             });
-            db.ref('settings').once('value', () => { setTimeout(() => { initialLoadDone = true; initReplyWatcher(); }, 3000); });
+            db.ref('settings').once('value', () => { setTimeout(() => { initialLoadDone = true; }, 3000); });
         }
 
         function addNotifItem(user, text, targetId, typeLabel) {
@@ -407,41 +404,22 @@
             const list = document.getElementById('notif-list');
             const item = document.createElement('div');
             item.className = 'notif-item';
-            const uniqueId = 'notif-' + Date.now();
-            item.id = uniqueId; 
-            
             item.innerHTML = `<b>${typeLabel}: ${user}</b> ${text.substring(0,40)}... <span>Click to view</span>`;
             item.onclick = () => {
-                viewNotification(uniqueId, targetId);
+                goToPost(targetId);
+                document.getElementById('notif-dropdown').style.display = 'none';
             };
             list.prepend(item);
         }
 
         function updateBellUI() {
             const b = document.getElementById('bell-count');
-            if (b) {
-                if (bellCount > 0) {
-                    b.innerText = bellCount;
-                    b.style.display = "block";
-                } else {
-                    b.style.display = "none";
-                }
-            }
-        }
-
-        function viewNotification(notifDivId, targetId) {
-            const item = document.getElementById(notifDivId);
-            if(item) {
-                item.style.opacity = "0";
-                setTimeout(() => item.remove(), 300);
-            }
             if (bellCount > 0) {
-                bellCount--;
-                localStorage.setItem('uic_notif_count', bellCount);
-                updateBellUI();
+                b.innerText = bellCount;
+                b.style.display = "block";
+            } else {
+                b.style.display = "none";
             }
-            goToPost(targetId);
-            document.getElementById('notif-dropdown').style.display = 'none';
         }
 
         function goToPost(id) {
@@ -457,52 +435,10 @@
             }
         }
 
-        // UNIFIED RESET FUNCTION
-        window.resetBell = function() {
+        function resetBell() {
             bellCount = 0;
             localStorage.setItem('uic_notif_count', 0);
-            
-            const list = document.getElementById('notif-list');
-            if (list) list.innerHTML = "";
-            
-            const b = document.getElementById('bell-count');
-            if (b) {
-                b.innerText = "0";
-                b.style.display = "none";
-            }
-        };
-
-        function initReplyWatcher() {
-            db.ref('comments').on('child_added', (postSnap) => {
-                const postId = postSnap.key;
-                db.ref(`comments/${postId}`).on('child_added', (commSnap) => {
-                    const commentId = commSnap.key;
-                    const commentData = commSnap.val();
-                    db.ref(`comments/${postId}/${commentId}/replies`).on('child_added', (replySnap) => {
-                        const reply = replySnap.val();
-                        if (initialLoadDone && reply.userName !== "Admin") {
-                            const titleText = `${reply.userName} replied to ${commentData.userName}'s comment`;
-                            addDetailedNotifItem(titleText, reply.text, postId);
-                        }
-                    });
-                });
-            });
-        }
-
-        function addDetailedNotifItem(title, text, postId) {
-            bellCount++;
-            localStorage.setItem('uic_notif_count', bellCount);
             updateBellUI();
-            const list = document.getElementById('notif-list');
-            const item = document.createElement('div');
-            const uniqueId = 'notif-' + Date.now();
-            item.id = uniqueId;
-            item.className = 'notif-item';
-            item.innerHTML = `<b>${title}</b> ${text.substring(0,40)}... <span>Click to open reply</span>`;
-            item.onclick = () => {
-                viewNotification(uniqueId, postId);
-            };
-            list.prepend(item);
         }
     </script>
 </body>
