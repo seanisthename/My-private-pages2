@@ -138,7 +138,7 @@
             <div id="updates-list-admin"></div>
         </div>
 
-        <button class="menu-btn" onclick="toggleSection('sec-sermons')">Sermons <span id="count-btn-sermons">(0)</span></button>
+        <button class="menu-btn" id="sermon-trigger" onclick="toggleSection('sec-sermons'); resetSermonBadge()">Sermons <span id="count-btn-sermons">(0)</span></button>
         <div id="sec-sermons" class="section-content">
             <div class="admin-search-wrap">
                 <div class="admin-search-box">
@@ -253,13 +253,28 @@
             }, 8000);
         }
 
+        // Variable to track if we've clicked sermons during this session
+        let sermonResetActive = false;
+
+        function resetSermonBadge() {
+            sermonResetActive = true;
+            document.getElementById('count-btn-sermons').innerText = "(0)";
+        }
+
         function renderList(type, containerId) {
             db.ref(type).on('value', s => {
                 const div = document.getElementById(containerId);
                 const btnCount = document.getElementById('count-btn-' + type);
                 div.innerHTML = ""; const data = s.val();
                 if(data) {
-                    const keys = Object.keys(data); btnCount.innerText = `(${keys.length})`;
+                    const keys = Object.keys(data);
+                    // Only update the count if it's NOT the sermons section OR if we haven't reset it yet
+                    if(type !== 'sermons' || !sermonResetActive) {
+                        btnCount.innerText = `(${keys.length})`;
+                    } else {
+                        btnCount.innerText = `(0)`;
+                    }
+
                     keys.reverse().forEach(k => {
                         const item = data[k];
                         const postCard = document.createElement('div');
@@ -365,7 +380,7 @@
         function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
         window.onload = () => { if(localStorage.getItem('uic_admin') === 'authenticated') showDashboard(); };
 
-        // PERSISTENT NOTIFICATION LOGIC - UPDATED PER REQUEST
+        // PERSISTENT NOTIFICATION LOGIC
         let bellCount = parseInt(localStorage.getItem('uic_notif_count')) || 0;
         let initialLoadDone = false;
 
@@ -379,7 +394,6 @@
         function initBellWatcher() {
             updateBellUI();
             
-            // Watch for top-level replies (Member replied to post)
             db.ref('comments').on('child_added', (postSnap) => {
                 const postId = postSnap.key;
                 db.ref(`comments/${postId}`).on('child_added', (commSnap) => {
@@ -389,7 +403,6 @@
                         addNotifItem(c.userName + " replied to your post", c.text, postId, 'New Activity', 'comm-item-' + commentId);
                     }
 
-                    // Watch for nested replies (Member replied to Member)
                     db.ref(`comments/${postId}/${commentId}/replies`).on('child_added', (replySnap) => {
                         const r = replySnap.val();
                         if (initialLoadDone && r.userName !== "Admin") {
@@ -400,7 +413,6 @@
                 });
             });
 
-            // Watch for Prayer Requests
             db.ref('prayers').on('child_added', (snap) => {
                 if (initialLoadDone) {
                     addNotifItem("New Prayer Request", snap.val().text, 'sec-prayers', 'Prayer', 'prayer-' + snap.key);
@@ -437,22 +449,17 @@
         }
 
         function goToPost(id, elementId) {
-            // Check if it's a prayer request section or a specific post
             const el = document.getElementById('post-' + id) || document.getElementById(id);
             if (el) {
-                // 1. Open the main section (Updates, Sermons, or Prayers)
                 const section = el.closest('.section-content');
                 if (section) section.style.display = 'block';
 
-                // 2. Open the comment box if it's a post
                 const commBox = document.getElementById('comm-box-' + id);
                 if (commBox) commBox.style.display = 'block';
 
-                // 3. Scroll to the specific message or prayer
                 const targetElement = document.getElementById(elementId) || el;
                 targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-                // 4. Highlight the target
                 targetElement.style.backgroundColor = '#333';
                 targetElement.style.transition = 'background 0.5s';
                 setTimeout(() => targetElement.style.backgroundColor = '', 3000);
