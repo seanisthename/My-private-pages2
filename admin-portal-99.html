@@ -14,14 +14,18 @@
         .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 15px; border-top: 3px solid var(--gold); }
         input, textarea, select { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #333; background: #2d2d2d; color: white; box-sizing: border-box; }
         .btn { background: var(--gold); color: #000; padding: 12px; border: none; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        
         .live-preview-box { border: 2px solid #444; border-radius: 15px; overflow: hidden; margin-bottom: 20px; background: #000; }
         .preview-label { background: #444; color: white; font-size: 10px; text-align: center; padding: 4px; text-transform: uppercase; }
         .mini-slider { width: 100%; height: 160px; position: relative; overflow: hidden; background: #000; }
         .mini-slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: cover; }
         .mini-slide.active { opacity: 1; }
+        
         .menu-btn { background: #2d2d2d; color: var(--gold); border: 1px solid var(--gold); padding: 15px; border-radius: 10px; width: 100%; text-align: left; font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; cursor: pointer; }
+        .unread-badge { background: #ff3b30; color: white; padding: 2px 8px; border-radius: 50px; font-size: 12px; }
         .section-content { display: none; margin-bottom: 20px; }
         .admin-item { background: #252525; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid var(--gold); }
+        .time-badge { font-size: 11px; color: #888; display: block; margin-bottom: 8px; }
         .interaction-row { display: flex; gap: 20px; margin: 12px 0; align-items: center; border-top: 1px solid #333; padding-top: 10px; }
         .msg-icon-btn { background: none; border: none; color: var(--gold); font-size: 18px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .comment-container { display: none; background: #1a1a1a; border-radius: 8px; padding: 10px; margin-top: 10px; }
@@ -30,22 +34,75 @@
         .reply-input-group input { margin-top: 0; padding: 8px; font-size: 13px; }
         .send-reply-btn { background: #28a745; color: white; border: none; padding: 0 15px; border-radius: 5px; cursor: pointer; }
         .bishop-reply { color: var(--gold); font-size: 12px; margin-top: 5px; padding-left: 10px; border-left: 2px solid var(--gold); }
+        
         .thread-reply { margin-left: 20px; border-left: 1px solid #444; padding-left: 10px; background: #151515; margin-top: 5px; border-radius: 0 5px 5px 0; }
+
+        .big-sermon-btn { flex: 1; padding: 25px 10px; border-radius: 15px; border: 2px solid var(--gold); background: #1a1a1a; color: white; font-weight: bold; cursor: pointer; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .big-sermon-btn:active { background: var(--gold); color: black; }
+        .sermon-type-container { display: none; margin-top: 15px; background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px dashed var(--gold); }
+
         #login-screen { max-width: 400px; margin: 50px auto; padding: 20px; }
     </style>
 </head>
 <body>
     <header><h1>UICC Admin Portal</h1></header>
+    
     <div id="login-screen" class="card">
         <input type="password" id="admin-key" placeholder="Password"><button class="btn" onclick="checkAdmin()">Login</button>
     </div>
 
     <div id="dashboard" class="admin-content">
+        
+        <div class="preview-label">Live Member View Preview</div>
+        <div class="live-preview-box">
+            <div class="mini-slider">
+                <img id="p-img1" class="mini-slide active" src="">
+                <img id="p-img2" class="mini-slide" src="">
+            </div>
+        </div>
+
         <div class="card">
             <h3>Update Slider Pictures</h3>
             <input type="text" id="slide1" placeholder="Image URL 1">
             <input type="text" id="slide2" placeholder="Image URL 2">
-            <button class="btn" onclick="updateSlider()">Apply to App</button>
+            <button class="btn" onclick="updateSlider()" style="background: #28a745; color: white;">Apply to App</button>
+        </div>
+
+        <div class="card" style="border-top: 3px solid #40A5E7;">
+            <h3 style="color: #40A5E7;">Daily Devotional</h3>
+            <input type="text" id="devo-v-in" placeholder="Scripture (e.g. John 3:16)">
+            <textarea id="devo-t-in" placeholder="Today's message..." rows="2"></textarea>
+            <button class="btn" onclick="updateDevo()" style="background: #40A5E7; color: white;">Update Word for Today</button>
+        </div>
+
+        <div class="card" style="border-top: 3px solid #f39c12;">
+            <h3 style="color: #f39c12;">Post New Update</h3>
+            <textarea id="update-text" placeholder="General announcement or update text..." rows="3"></textarea>
+            <input type="text" id="update-img" placeholder="Paste Image URL for update (optional)...">
+            <button class="btn" onclick="publishUpdate()" style="background: #f39c12; color: white;">Publish to Updates</button>
+        </div>
+
+        <div class="card">
+            <h3>Manage Sermons</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <button class="big-sermon-btn" onclick="showSermonUpload('video')"><span>🎥</span>VIDEO SERMON</button>
+                <button class="big-sermon-btn" onclick="showSermonUpload('audio')"><span>🔊</span>AUDIO SERMON</button>
+            </div>
+
+            <div id="audio-form" class="sermon-type-container">
+                <h4 style="margin:0; color:var(--gold);">Upload Audio Link</h4>
+                <p style="font-size: 11px; opacity: 0.7;">Paste your Archive.org direct MP3 link below</p>
+                <input type="text" id="audio-title" placeholder="Sermon Title">
+                <input type="text" id="audio-link" placeholder="Paste .mp3 Link here">
+                <button class="btn" onclick="publishAudio()">Publish Audio Sermon</button>
+            </div>
+
+            <div id="video-form" class="sermon-type-container">
+                <h4 style="margin:0; color:var(--gold);">Post Video Sermon</h4>
+                <textarea id="post-text" placeholder="Sermon description..." rows="3"></textarea>
+                <input type="text" id="post-img" placeholder="Paste Video URL here...">
+                <button class="btn" onclick="publishPost()">Publish Video Sermon</button>
+            </div>
         </div>
 
         <button class="menu-btn" onclick="toggleSection('sec-posts')">Updates <span id="count-btn-updates">(0)</span></button>
@@ -53,6 +110,9 @@
 
         <button class="menu-btn" onclick="toggleSection('sec-sermons')">Sermons <span id="count-btn-sermons">(0)</span></button>
         <div id="sec-sermons" class="section-content"></div>
+
+        <button class="menu-btn" onclick="toggleSection('sec-prayers')">Prayers <span id="unread-count-container">(0)</span></button>
+        <div id="sec-prayers" class="section-content"></div>
 
         <button class="btn" style="background:#444; color:white;" onclick="logOut()">Logout</button>
     </div>
@@ -69,13 +129,68 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        function showSermonUpload(type) {
+            document.getElementById('audio-form').style.display = type === 'audio' ? 'block' : 'none';
+            document.getElementById('video-form').style.display = type === 'video' ? 'block' : 'none';
+        }
+
         function checkAdmin() { if(document.getElementById('admin-key').value === 'church111') { localStorage.setItem('uic_admin', 'authenticated'); showDashboard(); } else alert("Access Denied"); }
-        function showDashboard() { document.getElementById('login-screen').style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; loadAdminData(); }
-        function toggleSection(id) { const el = document.getElementById(id); el.style.display = el.style.display === 'block' ? 'none' : 'block'; }
+        function showDashboard() { document.getElementById('login-screen').style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; loadAdminData(); startPreviewSlider(); }
+        
+        function toggleSection(id) { 
+            const el = document.getElementById(id); 
+            const isOpening = el.style.display !== 'block';
+            el.style.display = isOpening ? 'block' : 'none'; 
+        }
+
+        function updateDevo() {
+            const v = document.getElementById('devo-v-in').value;
+            const t = document.getElementById('devo-t-in').value;
+            db.ref('settings/devotional').set({ verse: v, text: t }).then(() => alert("Devotional Updated"));
+        }
+
+        function updateSlider() {
+            const img1 = document.getElementById('slide1').value;
+            const img2 = document.getElementById('slide2').value;
+            if(!img1 || !img2) return alert("Fill both URLs");
+            db.ref('settings/slider').set({ img1, img2 }).then(() => alert("Slider Updated"));
+        }
 
         function loadAdminData() {
+            db.ref('settings/devotional').on('value', s => {
+                const d = s.val(); if(d) { document.getElementById('devo-v-in').value = d.verse; document.getElementById('devo-t-in').value = d.text; }
+            });
+            db.ref('settings/slider').on('value', s => {
+                const d = s.val();
+                if(d) {
+                    document.getElementById('p-img1').src = d.img1;
+                    document.getElementById('p-img2').src = d.img2;
+                    document.getElementById('slide1').value = d.img1;
+                    document.getElementById('slide2').value = d.img2;
+                }
+            });
             renderList('updates', 'sec-posts');
             renderList('sermons', 'sec-sermons');
+            db.ref('prayers').on('value', s => {
+                const div = document.getElementById('sec-prayers');
+                const badge = document.getElementById('unread-count-container');
+                const d = s.val(); div.innerHTML = "";
+                if(d) {
+                    const keys = Object.keys(d);
+                    const unread = keys.filter(k => d[k].status === "unread").length;
+                    badge.innerHTML = unread > 0 ? `<span class="unread-badge">${unread}</span>` : `(0)`;
+                    keys.reverse().forEach(k => {
+                        div.innerHTML += `<div class="admin-item"><p>${d[k].text}</p><button onclick="deleteItem('prayers/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button></div>`;
+                    });
+                }
+            });
+        }
+
+        function startPreviewSlider() {
+            let cur = 0; setInterval(() => {
+                const s = document.querySelectorAll('.mini-slide'); if(s.length < 2) return;
+                s[cur].classList.remove('active'); cur = (cur + 1) % s.length; s[cur].classList.add('active');
+            }, 8000);
         }
 
         function renderList(type, containerId) {
@@ -90,11 +205,16 @@
                         const postCard = document.createElement('div');
                         postCard.className = 'admin-item';
                         postCard.innerHTML = `
-                            <p>${item.text}</p>
+                            ${item.image ? `<img src="${item.image}" style="width:100%; border-radius:5px; margin-bottom:10px;">` : ''}
+                            <textarea id="edit-${k}" rows="2">${item.text}</textarea>
                             <div class="interaction-row">
                                 <button class="msg-icon-btn" onclick="toggleSection('comm-box-${k}')">💬 <span id="c-count-${k}">0</span></button>
                             </div>
                             <div id="comm-box-${k}" class="comment-container"></div>
+                            <div style="display:flex; justify-content: space-between; margin-top:10px;">
+                                <button onclick="saveEdit('${type}','${k}')" style="color:var(--gold); background:none; border:none; cursor:pointer; font-weight:bold;">Save Changes</button>
+                                <button onclick="deleteItem('${type}/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete Post</button>
+                            </div>
                         `;
                         div.appendChild(postCard);
                         loadComments(k);
@@ -107,42 +227,51 @@
             db.ref(`comments/${postId}`).on('value', s => {
                 const box = document.getElementById(`comm-box-${postId}`);
                 const countSpan = document.getElementById(`c-count-${postId}`);
-                const data = s.val(); if(!box) return;
-                
-                let totalCount = 0;
+                const data = s.val(); 
+                if(!box) return;
                 box.innerHTML = "";
-                
+
+                let totalCount = 0; // Initialize full interaction counter
+
                 if(data) {
-                    Object.keys(data).forEach(ck => {
-                        totalCount++; // The comment
+                    const keys = Object.keys(data);
+                    keys.forEach(ck => {
+                        totalCount++; // Count the main comment
                         const c = data[ck];
-                        
-                        let html = `<div class="member-msg">
-                            <b>${c.userName}:</b> ${c.text}
-                            <div class="reply-input-group">
-                                <input type="text" id="rep-in-${ck}" placeholder="Reply...">
-                                <button class="send-reply-btn" onclick="sendReply('${postId}','${ck}')">Send</button>
-                                <button onclick="deleteItem('comments/${postId}/${ck}')" style="color:red; background:none; border:none;">Del</button>
-                            </div>`;
+                        let html = `
+                            <div class="member-msg">
+                                <div style="color:var(--gold); font-weight:bold; font-size:12px;">${c.userName || 'Anonymous'}:</div>
+                                <div>${c.text}</div>
+                                <div class="reply-input-group">
+                                    <input type="text" id="rep-in-${ck}" placeholder="Admin Reply...">
+                                    <button class="send-reply-btn" onclick="sendReply('${postId}','${ck}')">Send</button>
+                                    <button onclick="deleteItem('comments/${postId}/${ck}')" style="background:none; border:none; color:#ff3b30; font-size:11px; cursor:pointer;">Del</button>
+                                </div>`;
                         
                         if(c.replies) {
-                            Object.keys(c.replies).forEach(rk => {
-                                totalCount++; // The member reply
-                                const r = c.replies[rk];
-                                html += `<div class="thread-reply">↳ ${r.userName}: ${r.text}</div>`;
+                            const rKeys = Object.keys(c.replies);
+                            totalCount += rKeys.length; // Count member-to-member replies
+                            rKeys.forEach(rk => {
+                                const reply = c.replies[rk];
+                                html += `
+                                    <div class="thread-reply">
+                                        <div style="color:#888; font-size:11px;">↳ ${reply.userName || 'Member'}:</div>
+                                        <div style="font-size:13px;">${reply.text}</div>
+                                        <button onclick="deleteItem('comments/${postId}/${ck}/replies/${rk}')" style="background:none; border:none; color:#ff3b30; font-size:10px; padding:0; cursor:pointer;">Delete Member Reply</button>
+                                    </div>`;
                             });
                         }
 
                         if(c.adminReply) {
-                            totalCount++; // The admin reply
-                            html += `<div class="bishop-reply">Admin: ${c.adminReply}</div>`;
+                            totalCount++; // Count the admin reply
+                            html += `<div class="bishop-reply"><strong>Admin:</strong> ${c.adminReply}</div>`;
                         }
-
+                        
                         html += `</div>`;
                         box.innerHTML += html;
                     });
                 }
-                countSpan.innerText = totalCount;
+                countSpan.innerText = totalCount; // Set final deep count
             });
         }
 
@@ -154,7 +283,39 @@
             });
         }
 
-        function deleteItem(path) { if(confirm("Delete?")) db.ref(path).remove(); }
+        function publishAudio() {
+            const title = document.getElementById('audio-title').value;
+            const link = document.getElementById('audio-link').value;
+            if(!title || !link) return alert("Fill both title and link");
+            db.ref('sermons').push({ text: title + " " + link, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => { 
+                document.getElementById('audio-title').value=""; document.getElementById('audio-link').value=""; alert("Audio Sermon Published!"); 
+            });
+        }
+
+        function publishPost() {
+            const txt = document.getElementById('post-text').value;
+            const img = document.getElementById('post-img').value;
+            if(!txt) return;
+            db.ref('sermons').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => { 
+                document.getElementById('post-text').value=""; document.getElementById('post-img').value=""; alert("Video Sermon Published"); 
+            });
+        }
+
+        function publishUpdate() {
+            const txt = document.getElementById('update-text').value;
+            const img = document.getElementById('update-img').value;
+            if(!txt) return alert("Enter update text");
+            db.ref('updates').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => { 
+                document.getElementById('update-text').value=""; document.getElementById('update-img').value=""; alert("Update Published"); 
+            });
+        }
+
+        function saveEdit(type, id) {
+            const newText = document.getElementById('edit-' + id).value;
+            db.ref(`${type}/${id}`).update({ text: newText }).then(() => alert("Saved"));
+        }
+
+        function deleteItem(path) { if(confirm("Permanently delete this?")) db.ref(path).remove(); }
         function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
         window.onload = () => { if(localStorage.getItem('uic_admin') === 'authenticated') showDashboard(); };
     </script>
