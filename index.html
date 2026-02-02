@@ -39,9 +39,8 @@
         
         .action-link { font-size: 10px; color: #777; margin-left: 10px; cursor: pointer; text-decoration: underline; }
         .action-link:hover { color: var(--gold); }
-        .edit-mode input { width: 80%; font-size: 12px; background: #333; border: 1px solid var(--gold); color: white; border-radius: 3px; }
 
-        /* SEARCH STYLING */
+        /* SEARCH STYLING - PERSISTENT */
         .search-container { margin: 0 0 15px 0; display: flex; justify-content: flex-end; }
         .search-box { background: #1a1a1a; border: 1px solid #333; border-radius: 20px; padding: 5px 12px; display: flex; align-items: center; width: 140px; transition: width 0.3s; }
         .search-box:focus-within { width: 200px; border-color: var(--gold); }
@@ -52,7 +51,7 @@
         .devo-card { background: linear-gradient(rgba(212, 175, 55, 0.1), rgba(0,0,0,0)); border: 1px solid var(--gold); border-radius: 15px; padding: 15px; margin-bottom: 10px; text-align: center; position: relative; }
         .devo-title { color: var(--gold); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: bold; }
         .devo-close { position: absolute; right: 10px; top: 10px; color: #777; font-size: 18px; cursor: pointer; padding: 5px; }
-        .sermon-nav { display: flex; gap: 10px; margin-bottom: 20px; }
+        .sermon-nav { display: flex; gap: 10px; margin-bottom: 15px; }
         .s-btn { flex: 1; padding: 20px 10px; border-radius: 12px; border: 1px solid var(--gold); background: #1a1a1a; color: white; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; }
         .s-btn.active { background: var(--gold); color: black; }
         .audio-player-container { background: #111; padding: 15px; border-radius: 10px; border: 1px solid #333; margin-top: 10px; display: flex; align-items: center; gap: 15px; }
@@ -81,7 +80,7 @@
         <div class="search-container">
             <div class="search-box">
                 <span class="search-icon">🔍</span>
-                <input type="text" id="postSearch" placeholder="Search date, title, or text..." onkeyup="filterPosts()">
+                <input type="text" id="homeSearch" placeholder="Search home..." onkeyup="filterPosts('homeSearch', 'updates-list')">
             </div>
         </div>
 
@@ -93,6 +92,14 @@
             <button class="s-btn active" id="btn-vid" onclick="filterSermons('video')"><span>🎥</span>VIDEO SERMONS</button>
             <button class="s-btn" id="btn-aud" onclick="filterSermons('audio')"><span>🔊</span>AUDIO SERMONS</button>
         </div>
+
+        <div class="search-container">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="sermonSearch" placeholder="Search sermons..." onkeyup="filterPosts('sermonSearch', 'sermons-list')">
+            </div>
+        </div>
+
         <div id="sermons-list"></div>
     </div>
 
@@ -126,18 +133,14 @@
 
         let currentSermonFilter = 'video';
 
-        // NEW SEARCH FILTER FUNCTION
-        function filterPosts() {
-            const query = document.getElementById('postSearch').value.toLowerCase();
-            const cards = document.querySelectorAll('#updates-list .card, #sermons-list .card');
+        // UNIVERSAL SEARCH FILTER
+        function filterPosts(inputId, listId) {
+            const query = document.getElementById(inputId).value.toLowerCase();
+            const cards = document.querySelectorAll(`#${listId} .card`);
             
             cards.forEach(card => {
                 const text = card.innerText.toLowerCase();
-                if (text.includes(query)) {
-                    card.style.display = "block";
-                } else {
-                    card.style.display = "none";
-                }
+                card.style.display = text.includes(query) ? "block" : "none";
             });
         }
 
@@ -151,14 +154,17 @@
             currentSermonFilter = type;
             document.getElementById('btn-vid').classList.toggle('active', type === 'video');
             document.getElementById('btn-aud').classList.toggle('active', type === 'audio');
+            // Reset search when switching sermon types
+            document.getElementById('sermonSearch').value = "";
             render('sermons', 'sermons-list');
         }
 
         function showTab(t, e) {
             document.querySelectorAll('.content-section, .tab').forEach(x => x.classList.remove('active'));
             document.getElementById(t).classList.add('active'); e.classList.add('active');
-            // Reset search when switching tabs
-            document.getElementById('postSearch').value = "";
+            // Clear searches on tab change
+            document.getElementById('homeSearch').value = "";
+            document.getElementById('sermonSearch').value = "";
         }
 
         function closeDevo() {
