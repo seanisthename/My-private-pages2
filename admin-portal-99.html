@@ -40,12 +40,14 @@
         .interaction-row { display: flex; gap: 20px; margin: 12px 0; align-items: center; border-top: 1px solid #333; padding-top: 10px; }
         .msg-icon-btn { background: none; border: none; color: var(--gold); font-size: 18px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .comment-container { display: none; background: #1a1a1a; border-radius: 8px; padding: 10px; margin-top: 10px; }
-        .member-msg { border-bottom: 1px solid #333; padding: 10px 0; font-size: 14px; }
+        .member-msg { border-bottom: 1px solid #333; padding: 10px 0; font-size: 14px; position: relative; }
         .reply-input-group { display: flex; gap: 5px; margin-top: 8px; }
         .reply-input-group input { margin-top: 0; padding: 8px; font-size: 13px; }
         .send-reply-btn { background: #28a745; color: white; border: none; padding: 0 15px; border-radius: 5px; cursor: pointer; }
         .bishop-reply { color: var(--gold); font-size: 12px; margin-top: 5px; padding-left: 10px; border-left: 2px solid var(--gold); }
-        .thread-reply { margin-left: 20px; border-left: 1px solid #444; padding-left: 10px; background: #151515; margin-top: 12px; border-radius: 0 5px 5px 0; padding-bottom: 8px; }
+        .thread-reply { margin-left: 20px; border-left: 1px solid #444; padding-left: 10px; background: #151515; margin-top: 12px; border-radius: 0 5px 5px 0; padding-bottom: 8px; position: relative; }
+
+        .del-comment-btn { color: #ff3b30; background: none; border: none; cursor: pointer; font-size: 11px; padding: 0; margin-left: 10px; }
 
         .big-sermon-btn { flex: 1; padding: 25px 10px; border-radius: 15px; border: 2px solid var(--gold); background: #1a1a1a; color: white; font-weight: bold; cursor: pointer; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .sermon-type-container { display: none; margin-top: 15px; background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px dashed var(--gold); }
@@ -204,7 +206,6 @@
             const isOpening = el.style.display !== 'block';
             el.style.display = isOpening ? 'block' : 'none'; 
 
-            // FIX: If opening the prayer section, clear the unread notifications
             if (isOpening && id === 'sec-prayers') {
                 db.ref('prayers').once('value', s => {
                     const data = s.val();
@@ -311,7 +312,13 @@
                 if(data) {
                     Object.keys(data).forEach(ck => {
                         totalCount++; const c = data[ck];
-                        let html = `<div class="member-msg" id="comm-item-${ck}"><div style="color:var(--gold); font-weight:bold; font-size:12px;">${c.userName || 'Member'}:</div><div>${c.text}</div>`;
+                        let html = `<div class="member-msg" id="comm-item-${ck}">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <div style="color:var(--gold); font-weight:bold; font-size:12px;">${c.userName || 'Member'}:</div>
+                                <button class="del-comment-btn" onclick="deleteComment('${postId}', '${ck}')">Delete Comment</button>
+                            </div>
+                            <div>${c.text}</div>`;
+                        
                         if(c.adminReply) { totalCount++; html += `<div class="bishop-reply"><strong>Admin:</strong> ${c.adminReply}</div>`; }
                         
                         html += `
@@ -324,7 +331,13 @@
                         if(c.replies) {
                             Object.keys(c.replies).forEach(rk => {
                                 totalCount++; const r = c.replies[rk];
-                                html += `<div class="thread-reply" id="thread-reply-${rk}"><div style="color:#888; font-size:11px;">↳ ${r.userName}:</div><div style="font-size:13px;">${r.text}</div></div>`;
+                                html += `<div class="thread-reply" id="thread-reply-${rk}">
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <div style="color:#888; font-size:11px;">↳ ${r.userName}:</div>
+                                        <button class="del-comment-btn" onclick="deleteComment('${postId}', '${ck}', '${rk}')">Delete Reply</button>
+                                    </div>
+                                    <div style="font-size:13px;">${r.text}</div>
+                                </div>`;
                             });
                         }
                         html += `</div>`; box.innerHTML += html;
@@ -332,6 +345,14 @@
                 }
                 countSpan.innerText = totalCount;
             });
+        }
+
+        function deleteComment(postId, commentId, replyId = null) {
+            if(confirm("Are you sure you want to delete this comment?")) {
+                let path = `comments/${postId}/${commentId}`;
+                if(replyId) path += `/replies/${replyId}`;
+                db.ref(path).remove();
+            }
         }
 
         function sendAdminReply(postId, commentId) {
@@ -454,7 +475,7 @@
             const el = document.getElementById('post-' + id) || document.getElementById(id);
             if (el) {
                 const section = el.closest('.section-content');
-                if (section) toggleSection(section.id); // Re-uses the toggle to clear badges
+                if (section) toggleSection(section.id);
 
                 const commBox = document.getElementById('comm-box-' + id);
                 if (commBox) commBox.style.display = 'block';
