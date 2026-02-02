@@ -371,5 +371,56 @@
         function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
         window.onload = () => { if(localStorage.getItem('uic_admin') === 'authenticated') showDashboard(); };
     </script>
+
+    <script>
+        (function() {
+            // Request permission once dashboard is loaded
+            if (Notification.permission !== "granted") {
+                Notification.requestPermission();
+            }
+
+            let initialLoad = true;
+
+            // Watch for any activity in the comments node
+            db.ref('comments').on('child_added', (postSnap) => {
+                const postId = postSnap.key;
+
+                // Watch for main comments
+                db.ref(`comments/${postId}`).on('child_added', (commentSnap) => {
+                    const comment = commentSnap.val();
+                    
+                    // Alert if it's a new member comment (not Admin)
+                    if (!initialLoad && comment.userName !== "Admin") {
+                        triggerAdminNotify(`Comment from ${comment.userName || 'Member'}`, comment.text);
+                    }
+
+                    // Watch for nested thread replies between members
+                    db.ref(`comments/${postId}/${commentSnap.key}/replies`).on('child_added', (replySnap) => {
+                        const reply = replySnap.val();
+                        if (!initialLoad && reply.userName !== "Admin") {
+                            triggerAdminNotify(`Thread Reply: ${reply.userName}`, reply.text);
+                        }
+                    });
+                });
+            });
+
+            // Prevent notification storm on page refresh
+            db.ref('comments').once('value', () => {
+                setTimeout(() => { initialLoad = false; }, 3000);
+            });
+
+            function triggerAdminNotify(title, msg) {
+                // Audio beep
+                const audio = new Audio('https://actions.google.com/sounds/v1/notifications/minimalist_bells.ogg');
+                audio.play().catch(() => {});
+
+                // Desktop/Phone Notification
+                if (Notification.permission === "granted") {
+                    new Notification("UIC Admin Alert", { body: `${title}: ${msg}` });
+                }
+                console.log("🔔 New Activity:", title, msg);
+            }
+        })();
+    </script>
 </body>
 </html>
