@@ -9,15 +9,18 @@
     <style>
         :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); padding-bottom: 50px; }
-        header { background: linear-gradient(135deg, #000c24, var(--navy)); color: var(--gold); padding: 15px; text-align: center; border-bottom: 3px solid var(--gold); }
+        header { background: linear-gradient(135deg, #000c24, var(--navy)); color: var(--gold); padding: 15px; text-align: center; border-bottom: 3px solid var(--gold); position: relative; }
+        
+        /* NOTIFICATION BELL STYLING */
+        .notif-bell-wrapper { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); cursor: pointer; }
+        .bell-icon { font-size: 24px; color: var(--gold); }
+        .bell-badge { position: absolute; top: -5px; right: -8px; background: #ff3b30; color: white; font-size: 10px; font-weight: bold; border-radius: 50%; padding: 2px 6px; display: none; border: 2px solid var(--navy); }
+
         .admin-content { padding: 15px; display: none; }
         .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 15px; border-top: 3px solid var(--gold); }
         input, textarea, select { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #333; background: #2d2d2d; color: white; box-sizing: border-box; }
         .btn { background: var(--gold); color: #000; padding: 12px; border: none; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
         
-        /* NOTIFICATION BANNER */
-        #notif-status { background: #333; color: var(--gold); padding: 10px; text-align: center; font-size: 12px; margin-bottom: 10px; border-radius: 8px; cursor: pointer; border: 1px solid var(--gold); display: none; }
-
         .live-preview-box { border: 2px solid #444; border-radius: 15px; overflow: hidden; margin-bottom: 20px; background: #000; }
         .preview-label { background: #444; color: white; font-size: 10px; text-align: center; padding: 4px; text-transform: uppercase; }
         .mini-slider { width: 100%; height: 160px; position: relative; overflow: hidden; background: #000; }
@@ -28,7 +31,6 @@
         .unread-badge { background: #ff3b30; color: white; padding: 2px 8px; border-radius: 50px; font-size: 12px; }
         .section-content { display: none; margin-bottom: 20px; }
         .admin-item { background: #252525; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid var(--gold); }
-        .time-badge { font-size: 11px; color: #888; display: block; margin-bottom: 8px; }
         .interaction-row { display: flex; gap: 20px; margin: 12px 0; align-items: center; border-top: 1px solid #333; padding-top: 10px; }
         .msg-icon-btn { background: none; border: none; color: var(--gold); font-size: 18px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .comment-container { display: none; background: #1a1a1a; border-radius: 8px; padding: 10px; margin-top: 10px; }
@@ -37,11 +39,9 @@
         .reply-input-group input { margin-top: 0; padding: 8px; font-size: 13px; }
         .send-reply-btn { background: #28a745; color: white; border: none; padding: 0 15px; border-radius: 5px; cursor: pointer; }
         .bishop-reply { color: var(--gold); font-size: 12px; margin-top: 5px; padding-left: 10px; border-left: 2px solid var(--gold); }
-        
         .thread-reply { margin-left: 20px; border-left: 1px solid #444; padding-left: 10px; background: #151515; margin-top: 12px; border-radius: 0 5px 5px 0; padding-bottom: 8px; }
 
         .big-sermon-btn { flex: 1; padding: 25px 10px; border-radius: 15px; border: 2px solid var(--gold); background: #1a1a1a; color: white; font-weight: bold; cursor: pointer; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        .big-sermon-btn:active { background: var(--gold); color: black; }
         .sermon-type-container { display: none; margin-top: 15px; background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px dashed var(--gold); }
 
         .admin-search-wrap { display: flex; justify-content: flex-end; margin-bottom: 10px; }
@@ -53,7 +53,13 @@
     </style>
 </head>
 <body>
-    <header><h1>UICC Admin Portal</h1></header>
+    <header>
+        <h1>UICC Admin Portal</h1>
+        <div class="notif-bell-wrapper" onclick="resetBell()">
+            <span class="bell-icon">🔔</span>
+            <span id="bell-count" class="bell-badge">0</span>
+        </div>
+    </header>
     
     <div id="login-screen" class="card">
         <input type="password" id="admin-key" placeholder="Password"><button class="btn" onclick="checkAdmin()">Login</button>
@@ -61,10 +67,6 @@
 
     <div id="dashboard" class="admin-content">
         
-        <div id="notif-status" onclick="activateNotifs()">
-            🔔 Notifications: [DISABLED] - Click to Enable Sound & Alerts
-        </div>
-
         <div class="preview-label">Live Member View Preview</div>
         <div class="live-preview-box">
             <div class="mini-slider">
@@ -103,7 +105,6 @@
 
             <div id="audio-form" class="sermon-type-container">
                 <h4 style="margin:0; color:var(--gold);">Upload Audio Link</h4>
-                <p style="font-size: 11px; opacity: 0.7;">Paste your Archive.org direct MP3 link below</p>
                 <input type="text" id="audio-title" placeholder="Sermon Title">
                 <input type="text" id="audio-link" placeholder="Paste .mp3 Link here">
                 <button class="btn" onclick="publishAudio()">Publish Audio Sermon</button>
@@ -169,11 +170,11 @@
         function showDashboard() { 
             document.getElementById('login-screen').style.display = 'none'; 
             document.getElementById('dashboard').style.display = 'block'; 
-            document.getElementById('notif-status').style.display = 'block';
             loadAdminData(); 
             startPreviewSlider(); 
+            initBellWatcher();
         }
-        
+
         function filterAdminList(inputId, containerId) {
             const query = document.getElementById(inputId).value.toLowerCase();
             const items = document.querySelectorAll(`#${containerId} .admin-item`);
@@ -276,8 +277,7 @@
             db.ref(`comments/${postId}`).on('value', s => {
                 const box = document.getElementById(`comm-box-${postId}`);
                 const countSpan = document.getElementById(`c-count-${postId}`);
-                const data = s.val(); 
-                if(!box) return; box.innerHTML = "";
+                const data = s.val(); if(!box) return; box.innerHTML = "";
                 let totalCount = 0; 
                 if(data) {
                     Object.keys(data).forEach(ck => {
@@ -315,63 +315,43 @@
             db.ref('updates').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 });
         }
 
+        function saveEdit(type, id) {
+            const newText = document.getElementById('edit-' + id).value;
+            db.ref(`${type}/${id}`).update({ text: newText });
+        }
+
         function deleteItem(path) { if(confirm("Delete?")) db.ref(path).remove(); }
         function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
         window.onload = () => { if(localStorage.getItem('uic_admin') === 'authenticated') showDashboard(); };
-    </script>
 
-    <script>
-        let isNotifActive = false;
+        // BELL LOGIC
+        let bellCount = 0;
         let initialLoadDone = false;
 
-        function activateNotifs() {
-            // First time click: Request Permission + Sound Unlock
-            Notification.requestPermission().then(permission => {
-                if (permission === "granted") {
-                    isNotifActive = true;
-                    document.getElementById('notif-status').innerHTML = "🔔 Notifications: [ACTIVE] - You will hear alerts";
-                    document.getElementById('notif-status').style.borderColor = "#28a745";
-                    
-                    // Test sound
-                    const audio = new Audio('https://actions.google.com/sounds/v1/notifications/minimalist_bells.ogg');
-                    audio.play();
-                } else {
-                    alert("Permission denied. Check browser settings.");
-                }
+        function initBellWatcher() {
+            db.ref('comments').on('child_added', (snap) => {
+                db.ref(`comments/${snap.key}`).on('child_added', (commSnap) => {
+                    if (initialLoadDone && commSnap.val().userName !== "Admin") {
+                        updateBell();
+                    }
+                });
             });
+            db.ref('prayers').on('child_added', () => {
+                if (initialLoadDone) updateBell();
+            });
+            db.ref('settings').once('value', () => { setTimeout(() => { initialLoadDone = true; }, 2000); });
         }
 
-        // Listen for new prayers
-        db.ref('prayers').on('child_added', (snap) => {
-            if(initialLoadDone && isNotifActive) {
-                triggerAlert("New Prayer Request", snap.val().text);
-            }
-        });
+        function updateBell() {
+            bellCount++;
+            const b = document.getElementById('bell-count');
+            b.innerText = bellCount;
+            b.style.display = "block";
+        }
 
-        // Listen for new comments
-        db.ref('comments').on('child_added', (snap) => {
-            const postId = snap.key;
-            db.ref(`comments/${postId}`).on('child_added', (commSnap) => {
-                if(initialLoadDone && isNotifActive && commSnap.val().userName !== "Admin") {
-                    triggerAlert("New Comment", commSnap.val().text);
-                }
-            });
-        });
-
-        // Flip the switch after initial data dump
-        db.ref('settings').once('value', () => {
-            setTimeout(() => { initialLoadDone = true; }, 3000);
-        });
-
-        function triggerAlert(title, msg) {
-            // Play Sound
-            const audio = new Audio('https://actions.google.com/sounds/v1/notifications/minimalist_bells.ogg');
-            audio.play().catch(e => console.log("Sound blocked by browser"));
-
-            // Show Notification
-            if (Notification.permission === "granted") {
-                new Notification("UIC Admin", { body: title + ": " + msg });
-            }
+        function resetBell() {
+            bellCount = 0;
+            document.getElementById('bell-count').style.display = "none";
         }
     </script>
 </body>
