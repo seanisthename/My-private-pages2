@@ -200,6 +200,7 @@
 
         function toggleSection(id) { 
             const el = document.getElementById(id); 
+            if(!el) return;
             el.style.display = el.style.display !== 'block' ? 'block' : 'none'; 
         }
 
@@ -239,7 +240,7 @@
                     const unread = keys.filter(k => d[k].status === "unread").length;
                     badge.innerHTML = unread > 0 ? `<span class="unread-badge">${unread}</span>` : `(0)`;
                     keys.reverse().forEach(k => {
-                        div.innerHTML += `<div class="admin-item"><p>${d[k].text}</p><button onclick="deleteItem('prayers/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button></div>`;
+                        div.innerHTML += `<div class="admin-item" id="prayer-${k}"><p>${d[k].text}</p><button onclick="deleteItem('prayers/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button></div>`;
                     });
                 }
             });
@@ -293,7 +294,7 @@
                 if(data) {
                     Object.keys(data).forEach(ck => {
                         totalCount++; const c = data[ck];
-                        let html = `<div class="member-msg"><div style="color:var(--gold); font-weight:bold; font-size:12px;">${c.userName || 'Member'}:</div><div>${c.text}</div>`;
+                        let html = `<div class="member-msg" id="comm-item-${ck}"><div style="color:var(--gold); font-weight:bold; font-size:12px;">${c.userName || 'Member'}:</div><div>${c.text}</div>`;
                         if(c.adminReply) { totalCount++; html += `<div class="bishop-reply"><strong>Admin:</strong> ${c.adminReply}</div>`; }
                         
                         html += `
@@ -306,7 +307,7 @@
                         if(c.replies) {
                             Object.keys(c.replies).forEach(rk => {
                                 totalCount++; const r = c.replies[rk];
-                                html += `<div class="thread-reply"><div style="color:#888; font-size:11px;">↳ ${r.userName}:</div><div style="font-size:13px;">${r.text}</div></div>`;
+                                html += `<div class="thread-reply" id="thread-reply-${rk}"><div style="color:#888; font-size:11px;">↳ ${r.userName}:</div><div style="font-size:13px;">${r.text}</div></div>`;
                             });
                         }
                         html += `</div>`; box.innerHTML += html;
@@ -364,7 +365,7 @@
         function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
         window.onload = () => { if(localStorage.getItem('uic_admin') === 'authenticated') showDashboard(); };
 
-        // PERSISTENT NOTIFICATION LOGIC
+        // PERSISTENT NOTIFICATION LOGIC - UPDATED PER REQUEST
         let bellCount = parseInt(localStorage.getItem('uic_notif_count')) || 0;
         let initialLoadDone = false;
 
@@ -376,27 +377,40 @@
         }
 
         function initBellWatcher() {
-            // Restore visual count on load
             updateBellUI();
-
+            
+            // Watch for top-level replies (Member replied to post)
             db.ref('comments').on('child_added', (postSnap) => {
                 const postId = postSnap.key;
                 db.ref(`comments/${postId}`).on('child_added', (commSnap) => {
                     const c = commSnap.val();
+                    const commentId = commSnap.key;
                     if (initialLoadDone && c.userName !== "Admin") {
-                        addNotifItem(c.userName, c.text, postId, 'Commented');
+                        addNotifItem(c.userName + " replied to your post", c.text, postId, 'New Activity', 'comm-item-' + commentId);
                     }
+
+                    // Watch for nested replies (Member replied to Member)
+                    db.ref(`comments/${postId}/${commentId}/replies`).on('child_added', (replySnap) => {
+                        const r = replySnap.val();
+                        if (initialLoadDone && r.userName !== "Admin") {
+                            const msg = `${r.userName} replied to ${c.userName}`;
+                            addNotifItem(msg, r.text, postId, 'Member Reply', 'thread-reply-' + replySnap.key);
+                        }
+                    });
                 });
             });
+
+            // Watch for Prayer Requests
             db.ref('prayers').on('child_added', (snap) => {
                 if (initialLoadDone) {
-                    addNotifItem("Member", snap.val().text, 'sec-prayers', 'New Prayer Request');
+                    addNotifItem("New Prayer Request", snap.val().text, 'sec-prayers', 'Prayer', 'prayer-' + snap.key);
                 }
             });
+
             db.ref('settings').once('value', () => { setTimeout(() => { initialLoadDone = true; }, 3000); });
         }
 
-        function addNotifItem(user, text, targetId, typeLabel) {
+        function addNotifItem(headerText, text, targetId, typeLabel, elementId) {
             bellCount++;
             localStorage.setItem('uic_notif_count', bellCount);
             updateBellUI();
@@ -404,9 +418,9 @@
             const list = document.getElementById('notif-list');
             const item = document.createElement('div');
             item.className = 'notif-item';
-            item.innerHTML = `<b>${typeLabel}: ${user}</b> ${text.substring(0,40)}... <span>Click to view</span>`;
+            item.innerHTML = `<b>${headerText}</b> ${text.substring(0,40)}... <span>Click to view</span>`;
             item.onclick = () => {
-                goToPost(targetId);
+                goToPost(targetId, elementId);
                 document.getElementById('notif-dropdown').style.display = 'none';
             };
             list.prepend(item);
@@ -422,16 +436,26 @@
             }
         }
 
-        function goToPost(id) {
+        function goToPost(id, elementId) {
+            // Check if it's a prayer request section or a specific post
             const el = document.getElementById('post-' + id) || document.getElementById(id);
             if (el) {
+                // 1. Open the main section (Updates, Sermons, or Prayers)
                 const section = el.closest('.section-content');
                 if (section) section.style.display = 'block';
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // 2. Open the comment box if it's a post
                 const commBox = document.getElementById('comm-box-' + id);
                 if (commBox) commBox.style.display = 'block';
-                el.style.backgroundColor = '#333';
-                setTimeout(() => el.style.backgroundColor = '', 2000);
+
+                // 3. Scroll to the specific message or prayer
+                const targetElement = document.getElementById(elementId) || el;
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // 4. Highlight the target
+                targetElement.style.backgroundColor = '#333';
+                targetElement.style.transition = 'background 0.5s';
+                setTimeout(() => targetElement.style.backgroundColor = '', 3000);
             }
         }
 
