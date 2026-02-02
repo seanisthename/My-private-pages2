@@ -203,10 +203,6 @@
         function toggleNotifDropdown() {
             const dd = document.getElementById('notif-dropdown');
             dd.style.display = (dd.style.display === 'block') ? 'none' : 'block';
-            if(dd.style.display === 'none') {
-                 // Optionally clear badge when closed
-                 // document.getElementById('notif-count').style.display = 'none';
-            }
         }
 
         // Close dropdown when clicking outside
@@ -451,6 +447,7 @@
             db.ref(`comments/${postId}/${commentId}/replies`).push({
                 userName: name, text: text, userNotifId: userNotifId, timestamp: new Date().getTime()
             }).then(() => {
+                // Fixed notification logic for member-to-member replies
                 if(targetUserNotifId && targetUserNotifId !== userNotifId) {
                     db.ref(`notifications/${targetUserNotifId}`).push({
                         from: name, msg: "replied to your comment", postId: postId, tab: tab, time: new Date().getTime()
