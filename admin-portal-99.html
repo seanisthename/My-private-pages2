@@ -41,6 +41,12 @@
         .big-sermon-btn:active { background: var(--gold); color: black; }
         .sermon-type-container { display: none; margin-top: 15px; background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px dashed var(--gold); }
 
+        /* SEARCH STYLING */
+        .admin-search-wrap { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+        .admin-search-box { background: #1a1a1a; border: 1px solid var(--gold); border-radius: 20px; padding: 5px 12px; display: flex; align-items: center; width: 100%; max-width: 250px; }
+        .admin-search-box input { background: transparent; border: none; color: white; font-size: 12px; outline: none; width: 100%; margin: 0 0 0 8px; padding: 5px 0; }
+        .search-icon { color: var(--gold); font-size: 12px; }
+
         #login-screen { max-width: 400px; margin: 50px auto; padding: 20px; }
     </style>
 </head>
@@ -106,13 +112,37 @@
         </div>
 
         <button class="menu-btn" onclick="toggleSection('sec-posts')">Updates <span id="count-btn-updates">(0)</span></button>
-        <div id="sec-posts" class="section-content"></div>
+        <div id="sec-posts" class="section-content">
+            <div class="admin-search-wrap">
+                <div class="admin-search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="search-updates" placeholder="Search updates..." onkeyup="filterAdminList('search-updates', 'updates-list-admin')">
+                </div>
+            </div>
+            <div id="updates-list-admin"></div>
+        </div>
 
         <button class="menu-btn" onclick="toggleSection('sec-sermons')">Sermons <span id="count-btn-sermons">(0)</span></button>
-        <div id="sec-sermons" class="section-content"></div>
+        <div id="sec-sermons" class="section-content">
+            <div class="admin-search-wrap">
+                <div class="admin-search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="search-sermons" placeholder="Search sermons..." onkeyup="filterAdminList('search-sermons', 'sermons-list-admin')">
+                </div>
+            </div>
+            <div id="sermons-list-admin"></div>
+        </div>
 
         <button class="menu-btn" onclick="toggleSection('sec-prayers')">Prayers <span id="unread-count-container">(0)</span></button>
-        <div id="sec-prayers" class="section-content"></div>
+        <div id="sec-prayers" class="section-content">
+            <div class="admin-search-wrap">
+                <div class="admin-search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="search-prayers" placeholder="Search prayers..." onkeyup="filterAdminList('search-prayers', 'prayers-list-admin')">
+                </div>
+            </div>
+            <div id="prayers-list-admin"></div>
+        </div>
 
         <button class="btn" style="background:#444; color:white;" onclick="logOut()">Logout</button>
     </div>
@@ -128,6 +158,16 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+
+        // UNIVERSAL ADMIN SEARCH
+        function filterAdminList(inputId, containerId) {
+            const query = document.getElementById(inputId).value.toLowerCase();
+            const items = document.querySelectorAll(`#${containerId} .admin-item`);
+            items.forEach(item => {
+                const text = item.innerText.toLowerCase();
+                item.style.display = text.includes(query) ? "block" : "none";
+            });
+        }
 
         function showSermonUpload(type) {
             document.getElementById('audio-form').style.display = type === 'audio' ? 'block' : 'none';
@@ -169,10 +209,10 @@
                     document.getElementById('slide2').value = d.img2;
                 }
             });
-            renderList('updates', 'sec-posts');
-            renderList('sermons', 'sec-sermons');
+            renderList('updates', 'updates-list-admin');
+            renderList('sermons', 'sermons-list-admin');
             db.ref('prayers').on('value', s => {
-                const div = document.getElementById('sec-prayers');
+                const div = document.getElementById('prayers-list-admin');
                 const badge = document.getElementById('unread-count-container');
                 const d = s.val(); div.innerHTML = "";
                 if(d) {
@@ -288,10 +328,7 @@
             const inputId = rid ? 'rep-in-' + rid : 'rep-in-' + cid;
             const val = document.getElementById(inputId).value; 
             if(!val) return;
-
-            // Determine if we are replying to a main comment or a sub-reply
             const path = rid ? `comments/${pid}/${cid}/replies/${rid}` : `comments/${pid}/${cid}`;
-            
             db.ref(path).update({ adminReply: val }).then(() => { 
                 document.getElementById(inputId).value = "";
                 alert("Reply sent to conversation"); 
