@@ -76,7 +76,6 @@
     </div>
 
     <div id="dashboard" class="admin-content">
-        
         <div class="preview-label">Live Member View Preview</div>
         <div class="live-preview-box">
             <div class="mini-slider">
@@ -296,6 +295,15 @@
                         totalCount++; const c = data[ck];
                         let html = `<div class="member-msg"><div style="color:var(--gold); font-weight:bold; font-size:12px;">${c.userName || 'Member'}:</div><div>${c.text}</div>`;
                         if(c.adminReply) { totalCount++; html += `<div class="bishop-reply"><strong>Admin:</strong> ${c.adminReply}</div>`; }
+                        
+                        // RESTORED REPLY INPUT FOR ADMIN
+                        html += `
+                            <div class="reply-input-group">
+                                <input type="text" id="reply-to-${ck}" placeholder="Type reply...">
+                                <button class="send-reply-btn" onclick="sendAdminReply('${postId}', '${ck}')">Reply</button>
+                            </div>
+                        `;
+
                         if(c.replies) {
                             Object.keys(c.replies).forEach(rk => {
                                 totalCount++; const r = c.replies[rk];
@@ -306,6 +314,16 @@
                     });
                 }
                 countSpan.innerText = totalCount;
+            });
+        }
+
+        // RESTORED REPLY FUNCTION
+        function sendAdminReply(postId, commentId) {
+            const input = document.getElementById(`reply-to-${commentId}`);
+            const text = input.value;
+            if(!text) return;
+            db.ref(`comments/${postId}/${commentId}`).update({ adminReply: text }).then(() => {
+                input.value = "";
             });
         }
 
@@ -348,7 +366,6 @@
         }
 
         function initBellWatcher() {
-            // Watch for comments
             db.ref('comments').on('child_added', (postSnap) => {
                 const postId = postSnap.key;
                 db.ref(`comments/${postId}`).on('child_added', (commSnap) => {
@@ -358,7 +375,6 @@
                     }
                 });
             });
-            // Watch for prayers
             db.ref('prayers').on('child_added', (snap) => {
                 if (initialLoadDone) {
                     addNotifItem("Member", snap.val().text, 'sec-prayers', 'New Prayer Request');
@@ -371,7 +387,6 @@
             bellCount++;
             const b = document.getElementById('bell-count');
             b.innerText = bellCount; b.style.display = "block";
-
             const list = document.getElementById('notif-list');
             const item = document.createElement('div');
             item.className = 'notif-item';
@@ -384,13 +399,11 @@
         }
 
         function goToPost(id) {
-            // Find which section it belongs to if it's a post
             const el = document.getElementById('post-' + id) || document.getElementById(id);
             if (el) {
                 const section = el.closest('.section-content');
                 if (section) section.style.display = 'block';
                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                // If it's a comment, open the comment box
                 const commBox = document.getElementById('comm-box-' + id);
                 if (commBox) commBox.style.display = 'block';
                 el.style.backgroundColor = '#333';
