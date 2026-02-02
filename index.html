@@ -35,6 +35,16 @@
         .devo-card { background: linear-gradient(rgba(212, 175, 55, 0.1), rgba(0,0,0,0)); border: 1px solid var(--gold); border-radius: 15px; padding: 15px; margin-bottom: 20px; text-align: center; position: relative; }
         .devo-title { color: var(--gold); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: bold; }
         .devo-close { position: absolute; right: 10px; top: 10px; color: #777; font-size: 18px; cursor: pointer; padding: 5px; }
+
+        /* NEW SERMON STYLES */
+        .sermon-nav { display: flex; gap: 10px; margin-bottom: 20px; }
+        .s-btn { flex: 1; padding: 20px 10px; border-radius: 12px; border: 1px solid var(--gold); background: #1a1a1a; color: white; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; }
+        .s-btn.active { background: var(--gold); color: black; }
+        
+        /* AUDIO PLAYER DESIGN */
+        .audio-player-container { background: #111; padding: 15px; border-radius: 10px; border: 1px solid #333; margin-top: 10px; display: flex; align-items: center; gap: 15px; }
+        .audio-icon { font-size: 24px; color: var(--gold); }
+        audio { height: 35px; flex: 1; filter: invert(80%) sepia(50%) saturate(1000%) hue-rotate(10deg); }
         
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
@@ -59,7 +69,14 @@
         <div id="updates-list"></div>
     </div>
 
-    <div id="sermons" class="content-section"><div id="sermons-list"></div></div>
+    <div id="sermons" class="content-section">
+        <div class="sermon-nav">
+            <button class="s-btn active" id="btn-vid" onclick="filterSermons('video')"><span>🎥</span>VIDEO SERMONS</button>
+            <button class="s-btn" id="btn-aud" onclick="filterSermons('audio')"><span>🔊</span>AUDIO SERMONS</button>
+        </div>
+        <div id="sermons-list"></div>
+    </div>
+
     <div id="prayer" class="content-section">
         <div class="card"><h3>How can we pray for you?</h3><textarea id="prayer-text" style="width:100%; background:#2d2d2d; color:white; border-radius:8px; padding:10px; box-sizing:border-box; border:1px solid #444;" rows="4" placeholder="Remember to include your name..."></textarea>
 <button class="btn" style="margin-top:10px;" onclick="submitPrayer()">Submit Request</button></div>
@@ -88,9 +105,20 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        let currentSermonFilter = 'video';
+
         function linkify(text) {
             const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+            // Only linkify if it's NOT a direct audio link (we handle audio differently)
+            if(text.includes('.mp3') || text.includes('archive.org/download')) return text; 
             return text.replace(urlPattern, '<a href="$1" target="_blank" style="color: var(--gold); text-decoration: underline;">$1</a>');
+        }
+
+        function filterSermons(type) {
+            currentSermonFilter = type;
+            document.getElementById('btn-vid').classList.toggle('active', type === 'video');
+            document.getElementById('btn-aud').classList.toggle('active', type === 'audio');
+            render('sermons', 'sermons-list');
         }
 
         function showTab(t, e) {
@@ -106,7 +134,6 @@
 
         function loadData() {
             db.ref('settings/slider').on('value', s => { const d = s.val(); if(d){ document.getElementById('img1').src=d.img1; document.getElementById('img2').src=d.img2; } });
-            
             db.ref('settings/devotional').on('value', s => {
                 const d = s.val();
                 const box = document.getElementById('devotional-display');
@@ -117,7 +144,6 @@
                     document.getElementById('devo-text').innerText = d.text;
                 } else { box.style.display = 'none'; }
             });
-
             render('updates', 'updates-list');
             render('sermons', 'sermons-list');
         }
@@ -131,13 +157,36 @@
 
                 Object.keys(data).reverse().forEach(k => {
                     const item = data[k];
+                    const isAudio = item.text.includes('.mp3') || item.text.includes('archive.org');
+                    
+                    // Filter logic
+                    if(path === 'sermons') {
+                        if(currentSermonFilter === 'audio' && !isAudio) return;
+                        if(currentSermonFilter === 'video' && isAudio) return;
+                    }
+
                     const isLiked = likedPosts.includes(k);
                     const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
                     const card = document.createElement('div'); card.className = 'card';
+                    
+                    let contentHtml = '';
+                    if(isAudio) {
+                        const audioUrl = item.text.match(/(https?:\/\/[^\s]+)/g)[0];
+                        const title = item.text.replace(audioUrl, '');
+                        contentHtml = `
+                            <h4 style="margin:0 0 10px 0; color:var(--gold);">🔊 ${title || 'Audio Sermon'}</h4>
+                            <div class="audio-player-container">
+                                <audio controls><source src="${audioUrl}" type="audio/mpeg">Your browser does not support audio.</audio>
+                            </div>`;
+                    } else {
+                        contentHtml = `
+                            ${item.image ? `<img src="${item.image}">` : ''}
+                            <p>${linkify(item.text)}</p>`;
+                    }
+
                     card.innerHTML = `
-                        ${item.image ? `<img src="${item.image}">` : ''}
                         <span class="time-txt">${item.date} at ${timeStr}</span>
-                        <p>${linkify(item.text)}</p>
+                        ${contentHtml}
                         <div class="interaction-bar">
                             <button class="comment-btn" onclick="toggleComments('${k}')">💬 <span id="count-${k}">(0)</span></button>
                             <button class="comment-btn" id="likebtn-${k}" style="color: ${isLiked ? '#ff4d4d' : 'var(--gold)'}" onclick="likePost('${path}','${k}')">❤️ <span id="likes-${k}">${item.likes || 0}</span></button>
@@ -192,7 +241,7 @@
             db.ref(`comments/${id}`).on('value', s => {
                 const box = document.getElementById('display-' + id);
                 const count = document.getElementById('count-' + id);
-                const data = s.val(); box.innerHTML = "";
+                const data = s.val(); if(!box) return; box.innerHTML = "";
                 if(data) {
                     const keys = Object.keys(data); count.innerText = `(${keys.length})`;
                     keys.forEach(k => { 
