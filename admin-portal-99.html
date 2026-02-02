@@ -35,16 +35,13 @@
         .send-reply-btn { background: #28a745; color: white; border: none; padding: 0 15px; border-radius: 5px; cursor: pointer; }
         .bishop-reply { color: var(--gold); font-size: 12px; margin-top: 5px; padding-left: 10px; border-left: 2px solid var(--gold); }
         
+        .thread-reply { margin-left: 20px; border-left: 1px solid #444; padding-left: 10px; background: #151515; margin-top: 5px; border-radius: 0 5px 5px 0; }
+
         .big-sermon-btn { flex: 1; padding: 25px 10px; border-radius: 15px; border: 2px solid var(--gold); background: #1a1a1a; color: white; font-weight: bold; cursor: pointer; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .big-sermon-btn:active { background: var(--gold); color: black; }
         .sermon-type-container { display: none; margin-top: 15px; background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px dashed var(--gold); }
 
         #login-screen { max-width: 400px; margin: 50px auto; padding: 20px; }
-
-        /* NEW MODERATION STYLES */
-        .mod-panel { background: #1a1a1a; border: 1px solid #ff3b30 !important; border-radius: 12px; padding: 15px; }
-        .mod-item { background: #252525; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #ff3b30; }
-        .mod-meta { font-size: 11px; color: var(--gold); margin-bottom: 4px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -117,13 +114,6 @@
         <button class="menu-btn" onclick="toggleSection('sec-prayers')">Prayers <span id="unread-count-container">(0)</span></button>
         <div id="sec-prayers" class="section-content"></div>
 
-        <button class="menu-btn" style="border-color: #ff3b30; color: #ff3b30;" onclick="toggleSection('sec-moderation')">
-            Global Comment Feed <span id="mod-count">(0)</span>
-        </button>
-        <div id="sec-moderation" class="section-content mod-panel">
-            <div id="global-comment-list"></div>
-        </div>
-
         <button class="btn" style="background:#444; color:white;" onclick="logOut()">Logout</button>
     </div>
 
@@ -145,32 +135,12 @@
         }
 
         function checkAdmin() { if(document.getElementById('admin-key').value === 'church111') { localStorage.setItem('uic_admin', 'authenticated'); showDashboard(); } else alert("Access Denied"); }
-        
-        function showDashboard() { 
-            document.getElementById('login-screen').style.display = 'none'; 
-            document.getElementById('dashboard').style.display = 'block'; 
-            loadAdminData(); 
-            startPreviewSlider();
-            initGlobalCommentMonitor(); // Initialize the new monitor
-        }
+        function showDashboard() { document.getElementById('login-screen').style.display = 'none'; document.getElementById('dashboard').style.display = 'block'; loadAdminData(); startPreviewSlider(); }
         
         function toggleSection(id) { 
             const el = document.getElementById(id); 
             const isOpening = el.style.display !== 'block';
             el.style.display = isOpening ? 'block' : 'none'; 
-            
-            if (isOpening && id === 'sec-prayers') {
-                db.ref('prayers').once('value', s => {
-                    const data = s.val();
-                    if(data) {
-                        Object.keys(data).forEach(k => {
-                            if(data[k].status === "unread") {
-                                db.ref(`prayers/${k}`).update({ status: "read" });
-                            }
-                        });
-                    }
-                });
-            }
         }
 
         function updateDevo() {
@@ -209,10 +179,8 @@
                     const keys = Object.keys(d);
                     const unread = keys.filter(k => d[k].status === "unread").length;
                     badge.innerHTML = unread > 0 ? `<span class="unread-badge">${unread}</span>` : `(0)`;
-                    div.innerHTML = `<div style="color:#888; font-size:12px; margin-bottom:10px;">Total Requests: ${keys.length}</div>`;
                     keys.reverse().forEach(k => {
-                        const time = d[k].timestamp ? new Date(d[k].timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
-                        div.innerHTML += `<div class="admin-item"><span class="time-badge">${d[k].date} at ${time}</span><p>${d[k].text}</p><button onclick="deleteItem('prayers/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button></div>`;
+                        div.innerHTML += `<div class="admin-item"><p>${d[k].text}</p><button onclick="deleteItem('prayers/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button></div>`;
                     });
                 }
             });
@@ -234,15 +202,12 @@
                     const keys = Object.keys(data); btnCount.innerText = `(${keys.length})`;
                     keys.reverse().forEach(k => {
                         const item = data[k];
-                        const time = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
                         const postCard = document.createElement('div');
                         postCard.className = 'admin-item';
                         postCard.innerHTML = `
                             ${item.image ? `<img src="${item.image}" style="width:100%; border-radius:5px; margin-bottom:10px;">` : ''}
-                            <span class="time-badge">${item.date} at ${time}</span>
                             <textarea id="edit-${k}" rows="2">${item.text}</textarea>
                             <div class="interaction-row">
-                                <span>❤️ ${item.likes || 0}</span>
                                 <button class="msg-icon-btn" onclick="toggleSection('comm-box-${k}')">💬 <span id="c-count-${k}">0</span></button>
                             </div>
                             <div id="comm-box-${k}" class="comment-container"></div>
@@ -268,46 +233,35 @@
                     const keys = Object.keys(data); countSpan.innerText = keys.length;
                     keys.forEach(ck => {
                         const c = data[ck];
-                        box.innerHTML += `
+                        let html = `
                             <div class="member-msg">
-                                <div style="color:var(--gold); font-weight:bold; font-size:12px; margin-bottom:2px;">${c.userName || 'Anonymous'}:</div>
+                                <div style="color:var(--gold); font-weight:bold; font-size:12px;">${c.userName || 'Anonymous'}:</div>
                                 <div>${c.text}</div>
-                                ${c.adminReply ? `<div class="bishop-reply"><strong>Admin:</strong> ${c.adminReply}</div>` : ''}
                                 <div class="reply-input-group">
-                                    <input type="text" id="rep-in-${ck}" placeholder="Reply...">
+                                    <input type="text" id="rep-in-${ck}" placeholder="Admin Reply...">
                                     <button class="send-reply-btn" onclick="sendReply('${postId}','${ck}')">Send</button>
                                     <button onclick="deleteItem('comments/${postId}/${ck}')" style="background:none; border:none; color:#ff3b30; font-size:11px; cursor:pointer;">Del</button>
-                                </div>
-                            </div>`;
-                    });
-                }
-            });
-        }
-
-        function initGlobalCommentMonitor() {
-            db.ref('comments').on('value', s => {
-                const list = document.getElementById('global-comment-list');
-                const badge = document.getElementById('mod-count');
-                const data = s.val();
-                list.innerHTML = "";
-                let total = 0;
-                if(data) {
-                    Object.keys(data).forEach(postId => {
-                        const postComments = data[postId];
-                        Object.keys(postComments).forEach(commId => {
-                            total++;
-                            const c = postComments[commId];
-                            list.innerHTML += `
-                                <div class="mod-item">
-                                    <div class="mod-meta">From User: ${c.userName || 'Anonymous'}</div>
-                                    <div style="margin-bottom:8px;">${c.text}</div>
-                                    <button onclick="deleteItem('comments/${postId}/${commId}')" style="background:#ff3b30; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; font-size:12px;">Delete Comment</button>
                                 </div>`;
-                        });
+                        
+                        // NEW THREAD LOGIC: Look for member-to-member replies inside this comment
+                        if(c.replies) {
+                            Object.keys(c.replies).forEach(rk => {
+                                const reply = c.replies[rk];
+                                html += `
+                                    <div class="thread-reply">
+                                        <div style="color:#888; font-size:11px;">↳ ${reply.userName || 'Member'}:</div>
+                                        <div style="font-size:13px;">${reply.text}</div>
+                                        <button onclick="deleteItem('comments/${postId}/${ck}/replies/${rk}')" style="background:none; border:none; color:#ff3b30; font-size:10px; padding:0; cursor:pointer;">Delete Member Reply</button>
+                                    </div>`;
+                            });
+                        }
+
+                        if(c.adminReply) html += `<div class="bishop-reply"><strong>Admin:</strong> ${c.adminReply}</div>`;
+                        
+                        html += `</div>`;
+                        box.innerHTML += html;
                     });
                 }
-                badge.innerText = `(${total})`;
-                if(total === 0) list.innerHTML = "<p style='color:#888; text-align:center;'>No comments to show.</p>";
             });
         }
 
@@ -339,7 +293,7 @@
             const img = document.getElementById('update-img').value;
             if(!txt) return alert("Enter update text");
             db.ref('updates').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => { 
-                document.getElementById('update-text').value=""; document.getElementById('update-img').value=""; alert("Update Published to Home Screen"); 
+                document.getElementById('update-text').value=""; document.getElementById('update-img').value=""; alert("Update Published"); 
             });
         }
 
