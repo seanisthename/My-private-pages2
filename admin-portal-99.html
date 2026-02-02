@@ -74,6 +74,13 @@
             <button class="btn" onclick="updateDevo()" style="background: #40A5E7; color: white;">Update Word for Today</button>
         </div>
 
+        <div class="card" style="border-top: 3px solid #f39c12;">
+            <h3 style="color: #f39c12;">Post New Update</h3>
+            <textarea id="update-text" placeholder="General announcement or update text..." rows="3"></textarea>
+            <input type="text" id="update-img" placeholder="Paste Image URL for update (optional)...">
+            <button class="btn" onclick="publishUpdate()" style="background: #f39c12; color: white;">Publish to Updates</button>
+        </div>
+
         <div class="card">
             <h3>Manage Sermons</h3>
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
@@ -90,10 +97,10 @@
             </div>
 
             <div id="video-form" class="sermon-type-container">
-                <h4 style="margin:0; color:var(--gold);">Post Home Updates/Videos</h4>
+                <h4 style="margin:0; color:var(--gold);">Post Video Sermon</h4>
                 <textarea id="post-text" placeholder="Sermon description..." rows="3"></textarea>
-                <input type="text" id="post-img" placeholder="Paste Post Image/Video URL here...">
-                <button class="btn" onclick="publishPost()">Publish Video/Post</button>
+                <input type="text" id="post-img" placeholder="Paste Video URL here...">
+                <button class="btn" onclick="publishPost()">Publish Video Sermon</button>
             </div>
         </div>
 
@@ -135,7 +142,6 @@
             const isOpening = el.style.display !== 'block';
             el.style.display = isOpening ? 'block' : 'none'; 
             
-            // Fix for counter: Mark all as read when opening Prayers section
             if (isOpening && id === 'sec-prayers') {
                 db.ref('prayers').once('value', s => {
                     const data = s.val();
@@ -270,16 +276,8 @@
             const title = document.getElementById('audio-title').value;
             const link = document.getElementById('audio-link').value;
             if(!title || !link) return alert("Fill both title and link");
-            
-            db.ref('sermons').push({ 
-                text: title + " " + link, 
-                date: new Date().toLocaleDateString(), 
-                timestamp: new Date().getTime(), 
-                likes: 0 
-            }).then(() => { 
-                document.getElementById('audio-title').value=""; 
-                document.getElementById('audio-link').value=""; 
-                alert("Audio Sermon Published!"); 
+            db.ref('sermons').push({ text: title + " " + link, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => { 
+                document.getElementById('audio-title').value=""; document.getElementById('audio-link').value=""; alert("Audio Sermon Published!"); 
             });
         }
 
@@ -288,7 +286,17 @@
             const img = document.getElementById('post-img').value;
             if(!txt) return;
             db.ref('sermons').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => { 
-                document.getElementById('post-text').value=""; document.getElementById('post-img').value=""; alert("Post Published"); 
+                document.getElementById('post-text').value=""; document.getElementById('post-img').value=""; alert("Video Sermon Published"); 
+            });
+        }
+
+        // NEW PUBLISH UPDATE FUNCTION
+        function publishUpdate() {
+            const txt = document.getElementById('update-text').value;
+            const img = document.getElementById('update-img').value;
+            if(!txt) return alert("Enter update text");
+            db.ref('updates').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => { 
+                document.getElementById('update-text').value=""; document.getElementById('update-img').value=""; alert("Update Published to Home Screen"); 
             });
         }
 
