@@ -41,8 +41,15 @@
         .action-link:hover { color: var(--gold); }
         .edit-mode input { width: 80%; font-size: 12px; background: #333; border: 1px solid var(--gold); color: white; border-radius: 3px; }
 
+        /* SEARCH STYLING */
+        .search-container { margin: 0 0 15px 0; display: flex; justify-content: flex-end; }
+        .search-box { background: #1a1a1a; border: 1px solid #333; border-radius: 20px; padding: 5px 12px; display: flex; align-items: center; width: 140px; transition: width 0.3s; }
+        .search-box:focus-within { width: 200px; border-color: var(--gold); }
+        .search-box input { background: transparent; border: none; color: white; font-size: 11px; outline: none; width: 100%; margin-left: 5px; }
+        .search-icon { font-size: 12px; color: var(--gold); }
+
         .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; }
-        .devo-card { background: linear-gradient(rgba(212, 175, 55, 0.1), rgba(0,0,0,0)); border: 1px solid var(--gold); border-radius: 15px; padding: 15px; margin-bottom: 20px; text-align: center; position: relative; }
+        .devo-card { background: linear-gradient(rgba(212, 175, 55, 0.1), rgba(0,0,0,0)); border: 1px solid var(--gold); border-radius: 15px; padding: 15px; margin-bottom: 10px; text-align: center; position: relative; }
         .devo-title { color: var(--gold); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: bold; }
         .devo-close { position: absolute; right: 10px; top: 10px; color: #777; font-size: 18px; cursor: pointer; padding: 5px; }
         .sermon-nav { display: flex; gap: 10px; margin-bottom: 20px; }
@@ -70,6 +77,14 @@
             <h3 id="devo-verse" style="margin: 5px 0; color: white;"></h3>
             <p id="devo-text" style="font-style: italic; color: #ccc; margin-top: 10px;"></p>
         </div>
+
+        <div class="search-container">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="postSearch" placeholder="Search date, title, or text..." onkeyup="filterPosts()">
+            </div>
+        </div>
+
         <div id="updates-list"></div>
     </div>
 
@@ -111,6 +126,21 @@
 
         let currentSermonFilter = 'video';
 
+        // NEW SEARCH FILTER FUNCTION
+        function filterPosts() {
+            const query = document.getElementById('postSearch').value.toLowerCase();
+            const cards = document.querySelectorAll('#updates-list .card, #sermons-list .card');
+            
+            cards.forEach(card => {
+                const text = card.innerText.toLowerCase();
+                if (text.includes(query)) {
+                    card.style.display = "block";
+                } else {
+                    card.style.display = "none";
+                }
+            });
+        }
+
         function linkify(text) {
             const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
             if(text.includes('.mp3') || text.includes('archive.org/download')) return text; 
@@ -127,6 +157,8 @@
         function showTab(t, e) {
             document.querySelectorAll('.content-section, .tab').forEach(x => x.classList.remove('active'));
             document.getElementById(t).classList.add('active'); e.classList.add('active');
+            // Reset search when switching tabs
+            document.getElementById('postSearch').value = "";
         }
 
         function closeDevo() {
@@ -252,7 +284,6 @@
                         const c = data[ck]; 
                         let threadHTML = "";
 
-                        // 1. Handle main comment Admin Reply
                         if(c.adminReply) {
                             totalInteractions++;
                             threadHTML += `
@@ -266,7 +297,6 @@
                             </div>`;
                         }
 
-                        // 2. Handle nested member replies
                         if(c.replies) {
                             Object.keys(c.replies).forEach(rk => {
                                 totalInteractions++;
