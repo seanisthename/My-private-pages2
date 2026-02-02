@@ -138,7 +138,7 @@
             <div id="updates-list-admin"></div>
         </div>
 
-        <button class="menu-btn" id="sermon-trigger" onclick="toggleSection('sec-sermons'); resetSermonBadge()">Sermons <span id="count-btn-sermons">(0)</span></button>
+        <button class="menu-btn" onclick="toggleSection('sec-sermons')">Sermons <span id="count-btn-sermons">(0)</span></button>
         <div id="sec-sermons" class="section-content">
             <div class="admin-search-wrap">
                 <div class="admin-search-box">
@@ -201,7 +201,22 @@
         function toggleSection(id) { 
             const el = document.getElementById(id); 
             if(!el) return;
-            el.style.display = el.style.display !== 'block' ? 'block' : 'none'; 
+            const isOpening = el.style.display !== 'block';
+            el.style.display = isOpening ? 'block' : 'none'; 
+
+            // FIX: If opening the prayer section, clear the unread notifications
+            if (isOpening && id === 'sec-prayers') {
+                db.ref('prayers').once('value', s => {
+                    const data = s.val();
+                    if (data) {
+                        Object.keys(data).forEach(k => {
+                            if (data[k].status === "unread") {
+                                db.ref(`prayers/${k}`).update({ status: "read" });
+                            }
+                        });
+                    }
+                });
+            }
         }
 
         function updateDevo() {
@@ -242,6 +257,8 @@
                     keys.reverse().forEach(k => {
                         div.innerHTML += `<div class="admin-item" id="prayer-${k}"><p>${d[k].text}</p><button onclick="deleteItem('prayers/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button></div>`;
                     });
+                } else {
+                    badge.innerHTML = `(0)`;
                 }
             });
         }
@@ -253,28 +270,13 @@
             }, 8000);
         }
 
-        // Variable to track if we've clicked sermons during this session
-        let sermonResetActive = false;
-
-        function resetSermonBadge() {
-            sermonResetActive = true;
-            document.getElementById('count-btn-sermons').innerText = "(0)";
-        }
-
         function renderList(type, containerId) {
             db.ref(type).on('value', s => {
                 const div = document.getElementById(containerId);
                 const btnCount = document.getElementById('count-btn-' + type);
                 div.innerHTML = ""; const data = s.val();
                 if(data) {
-                    const keys = Object.keys(data);
-                    // Only update the count if it's NOT the sermons section OR if we haven't reset it yet
-                    if(type !== 'sermons' || !sermonResetActive) {
-                        btnCount.innerText = `(${keys.length})`;
-                    } else {
-                        btnCount.innerText = `(0)`;
-                    }
-
+                    const keys = Object.keys(data); btnCount.innerText = `(${keys.length})`;
                     keys.reverse().forEach(k => {
                         const item = data[k];
                         const postCard = document.createElement('div');
@@ -452,7 +454,7 @@
             const el = document.getElementById('post-' + id) || document.getElementById(id);
             if (el) {
                 const section = el.closest('.section-content');
-                if (section) section.style.display = 'block';
+                if (section) toggleSection(section.id); // Re-uses the toggle to clear badges
 
                 const commBox = document.getElementById('comm-box-' + id);
                 if (commBox) commBox.style.display = 'block';
