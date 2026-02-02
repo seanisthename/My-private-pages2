@@ -18,14 +18,12 @@
         .tab { flex: 1; padding: 15px; text-align: center; color: #888; font-weight: bold; cursor: pointer; font-size: 11px; min-width: 80px; position: relative; }
         .tab.active { color: var(--gold); border-bottom: 3px solid var(--gold); background: #252525; }
         
-        /* Notification Badge */
         .notif-badge { position: absolute; top: 8px; right: 5px; background: red; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; display: none; }
         
         .content-section { display: none; padding: 15px; animation: fadeIn 0.4s; }
         .content-section.active { display: block; }
         .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 20px; border-top: 3px solid var(--gold); position: relative; }
         
-        /* Highlight for linked comments */
         .highlight-comment { animation: highlightGlow 2s ease-out; }
         @keyframes highlightGlow { 0% { background: #444; } 100% { background: var(--card-bg); } }
 
@@ -225,7 +223,7 @@
                         }, 500);
                         db.ref(`notifications/${userNotifId}/${k}`).remove();
                     };
-                    div.innerHTML = `<strong>${n.from}</strong> replied to your comment <small>${new Date(n.time).toLocaleTimeString()}</small>`;
+                    div.innerHTML = `<strong>${n.from}</strong> ${n.msg || 'replied to your comment'} <small>${new Date(n.time).toLocaleTimeString()}</small>`;
                     list.appendChild(div);
                 });
             });
@@ -321,10 +319,22 @@
                         totalInteractions++;
                         const c = data[ck]; 
                         let threadHTML = "";
+
+                        // Handle Admin Reply Notification Logic
                         if(c.adminReply) {
                             totalInteractions++;
                             threadHTML += `<div class="reply-item"><strong style="color:var(--gold)">Admin:</strong> ${c.adminReply}</div>`;
+                            
+                            // If this comment belongs to current user, ensure they get a notification for the admin reply
+                            const lastAdminNotif = localStorage.getItem('notified_admin_' + ck);
+                            if(c.userNotifId === userNotifId && lastAdminNotif !== c.adminReply) {
+                                db.ref(`notifications/${userNotifId}`).push({
+                                    from: "Admin", msg: "replied to your comment", postId: postId, tab: tabName, time: new Date().getTime()
+                                });
+                                localStorage.setItem('notified_admin_' + ck, c.adminReply);
+                            }
                         }
+
                         if(c.replies) {
                             Object.keys(c.replies).forEach(rk => {
                                 totalInteractions++;
@@ -333,6 +343,7 @@
                                 ${r.userName === myName ? `<span class="action-link" style="color:red" onclick="deleteItem('comments/${postId}/${ck}/replies/${rk}')">del</span>` : ''}</div>`;
                             });
                         }
+
                         box.innerHTML += `
                         <div class="comment-item" id="cmt-${ck}">
                             <strong style="color:var(--gold); font-size:12px;">${c.userName}</strong>
@@ -367,7 +378,7 @@
             }).then(() => {
                 if(targetUserNotifId && targetUserNotifId !== userNotifId) {
                     db.ref(`notifications/${targetUserNotifId}`).push({
-                        from: name, postId: postId, tab: tab, time: new Date().getTime()
+                        from: name, msg: "replied to your comment", postId: postId, tab: tab, time: new Date().getTime()
                     });
                 }
                 input.value = "";
