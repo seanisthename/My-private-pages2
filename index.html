@@ -14,12 +14,21 @@
         .slider-container { width: 100%; height: 220px; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
         .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: cover; }
         .active { opacity: 1; }
-        .nav-tabs { display: flex; background: #1a1a1a; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #333; }
-        .tab { flex: 1; padding: 15px; text-align: center; color: #888; font-weight: bold; cursor: pointer; font-size: 13px; }
+        .nav-tabs { display: flex; background: #1a1a1a; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #333; overflow-x: auto; }
+        .tab { flex: 1; padding: 15px; text-align: center; color: #888; font-weight: bold; cursor: pointer; font-size: 11px; min-width: 80px; position: relative; }
         .tab.active { color: var(--gold); border-bottom: 3px solid var(--gold); background: #252525; }
+        
+        /* Notification Badge */
+        .notif-badge { position: absolute; top: 8px; right: 5px; background: red; color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; display: none; }
+        
         .content-section { display: none; padding: 15px; animation: fadeIn 0.4s; }
         .content-section.active { display: block; }
         .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 20px; border-top: 3px solid var(--gold); position: relative; }
+        
+        /* Highlight for linked comments */
+        .highlight-comment { animation: highlightGlow 2s ease-out; }
+        @keyframes highlightGlow { 0% { background: #444; } 100% { background: var(--card-bg); } }
+
         .card img { width: 100%; border-radius: 8px; margin-bottom: 12px; }
         .time-txt { font-size: 10px; color: #777; display: block; margin-bottom: 5px; }
         .interaction-bar { border-top: 1px solid #333; margin-top: 10px; padding-top: 10px; display: flex; gap: 25px; }
@@ -30,7 +39,7 @@
         .comment-input-box input:disabled { background: #1a1a1a; color: #555; cursor: not-allowed; }
         .send-comment-btn { background: var(--gold); border: none; padding: 8px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; }
         
-        .comment-item { border-bottom: 1px solid #222; padding: 10px 0; }
+        .comment-item { border-bottom: 1px solid #222; padding: 10px 0; scroll-margin-top: 70px; }
         .reply-thread { margin-left: 20px; border-left: 1px solid #444; padding-left: 10px; margin-top: 8px; }
         .reply-item { font-size: 13px; margin-bottom: 5px; padding: 4px 0; }
         .reply-trigger { background: none; border: none; color: #888; font-size: 11px; cursor: pointer; padding: 0; margin-top: 5px; font-weight: bold; }
@@ -38,14 +47,15 @@
         .nested-input-group { display: none; gap: 5px; margin-top: 8px; }
         
         .action-link { font-size: 10px; color: #777; margin-left: 10px; cursor: pointer; text-decoration: underline; }
-        .action-link:hover { color: var(--gold); }
-
-        /* SEARCH STYLING - PERSISTENT */
         .search-container { margin: 0 0 15px 0; display: flex; justify-content: flex-end; }
         .search-box { background: #1a1a1a; border: 1px solid #333; border-radius: 20px; padding: 5px 12px; display: flex; align-items: center; width: 140px; transition: width 0.3s; }
         .search-box:focus-within { width: 200px; border-color: var(--gold); }
         .search-box input { background: transparent; border: none; color: white; font-size: 11px; outline: none; width: 100%; margin-left: 5px; }
         .search-icon { font-size: 12px; color: var(--gold); }
+
+        .notif-item { padding: 12px; border-bottom: 1px solid #333; cursor: pointer; font-size: 14px; }
+        .notif-item:active { background: #252525; }
+        .notif-item small { color: #777; display: block; margin-top: 4px; }
 
         .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; }
         .devo-card { background: linear-gradient(rgba(212, 175, 55, 0.1), rgba(0,0,0,0)); border: 1px solid var(--gold); border-radius: 15px; padding: 15px; margin-bottom: 10px; text-align: center; position: relative; }
@@ -66,7 +76,8 @@
         <div class="tab active" onclick="showTab('home', this)">HOME</div>
         <div class="tab" onclick="showTab('sermons', this)">SERMONS</div>
         <div class="tab" onclick="showTab('prayer', this)">PRAYER</div>
-        <div class="tab" onclick="showTab('about', this)">ABOUT US</div>
+        <div class="tab" onclick="showTab('notifs', this)">ALERTS <span id="notif-count" class="notif-badge">0</span></div>
+        <div class="tab" onclick="showTab('about', this)">ABOUT</div>
     </div>
     
     <div id="home" class="content-section active">
@@ -76,36 +87,34 @@
             <h3 id="devo-verse" style="margin: 5px 0; color: white;"></h3>
             <p id="devo-text" style="font-style: italic; color: #ccc; margin-top: 10px;"></p>
         </div>
-
-        <div class="search-container">
-            <div class="search-box">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="homeSearch" placeholder="Search home..." onkeyup="filterPosts('homeSearch', 'updates-list')">
-            </div>
-        </div>
-
+        <div class="search-container"><div class="search-box"><span class="search-icon">🔍</span><input type="text" id="homeSearch" placeholder="Search home..." onkeyup="filterPosts('homeSearch', 'updates-list')"></div></div>
         <div id="updates-list"></div>
     </div>
 
     <div id="sermons" class="content-section">
         <div class="sermon-nav">
-            <button class="s-btn active" id="btn-vid" onclick="filterSermons('video')"><span>🎥</span>VIDEO SERMONS</button>
-            <button class="s-btn" id="btn-aud" onclick="filterSermons('audio')"><span>🔊</span>AUDIO SERMONS</button>
+            <button class="s-btn active" id="btn-vid" onclick="filterSermons('video')"><span>🎥</span>VIDEO</button>
+            <button class="s-btn" id="btn-aud" onclick="filterSermons('audio')"><span>🔊</span>AUDIO</button>
         </div>
-
-        <div class="search-container">
-            <div class="search-box">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="sermonSearch" placeholder="Search sermons..." onkeyup="filterPosts('sermonSearch', 'sermons-list')">
-            </div>
-        </div>
-
+        <div class="search-container"><div class="search-box"><span class="search-icon">🔍</span><input type="text" id="sermonSearch" placeholder="Search sermons..." onkeyup="filterPosts('sermonSearch', 'sermons-list')"></div></div>
         <div id="sermons-list"></div>
     </div>
 
     <div id="prayer" class="content-section">
         <div class="card"><h3>How can we pray for you?</h3><textarea id="prayer-text" style="width:100%; background:#2d2d2d; color:white; border-radius:8px; padding:10px; box-sizing:border-box; border:1px solid #444;" rows="4" placeholder="Remember to include your name..."></textarea>
-<button class="btn" style="margin-top:10px;" onclick="submitPrayer()">Submit Request</button></div>
+        <button class="btn" style="margin-top:10px;" onclick="submitPrayer()">Submit Request</button></div>
+    </div>
+
+    <div id="notifs" class="content-section">
+        <div class="card" style="padding:0;">
+            <div style="padding:15px; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; color:var(--gold);">Notifications</h3>
+                <button onclick="clearNotifs()" style="background:none; border:none; color:#777; font-size:11px; cursor:pointer;">Clear All</button>
+            </div>
+            <div id="notif-list">
+                <p style="padding:20px; text-align:center; color:#555;">No new alerts</p>
+            </div>
+        </div>
     </div>
 
     <div id="about" class="content-section">
@@ -132,12 +141,12 @@
         const db = firebase.database();
 
         let currentSermonFilter = 'video';
+        let userNotifId = localStorage.getItem('userNotifId') || 'user_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('userNotifId', userNotifId);
 
-        // UNIVERSAL SEARCH FILTER
         function filterPosts(inputId, listId) {
             const query = document.getElementById(inputId).value.toLowerCase();
             const cards = document.querySelectorAll(`#${listId} .card`);
-            
             cards.forEach(card => {
                 const text = card.innerText.toLowerCase();
                 card.style.display = text.includes(query) ? "block" : "none";
@@ -154,7 +163,6 @@
             currentSermonFilter = type;
             document.getElementById('btn-vid').classList.toggle('active', type === 'video');
             document.getElementById('btn-aud').classList.toggle('active', type === 'audio');
-            // Reset search when switching sermon types
             document.getElementById('sermonSearch').value = "";
             render('sermons', 'sermons-list');
         }
@@ -162,9 +170,7 @@
         function showTab(t, e) {
             document.querySelectorAll('.content-section, .tab').forEach(x => x.classList.remove('active'));
             document.getElementById(t).classList.add('active'); e.classList.add('active');
-            // Clear searches on tab change
-            document.getElementById('homeSearch').value = "";
-            document.getElementById('sermonSearch').value = "";
+            if(t === 'notifs') { document.getElementById('notif-count').style.display = 'none'; }
         }
 
         function closeDevo() {
@@ -187,7 +193,45 @@
             });
             render('updates', 'updates-list');
             render('sermons', 'sermons-list');
+            listenNotifs();
         }
+
+        function listenNotifs() {
+            db.ref(`notifications/${userNotifId}`).on('value', s => {
+                const list = document.getElementById('notif-list');
+                const badge = document.getElementById('notif-count');
+                const data = s.val();
+                if(!data) { list.innerHTML = '<p style="padding:20px; text-align:center; color:#555;">No new alerts</p>'; badge.style.display='none'; return; }
+                
+                list.innerHTML = "";
+                const keys = Object.keys(data).reverse();
+                badge.innerText = keys.length;
+                badge.style.display = 'block';
+
+                keys.forEach(k => {
+                    const n = data[k];
+                    const div = document.createElement('div');
+                    div.className = 'notif-item';
+                    div.onclick = () => {
+                        showTab(n.tab, document.querySelector(`.tab[onclick*="${n.tab}"]`));
+                        setTimeout(() => {
+                            const target = document.getElementById('section-' + n.postId);
+                            if(target) {
+                                target.style.display = 'block';
+                                target.scrollIntoView({behavior: 'smooth'});
+                                target.classList.add('highlight-comment');
+                                setTimeout(() => target.classList.remove('highlight-comment'), 2000);
+                            }
+                        }, 500);
+                        db.ref(`notifications/${userNotifId}/${k}`).remove();
+                    };
+                    div.innerHTML = `<strong>${n.from}</strong> replied to your comment <small>${new Date(n.time).toLocaleTimeString()}</small>`;
+                    list.appendChild(div);
+                });
+            });
+        }
+
+        function clearNotifs() { db.ref(`notifications/${userNotifId}`).remove(); }
 
         function render(path, divId) {
             db.ref(path).on('value', s => {
@@ -203,25 +247,15 @@
                         if(currentSermonFilter === 'audio' && !isAudio) return;
                         if(currentSermonFilter === 'video' && isAudio) return;
                     }
-
                     const isLiked = likedPosts.includes(k);
                     const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
                     const card = document.createElement('div'); card.className = 'card';
+                    card.id = 'post-' + k;
                     
-                    let contentHtml = '';
-                    if(isAudio) {
-                        const audioUrl = item.text.match(/(https?:\/\/[^\s]+)/g)[0];
-                        const title = item.text.replace(audioUrl, '');
-                        contentHtml = `
-                            <h4 style="margin:0 0 10px 0; color:var(--gold);">🔊 ${title || 'Audio Sermon'}</h4>
-                            <div class="audio-player-container">
-                                <audio controls><source src="${audioUrl}" type="audio/mpeg">Your browser does not support audio.</audio>
-                            </div>`;
-                    } else {
-                        contentHtml = `
-                            ${item.image ? `<img src="${item.image}">` : ''}
-                            <p>${linkify(item.text)}</p>`;
-                    }
+                    let contentHtml = isAudio ? `
+                        <h4 style="margin:0 0 10px 0; color:var(--gold);">🔊 ${item.text.replace(/(https?:\/\/[^\s]+)/g, '') || 'Audio Sermon'}</h4>
+                        <div class="audio-player-container"><audio controls><source src="${item.text.match(/(https?:\/\/[^\s]+)/g)[0]}" type="audio/mpeg"></audio></div>
+                    ` : `${item.image ? `<img src="${item.image}">` : ''}<p>${linkify(item.text)}</p>`;
 
                     card.innerHTML = `
                         <span class="time-txt">${item.date} at ${timeStr}</span>
@@ -236,12 +270,12 @@
                                 <input type="text" id="name-${k}" placeholder="Your Name" value="${savedName}" oninput="validateName('${k}')">
                                 <div style="display:flex; gap:5px;">
                                     <input type="text" id="in-${k}" placeholder="Comment..." ${!savedName ? 'disabled' : ''} style="flex:1;">
-                                    <button class="send-comment-btn" onclick="addComment('${k}')">Send</button>
+                                    <button class="send-comment-btn" onclick="addComment('${k}', '${path === 'updates' ? 'home' : 'sermons'}')">Send</button>
                                 </div>
                             </div>
                         </div>`;
                     list.appendChild(card);
-                    loadComments(k);
+                    loadComments(k, path === 'updates' ? 'home' : 'sermons');
                 });
             });
         }
@@ -254,8 +288,7 @@
 
         function likePost(p, id) {
             let likedPosts = JSON.parse(localStorage.getItem('likedPosts')) || [];
-            const hasLiked = likedPosts.includes(id);
-            if (hasLiked) {
+            if (likedPosts.includes(id)) {
                 db.ref(`${p}/${id}/likes`).transaction(c => (c || 1) - 1);
                 likedPosts = likedPosts.filter(i => i !== id);
             } else {
@@ -267,21 +300,20 @@
 
         function toggleComments(id) { const el = document.getElementById('section-' + id); el.style.display = el.style.display === 'block' ? 'none' : 'block'; }
         
-        function addComment(id) {
+        function addComment(id, tab) {
             const name = document.getElementById('name-' + id).value;
             const text = document.getElementById('in-' + id).value;
             if(!name || !text) return;
-            db.ref(`comments/${id}`).push({ userName: name, text: text, timestamp: new Date().getTime() })
+            db.ref(`comments/${id}`).push({ userName: name, text: text, userNotifId: userNotifId, timestamp: new Date().getTime() })
               .then(() => document.getElementById('in-' + id).value = "");
         }
 
-        function loadComments(postId) {
+        function loadComments(postId, tabName) {
             db.ref(`comments/${postId}`).on('value', s => {
                 const box = document.getElementById('display-' + postId);
                 const countBadge = document.getElementById('count-' + postId);
                 const data = s.val(); if(!box) return; box.innerHTML = "";
                 const myName = localStorage.getItem('userName') || '';
-
                 let totalInteractions = 0;
 
                 if(data) {
@@ -289,58 +321,28 @@
                         totalInteractions++;
                         const c = data[ck]; 
                         let threadHTML = "";
-
                         if(c.adminReply) {
                             totalInteractions++;
-                            threadHTML += `
-                            <div class="reply-item">
-                                <strong style="color:var(--gold)">Admin:</strong> ${c.adminReply}
-                                <button class="reply-trigger" style="margin-left:8px" onclick="toggleReplyField('${ck}_adm')">Reply</button>
-                                <div id="nested-box-${ck}_adm" class="nested-input-group">
-                                    <input type="text" id="nest-in-${ck}_adm" placeholder="Reply to Admin..." style="flex:1; background:#333; border:1px solid #444; color:white; padding:5px; border-radius:4px; font-size:12px;">
-                                    <button onclick="sendNestedReply('${postId}','${ck}')" style="background:var(--gold); border:none; border-radius:4px; padding:0 10px; font-size:11px; font-weight:bold;">Send</button>
-                                </div>
-                            </div>`;
+                            threadHTML += `<div class="reply-item"><strong style="color:var(--gold)">Admin:</strong> ${c.adminReply}</div>`;
                         }
-
                         if(c.replies) {
                             Object.keys(c.replies).forEach(rk => {
                                 totalInteractions++;
                                 const r = c.replies[rk];
-                                const isMyReply = (myName && r.userName === myName);
-                                
-                                threadHTML += `
-                                <div class="reply-item" id="item-${rk}">
-                                    <strong style="color:var(--gold)">${r.userName}:</strong> 
-                                    <span id="txt-${rk}">${r.text}</span>
-                                    ${isMyReply ? `
-                                        <span class="action-link" onclick="editReply('${postId}','${ck}','${rk}')">edit</span>
-                                        <span class="action-link" style="color:red" onclick="deleteItem('comments/${postId}/${ck}/replies/${rk}')">del</span>
-                                    ` : ''}
-                                    ${r.adminReply ? `<div style="margin-left:15px; border-left:1px solid var(--gold); padding-left:5px; margin-top:4px;"><strong style="color:var(--gold)">Admin:</strong> ${r.adminReply}</div>` : ''}
-                                    ${r.adminReply ? (totalInteractions++, '') : ''}
-                                </div>`;
+                                threadHTML += `<div class="reply-item"><strong style="color:var(--gold)">${r.userName}:</strong> ${r.text}
+                                ${r.userName === myName ? `<span class="action-link" style="color:red" onclick="deleteItem('comments/${postId}/${ck}/replies/${rk}')">del</span>` : ''}</div>`;
                             });
                         }
-
-                        const isMyComment = (myName && c.userName === myName);
-
                         box.innerHTML += `
-                        <div class="comment-item">
-                            <strong style="color:var(--gold); font-size:12px;">${c.userName || 'Anonymous'}</strong>
-                            <div id="txt-${ck}">${c.text}</div>
-                            ${isMyComment ? `
-                                <span class="action-link" onclick="editComment('${postId}','${ck}')">edit</span>
-                                <span class="action-link" style="color:red" onclick="deleteItem('comments/${postId}/${ck}')">del</span>
-                            ` : ''}
-                            
-                            <div class="reply-thread" id="thread-${ck}">${threadHTML}</div>
-                            
-                            <button class="reply-trigger" onclick="toggleReplyField('${ck}')">Reply to ${c.userName}</button>
-                            
+                        <div class="comment-item" id="cmt-${ck}">
+                            <strong style="color:var(--gold); font-size:12px;">${c.userName}</strong>
+                            <div>${c.text}</div>
+                            ${c.userName === myName ? `<span class="action-link" style="color:red" onclick="deleteItem('comments/${postId}/${ck}')">del</span>` : ''}
+                            <div class="reply-thread">${threadHTML}</div>
+                            <button class="reply-trigger" onclick="toggleReplyField('${ck}')">Reply</button>
                             <div id="nested-box-${ck}" class="nested-input-group">
-                                <input type="text" id="nest-in-${ck}" placeholder="Write a reply..." style="flex:1; background:#333; border:1px solid #444; color:white; padding:5px; border-radius:4px; font-size:12px;">
-                                <button onclick="sendNestedReply('${postId}','${ck}')" style="background:var(--gold); border:none; border-radius:4px; padding:0 10px; font-size:11px; font-weight:bold;">Send</button>
+                                <input type="text" id="nest-in-${ck}" placeholder="Reply..." style="flex:1; background:#333; color:white; border:1px solid #444; padding:5px; border-radius:4px;">
+                                <button onclick="sendNestedReply('${postId}','${ck}','${c.userNotifId}','${tabName}')" style="background:var(--gold); border:none; padding:0 10px; border-radius:4px;">Send</button>
                             </div>
                         </div>`; 
                     });
@@ -354,47 +356,30 @@
             box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
         }
 
-        function sendNestedReply(postId, commentId) {
-            const input = document.querySelector(`[id^='nest-in-${commentId}']`);
+        function sendNestedReply(postId, commentId, targetUserNotifId, tab) {
+            const input = document.getElementById('nest-in-' + commentId);
             const text = input.value;
             const name = localStorage.getItem('userName') || "Member";
-            if(!text || !name) return alert("Please enter your name first");
+            if(!text) return;
 
             db.ref(`comments/${postId}/${commentId}/replies`).push({
-                userName: name,
-                text: text,
-                timestamp: new Date().getTime()
+                userName: name, text: text, userNotifId: userNotifId, timestamp: new Date().getTime()
             }).then(() => {
+                if(targetUserNotifId && targetUserNotifId !== userNotifId) {
+                    db.ref(`notifications/${targetUserNotifId}`).push({
+                        from: name, postId: postId, tab: tab, time: new Date().getTime()
+                    });
+                }
                 input.value = "";
-                document.querySelectorAll('.nested-input-group').forEach(el => el.style.display = 'none');
+                toggleReplyField(commentId);
             });
         }
 
-        function editComment(pid, cid) {
-            const oldText = document.getElementById('txt-' + cid).innerText;
-            const newText = prompt("Edit your comment:", oldText);
-            if(newText && newText !== oldText) {
-                db.ref(`comments/${pid}/${cid}`).update({ text: newText });
-            }
-        }
-
-        function editReply(pid, cid, rid) {
-            const oldText = document.getElementById('txt-' + rid).innerText;
-            const newText = prompt("Edit your reply:", oldText);
-            if(newText && newText !== oldText) {
-                db.ref(`comments/${pid}/${cid}/replies/${rid}`).update({ text: newText });
-            }
-        }
-
-        function deleteItem(path) {
-            if(confirm("Are you sure you want to delete this?")) {
-                db.ref(path).remove();
-            }
-        }
+        function deleteItem(path) { if(confirm("Delete this?")) db.ref(path).remove(); }
 
         function submitPrayer() {
             const text = document.getElementById('prayer-text').value; if(!text) return;
-            db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), status: "unread" }).then(() => { alert("Your Prayer request has been Sent successfully"); document.getElementById('prayer-text').value=""; });
+            db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), status: "unread" }).then(() => { alert("Sent successfully"); document.getElementById('prayer-text').value=""; });
         }
         
         let cur = 0; setInterval(() => {
