@@ -296,7 +296,6 @@
                         let html = `<div class="member-msg"><div style="color:var(--gold); font-weight:bold; font-size:12px;">${c.userName || 'Member'}:</div><div>${c.text}</div>`;
                         if(c.adminReply) { totalCount++; html += `<div class="bishop-reply"><strong>Admin:</strong> ${c.adminReply}</div>`; }
                         
-                        // RESTORED REPLY INPUT FOR ADMIN
                         html += `
                             <div class="reply-input-group">
                                 <input type="text" id="reply-to-${ck}" placeholder="Type reply...">
@@ -317,7 +316,6 @@
             });
         }
 
-        // RESTORED REPLY FUNCTION
         function sendAdminReply(postId, commentId) {
             const input = document.getElementById(`reply-to-${commentId}`);
             const text = input.value;
@@ -330,19 +328,31 @@
         function publishAudio() {
             const title = document.getElementById('audio-title').value;
             const link = document.getElementById('audio-link').value;
-            db.ref('sermons').push({ text: title + " " + link, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 });
+            db.ref('sermons').push({ text: title + " " + link, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
+                alert("Audio Sermon has been posted successfully!");
+                document.getElementById('audio-title').value = "";
+                document.getElementById('audio-link').value = "";
+            });
         }
 
         function publishPost() {
             const txt = document.getElementById('post-text').value;
             const img = document.getElementById('post-img').value;
-            db.ref('sermons').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 });
+            db.ref('sermons').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
+                alert("Video Sermon has been posted successfully!");
+                document.getElementById('post-text').value = "";
+                document.getElementById('post-img').value = "";
+            });
         }
 
         function publishUpdate() {
             const txt = document.getElementById('update-text').value;
             const img = document.getElementById('update-img').value;
-            db.ref('updates').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 });
+            db.ref('updates').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
+                alert("Update has been posted successfully!");
+                document.getElementById('update-text').value = "";
+                document.getElementById('update-img').value = "";
+            });
         }
 
         function saveEdit(type, id) {
@@ -354,7 +364,6 @@
         function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
         window.onload = () => { if(localStorage.getItem('uic_admin') === 'authenticated') showDashboard(); };
 
-        // NOTIFICATION ENGINE
         let bellCount = 0;
         let initialLoadDone = false;
 
