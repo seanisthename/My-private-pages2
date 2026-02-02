@@ -397,13 +397,6 @@
                         if(c.adminReply) {
                             totalInteractions++;
                             threadHTML += `<div class="reply-item"><strong style="color:var(--gold)">Admin:</strong> ${c.adminReply}</div>`;
-                            const lastAdminNotif = localStorage.getItem('notified_admin_' + ck);
-                            if(c.userNotifId === userNotifId && lastAdminNotif !== c.adminReply) {
-                                db.ref(`notifications/${userNotifId}`).push({
-                                    from: "Admin", msg: "replied to your comment", postId: postId, tab: tabName, time: new Date().getTime()
-                                });
-                                localStorage.setItem('notified_admin_' + ck, c.adminReply);
-                            }
                         }
 
                         if(c.replies) {
@@ -447,7 +440,6 @@
             db.ref(`comments/${postId}/${commentId}/replies`).push({
                 userName: name, text: text, userNotifId: userNotifId, timestamp: new Date().getTime()
             }).then(() => {
-                // Fixed notification logic for member-to-member replies
                 if(targetUserNotifId && targetUserNotifId !== userNotifId) {
                     db.ref(`notifications/${targetUserNotifId}`).push({
                         from: name, msg: "replied to your comment", postId: postId, tab: tab, time: new Date().getTime()
