@@ -393,7 +393,7 @@
                     addNotifItem("Member", snap.val().text, 'sec-prayers', 'New Prayer Request');
                 }
             });
-            db.ref('settings').once('value', () => { setTimeout(() => { initialLoadDone = true; }, 3000); });
+            db.ref('settings').once('value', () => { setTimeout(() => { initialLoadDone = true; initReplyWatcher(); }, 3000); });
         }
 
         function addNotifItem(user, text, targetId, typeLabel) {
@@ -414,11 +414,13 @@
 
         function updateBellUI() {
             const b = document.getElementById('bell-count');
-            if (bellCount > 0) {
-                b.innerText = bellCount;
-                b.style.display = "block";
-            } else {
-                b.style.display = "none";
+            if (b) {
+                if (bellCount > 0) {
+                    b.innerText = bellCount;
+                    b.style.display = "block";
+                } else {
+                    b.style.display = "none";
+                }
             }
         }
 
@@ -439,6 +441,43 @@
             bellCount = 0;
             localStorage.setItem('uic_notif_count', 0);
             updateBellUI();
+        }
+
+        /* --- NEW LOGIC: WATCH FOR SPECIFIC REPLIES TO COMMENTS --- */
+        function initReplyWatcher() {
+            db.ref('comments').on('child_added', (postSnap) => {
+                const postId = postSnap.key;
+                db.ref(`comments/${postId}`).on('child_added', (commSnap) => {
+                    const commentId = commSnap.key;
+                    const commentData = commSnap.val();
+                    
+                    // Listen specifically to the 'replies' folder inside a comment
+                    db.ref(`comments/${postId}/${commentId}/replies`).on('child_added', (replySnap) => {
+                        const reply = replySnap.val();
+                        // Only notify if app is finished loading and it's not the admin replying
+                        if (initialLoadDone && reply.userName !== "Admin") {
+                            const titleText = `${reply.userName} replied to ${commentData.userName}'s comment`;
+                            addDetailedNotifItem(titleText, reply.text, postId);
+                        }
+                    });
+                });
+            });
+        }
+
+        function addDetailedNotifItem(title, text, postId) {
+            bellCount++;
+            localStorage.setItem('uic_notif_count', bellCount);
+            updateBellUI();
+            
+            const list = document.getElementById('notif-list');
+            const item = document.createElement('div');
+            item.className = 'notif-item';
+            item.innerHTML = `<b>${title}</b> ${text.substring(0,40)}... <span>Click to open reply</span>`;
+            item.onclick = () => {
+                goToPost(postId); // Reuse existing goToPost to handle scrolling and opening
+                document.getElementById('notif-dropdown').style.display = 'none';
+            };
+            list.prepend(item);
         }
     </script>
 </body>
