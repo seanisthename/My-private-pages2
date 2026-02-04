@@ -38,6 +38,63 @@
             border-radius: 10px;
             display: none;
         }
+
+        /* Menu Icon Styles */
+        .menu-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            cursor: pointer;
+            z-index: 1100;
+            font-size: 24px;
+            color: var(--gold);
+        }
+
+        /* Side Menu Styles */
+        .side-menu {
+            position: fixed;
+            top: 0;
+            left: -250px;
+            width: 250px;
+            height: 100%;
+            background: var(--card-bg);
+            z-index: 1200;
+            transition: 0.3s;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+            border-right: 2px solid var(--gold);
+        }
+        .side-menu.open { left: 0; }
+        .menu-header {
+            padding: 20px;
+            background: var(--navy);
+            color: var(--gold);
+            font-weight: bold;
+            border-bottom: 1px solid var(--gold);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .menu-links { padding: 20px 0; }
+        .menu-link {
+            padding: 15px 25px;
+            color: var(--text-main);
+            text-decoration: none;
+            display: block;
+            font-size: 16px;
+            border-bottom: 1px solid #333;
+            cursor: pointer;
+        }
+        .menu-link:hover { background: #252525; color: var(--gold); }
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            z-index: 1150;
+        }
         
         /* Dropdown Panel */
         .notif-dropdown {
@@ -120,6 +177,9 @@
 </head>
 <body>
     <header>
+        <div class="menu-container" onclick="toggleSideMenu()">
+            <span>☰</span>
+        </div>
         <div class="bell-container" onclick="toggleNotifDropdown()">
             <span class="bell-icon">🔔</span>
             <span id="notif-count" class="bell-badge">0</span>
@@ -127,6 +187,21 @@
         <h1>Union in Christ Church</h1>
         <div class="logo-sub">Founder: Lady Bishop E. Chafulumira</div>
     </header>
+
+    <div id="side-menu-overlay" class="menu-overlay" onclick="toggleSideMenu()"></div>
+    <div id="side-menu" class="side-menu">
+        <div class="menu-header">
+            <span>MENU</span>
+            <span onclick="toggleSideMenu()" style="cursor:pointer; font-size: 20px;">&times;</span>
+        </div>
+        <div class="menu-links">
+            <div class="menu-link" onclick="handleMenuClick('home')">🏠 Home</div>
+            <div class="menu-link" onclick="handleMenuClick('sermons')">📖 Sermons</div>
+            <div class="menu-link" onclick="handleMenuClick('prayer')">🙏 Prayer</div>
+            <div class="menu-link" onclick="handleMenuClick('about')">ℹ️ About Us</div>
+            <div class="menu-link" style="opacity: 0.5;">💰 Give</div>
+        </div>
+    </div>
 
     <div id="notif-dropdown" class="notif-dropdown">
         <div class="notif-header">
@@ -199,6 +274,26 @@
         let userNotifId = localStorage.getItem('userNotifId') || 'user_' + Math.random().toString(36).substr(2, 9);
         localStorage.setItem('userNotifId', userNotifId);
 
+        // Toggle Side Menu
+        function toggleSideMenu() {
+            const menu = document.getElementById('side-menu');
+            const overlay = document.getElementById('side-menu-overlay');
+            if(menu.classList.contains('open')) {
+                menu.classList.remove('open');
+                overlay.style.display = 'none';
+            } else {
+                menu.classList.add('open');
+                overlay.style.display = 'block';
+            }
+        }
+
+        // Handle Side Menu Clicks
+        function handleMenuClick(tabId) {
+            const tabElement = document.querySelector(`.tab[onclick*="'${tabId}'"]`);
+            showTab(tabId, tabElement);
+            toggleSideMenu();
+        }
+
         // Toggle Notification Dropdown
         function toggleNotifDropdown() {
             const dd = document.getElementById('notif-dropdown');
@@ -207,7 +302,7 @@
 
         // Close dropdown when clicking outside
         window.addEventListener('click', function(e) {
-            if (!document.querySelector('.bell-container').contains(e.target) && !document.getElementById('notif-dropdown').contains(e.target)){
+            if (!document.querySelector('.bell-container').contains(e.target) && !document.getElementById('notif-dropdown').contains(e.target) && !document.querySelector('.menu-container').contains(e.target)){
                 document.getElementById('notif-dropdown').style.display = 'none';
             }
         });
