@@ -98,6 +98,10 @@
             <h3 style="color: #40A5E7;">Daily Devotional</h3>
             <input type="text" id="devo-v-in" placeholder="Scripture (e.g. John 3:16)">
             <textarea id="devo-t-in" placeholder="Today's message..." rows="2"></textarea>
+            
+            <label class="schedule-label">Schedule for later (Optional):</label>
+            <input type="date" id="devo-schedule-date">
+            
             <button class="btn" onclick="updateDevo()" style="background: #40A5E7; color: white;">Update Word for Today</button>
         </div>
 
@@ -205,32 +209,39 @@
             startPreviewSlider(); 
             initBellWatcher();
             refreshAnalytics();
-            processScheduledPosts(); // Auto-check for due scheduled posts
+            processScheduledTasks(); 
         }
 
-        // --- NEW: SCHEDULED POSTS LOGIC ---
-        function processScheduledPosts() {
+        // --- ENHANCED SCHEDULING SYSTEM ---
+        function processScheduledTasks() {
             const now = new Date().getTime();
+            
+            // 1. Process Updates
             db.ref('scheduled_updates').once('value', snapshot => {
                 const data = snapshot.val();
                 if (data) {
                     Object.keys(data).forEach(key => {
-                        const post = data[key];
-                        // If the scheduled time has passed
-                        if (post.timestamp <= now) {
-                            // Move to live updates
-                            db.ref('updates').push(post).then(() => {
-                                // Remove from schedule
-                                db.ref('scheduled_updates/' + key).remove();
-                                console.log("Scheduled post moved to live: " + post.text);
-                            });
+                        if (data[key].timestamp <= now) {
+                            db.ref('updates').push(data[key]).then(() => db.ref('scheduled_updates/' + key).remove());
+                        }
+                    });
+                }
+            });
+
+            // 2. Process Devotionals
+            db.ref('scheduled_devotionals').once('value', snapshot => {
+                const data = snapshot.val();
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        if (data[key].timestamp <= now) {
+                            const { verse, text } = data[key];
+                            db.ref('settings/devotional').set({ verse, text }).then(() => db.ref('scheduled_devotionals/' + key).remove());
                         }
                     });
                 }
             });
         }
 
-        // --- ENHANCED ANALYTICS LOGIC ---
         function refreshAnalytics() {
             let totalLikes = 0, totalComm = 0, totalSermons = 0, totalUpdates = 0;
             let bestLiked = { text: "None", score: -1 };
@@ -318,7 +329,21 @@
         function updateDevo() {
             const v = document.getElementById('devo-v-in').value;
             const t = document.getElementById('devo-t-in').value;
-            db.ref('settings/devotional').set({ verse: v, text: t }).then(() => alert("Devotional Updated"));
+            const schedDate = document.getElementById('devo-schedule-date').value;
+
+            if(!v || !t) { alert("Please enter both scripture and message."); return; }
+
+            if(schedDate) {
+                const timestamp = new Date(schedDate).getTime();
+                db.ref('scheduled_devotionals').push({ verse: v, text: t, timestamp }).then(() => {
+                    alert("Devotional scheduled for " + schedDate);
+                    document.getElementById('devo-v-in').value = "";
+                    document.getElementById('devo-t-in').value = "";
+                    document.getElementById('devo-schedule-date').value = "";
+                });
+            } else {
+                db.ref('settings/devotional').set({ verse: v, text: t }).then(() => alert("Devotional Updated Live"));
+            }
         }
 
         function updateSlider() {
@@ -462,24 +487,13 @@
             });
         }
 
-        // --- UPDATED PUBLISH UPDATE WITH SCHEDULING ---
         function publishUpdate() {
             const txt = document.getElementById('update-text').value;
             const img = document.getElementById('update-img').value;
             const schedDate = document.getElementById('schedule-date').value;
-
             if(!txt) { alert("Please enter update text."); return; }
-
-            const postData = { 
-                text: txt, 
-                image: img, 
-                date: schedDate || new Date().toLocaleDateString(), 
-                timestamp: schedDate ? new Date(schedDate).getTime() : new Date().getTime(), 
-                likes: 0 
-            };
-
+            const postData = { text: txt, image: img, date: schedDate || new Date().toLocaleDateString(), timestamp: schedDate ? new Date(schedDate).getTime() : new Date().getTime(), likes: 0 };
             const path = schedDate ? 'scheduled_updates' : 'updates';
-
             db.ref(path).push(postData).then(() => {
                 alert(schedDate ? "Scheduled for " + schedDate : "Published live!"); 
                 document.getElementById('update-text').value = ""; 
