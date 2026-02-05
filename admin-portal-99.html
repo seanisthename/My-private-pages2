@@ -7,18 +7,18 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
-        :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; --accent-blue: #40A5E7; }
+        :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; --accent-blue: #40A5E7; --accent-green: #28a745; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); padding-bottom: 50px; }
         header { background: linear-gradient(135deg, #000c24, var(--navy)); color: var(--gold); padding: 15px; text-align: center; border-bottom: 3px solid var(--gold); position: relative; z-index: 1000; }
         
-        /* NEW ANALYTICS STYLES */
+        /* ANALYTICS STYLES */
         .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .stat-card { background: #252525; padding: 15px; border-radius: 12px; border-bottom: 3px solid var(--gold); text-align: center; }
         .stat-card h4 { margin: 0; font-size: 12px; color: #888; text-transform: uppercase; }
         .stat-card p { margin: 5px 0 0; font-size: 24px; font-weight: bold; color: var(--gold); }
-        .top-post-item { background: #1a1a1a; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 13px; border-left: 3px solid var(--accent-blue); }
+        .top-post-item { background: #1a1a1a; padding: 10px; border-radius: 8px; margin-top: 5px; margin-bottom: 15px; font-size: 13px; border-left: 3px solid var(--accent-blue); }
 
-        /* PREVIOUS STYLES (UNCHANGED) */
+        /* PREVIOUS STYLES */
         .notif-bell-wrapper { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); cursor: pointer; }
         .bell-icon { font-size: 24px; color: var(--gold); }
         .bell-badge { position: absolute; top: -5px; right: -8px; background: #ff3b30; color: white; font-size: 10px; font-weight: bold; border-radius: 50%; padding: 2px 6px; display: none; border: 2px solid var(--navy); }
@@ -78,32 +78,6 @@
 
     <div id="dashboard" class="admin-content">
         
-        <div class="card" style="border-top: 3px solid var(--accent-blue);">
-            <h3 style="color: var(--accent-blue); margin-bottom:15px;">📊 Insights Dashboard</h3>
-            <div class="analytics-grid">
-                <div class="stat-card">
-                    <h4>Total Likes</h4>
-                    <p id="stat-likes">0</p>
-                </div>
-                <div class="stat-card">
-                    <h4>Comments</h4>
-                    <p id="stat-comm">0</p>
-                </div>
-                <div class="stat-card">
-                    <h4>Sermons</h4>
-                    <p id="stat-sermons">0</p>
-                </div>
-                <div class="stat-card">
-                    <h4>Updates</h4>
-                    <p id="stat-updates">0</p>
-                </div>
-            </div>
-            <div id="most-engaged-box">
-                <h4 style="font-size:11px; color:#888; text-transform:uppercase;">🔥 Most Engaging Post</h4>
-                <div id="top-post-display" class="top-post-item">Calculating...</div>
-            </div>
-        </div>
-
         <div class="preview-label">Live Member View Preview</div>
         <div class="live-preview-box">
             <div class="mini-slider">
@@ -186,7 +160,23 @@
             <div id="prayers-list-admin"></div>
         </div>
 
-        <button class="btn" style="background:#444; color:white;" onclick="logOut()">Logout</button>
+        <div class="card" style="border-top: 3px solid var(--accent-blue); margin-top: 40px;">
+            <h3 style="color: var(--accent-blue); margin-bottom:15px;">📊 Insights Dashboard</h3>
+            <div class="analytics-grid">
+                <div class="stat-card"><h4>Total Likes</h4><p id="stat-likes">0</p></div>
+                <div class="stat-card"><h4>Comments</h4><p id="stat-comm">0</p></div>
+                <div class="stat-card"><h4>Sermons</h4><p id="stat-sermons">0</p></div>
+                <div class="stat-card"><h4>Updates</h4><p id="stat-updates">0</p></div>
+            </div>
+            
+            <h4 style="font-size:11px; color:#888; text-transform:uppercase;">🔥 Most Liked Content</h4>
+            <div id="top-post-display" class="top-post-item">Calculating...</div>
+            
+            <h4 style="font-size:11px; color:#888; text-transform:uppercase;">💬 Most Discussed Content</h4>
+            <div id="top-comm-display" class="top-post-item" style="border-left-color: var(--accent-green);">Calculating...</div>
+        </div>
+
+        <button class="btn" style="background:#444; color:white; margin-top: 20px;" onclick="logOut()">Logout</button>
     </div>
 
     <script>
@@ -208,67 +198,71 @@
             loadAdminData(); 
             startPreviewSlider(); 
             initBellWatcher();
-            refreshAnalytics(); // Start calculating insights
+            refreshAnalytics();
         }
 
-        // --- NEW ANALYTICS LOGIC ---
+        // --- ENHANCED ANALYTICS LOGIC ---
         function refreshAnalytics() {
-            let totalLikes = 0;
-            let totalComm = 0;
-            let totalSermons = 0;
-            let totalUpdates = 0;
-            let bestPost = { text: "None", score: -1 };
+            let totalLikes = 0, totalComm = 0, totalSermons = 0, totalUpdates = 0;
+            let bestLiked = { text: "None", score: -1 };
+            let bestCommented = { text: "None", score: -1 };
+            let commentCounts = {};
 
-            // Scan Updates
-            db.ref('updates').on('value', s => {
-                const data = s.val();
-                if(data) {
-                    totalUpdates = Object.keys(data).length;
-                    Object.keys(data).forEach(k => {
-                        let likes = data[k].likes || 0;
-                        totalLikes += likes;
-                        if(likes > bestPost.score) bestPost = { text: data[k].text, score: likes };
-                    });
-                }
-                updateUI();
-            });
-
-            // Scan Sermons
-            db.ref('sermons').on('value', s => {
-                const data = s.val();
-                if(data) {
-                    totalSermons = Object.keys(data).length;
-                    Object.keys(data).forEach(k => {
-                        let likes = data[k].likes || 0;
-                        totalLikes += likes;
-                        if(likes > bestPost.score) bestPost = { text: data[k].text, score: likes };
-                    });
-                }
-                updateUI();
-            });
-
-            // Count Comments
+            // 1. Process Comments first to find the most discussed post
             db.ref('comments').on('value', s => {
                 const data = s.val();
+                totalComm = 0;
+                commentCounts = {};
                 if(data) {
-                    totalComm = 0;
                     Object.keys(data).forEach(postId => {
-                        totalComm += Object.keys(data[postId]).length;
+                        let count = Object.keys(data[postId]).length;
+                        commentCounts[postId] = count;
+                        totalComm += count;
                     });
                 }
-                updateUI();
+                updateSermonsAndUpdates();
             });
+
+            function updateSermonsAndUpdates() {
+                // Reset counters before scan
+                totalLikes = 0; bestLiked = { text: "None", score: -1 }; bestCommented = { text: "None", score: -1 };
+
+                db.ref('updates').once('value', s => {
+                    const data = s.val(); if(data) {
+                        totalUpdates = Object.keys(data).length;
+                        Object.keys(data).forEach(k => {
+                            let likes = data[k].likes || 0; totalLikes += likes;
+                            if(likes > bestLiked.score) bestLiked = { text: data[k].text, score: likes };
+                            let cCount = commentCounts[k] || 0;
+                            if(cCount > bestCommented.score) bestCommented = { text: data[k].text, score: cCount };
+                        });
+                    }
+                    db.ref('sermons').once('value', s2 => {
+                        const data2 = s2.val(); if(data2) {
+                            totalSermons = Object.keys(data2).length;
+                            Object.keys(data2).forEach(k => {
+                                let likes = data2[k].likes || 0; totalLikes += likes;
+                                if(likes > bestLiked.score) bestLiked = { text: data2[k].text, score: likes };
+                                let cCount = commentCounts[k] || 0;
+                                if(cCount > bestCommented.score) bestCommented = { text: data2[k].text, score: cCount };
+                            });
+                        }
+                        updateUI();
+                    });
+                });
+            }
 
             function updateUI() {
                 document.getElementById('stat-likes').innerText = totalLikes;
                 document.getElementById('stat-updates').innerText = totalUpdates;
                 document.getElementById('stat-sermons').innerText = totalSermons;
                 document.getElementById('stat-comm').innerText = totalComm;
-                document.getElementById('top-post-display').innerText = bestPost.text.substring(0, 60) + "...";
+                document.getElementById('top-post-display').innerText = bestLiked.text.substring(0, 70) + "... (" + (bestLiked.score === -1 ? 0 : bestLiked.score) + " likes)";
+                document.getElementById('top-comm-display').innerText = bestCommented.text.substring(0, 70) + "... (" + (bestCommented.score === -1 ? 0 : bestCommented.score) + " comments)";
             }
         }
-        // --- END ANALYTICS LOGIC ---
 
+        // REST OF EXISTING CODE UNTOUCHED...
         function filterAdminList(inputId, containerId) {
             const query = document.getElementById(inputId).value.toLowerCase();
             const items = document.querySelectorAll(`#${containerId} .admin-item`);
