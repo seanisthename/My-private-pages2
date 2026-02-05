@@ -3,276 +3,180 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Union in Christ Church</title>
+    <title>UIC Admin Portal</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
-        :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); }
+        :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; --accent-blue: #40A5E7; --accent-green: #28a745; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); padding-bottom: 50px; }
+        header { background: linear-gradient(135deg, #000c24, var(--navy)); color: var(--gold); padding: 15px; text-align: center; border-bottom: 3px solid var(--gold); position: relative; z-index: 1000; }
         
-        /* Header and Bell Styles */
-        header { 
-            background: linear-gradient(135deg, #40A5E7, var(--navy)); 
-            color: var(--gold); 
-            padding: 30px 20px; 
-            text-align: center; 
-            border-bottom: 3px solid var(--gold); 
-            position: relative;
-        }
-        .bell-container {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            cursor: pointer;
-            z-index: 1100;
-        }
-        .bell-icon { font-size: 24px; }
-        .bell-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: red;
-            color: white;
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            display: none;
-        }
+        /* ANALYTICS STYLES */
+        .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .stat-card { background: #252525; padding: 15px; border-radius: 12px; border-bottom: 3px solid var(--gold); text-align: center; }
+        .stat-card h4 { margin: 0; font-size: 12px; color: #888; text-transform: uppercase; }
+        .stat-card p { margin: 5px 0 0; font-size: 24px; font-weight: bold; color: var(--gold); }
+        .top-post-item { background: #1a1a1a; padding: 10px; border-radius: 8px; margin-top: 5px; margin-bottom: 15px; font-size: 13px; border-left: 3px solid var(--accent-blue); }
 
-        /* Menu Icon Styles */
-        .menu-container {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            cursor: pointer;
-            z-index: 1100;
-            font-size: 24px;
-            color: var(--gold);
-        }
-
-        /* Side Menu Styles */
-        .side-menu {
-            position: fixed;
-            top: 0;
-            left: -250px;
-            width: 250px;
-            height: 100%;
-            background: var(--card-bg);
-            z-index: 1200;
-            transition: 0.3s;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.5);
-            border-right: 2px solid var(--gold);
-        }
-        .side-menu.open { left: 0; }
-        .menu-header {
-            padding: 20px;
-            background: var(--navy);
-            color: var(--gold);
-            font-weight: bold;
-            border-bottom: 1px solid var(--gold);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .menu-links { padding: 20px 0; }
-        .menu-link {
-            padding: 15px 25px;
-            color: var(--text-main);
-            text-decoration: none;
-            display: block;
-            font-size: 16px;
-            border-bottom: 1px solid #333;
-            cursor: pointer;
-        }
-        .menu-link:hover { background: #252525; color: var(--gold); }
-        .menu-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            display: none;
-            z-index: 1150;
-        }
-        
-        /* Dropdown Panel */
-        .notif-dropdown {
-            position: fixed;
-            top: 60px;
-            right: 10px;
-            width: 280px;
-            max-height: 400px;
-            background: var(--card-bg);
-            border: 1px solid var(--gold);
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            display: none;
-            z-index: 1001;
-            overflow-y: auto;
-        }
-        .notif-header {
-            padding: 10px;
-            border-bottom: 1px solid #333;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #252525;
-        }
-
-        .logo-sub { color: #b0b0b0; font-size: 13px; margin-top: 5px; }
-        .slider-container { width: 100%; height: 220px; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
-        .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: cover; }
-        .active { opacity: 1; }
-        .nav-tabs { display: flex; background: #1a1a1a; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #333; overflow-x: auto; }
-        .tab { flex: 1; padding: 15px; text-align: center; color: #888; font-weight: bold; cursor: pointer; font-size: 11px; min-width: 80px; position: relative; }
-        .tab.active { color: var(--gold); border-bottom: 3px solid var(--gold); background: #252525; }
-        
-        .content-section { display: none; padding: 15px; animation: fadeIn 0.4s; }
-        .content-section.active { display: block; }
-        .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 20px; border-top: 3px solid var(--gold); position: relative; }
-        
-        /* Folder/Category Bar */
-        .folder-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; scrollbar-width: none; }
-        .folder-scroll::-webkit-scrollbar { display: none; }
-        .folder-pill { background: #252525; border: 1px solid #444; color: #888; padding: 6px 15px; border-radius: 20px; font-size: 12px; white-space: nowrap; cursor: pointer; }
-        .folder-pill.active { background: var(--gold); color: black; border-color: var(--gold); }
-
-        .highlight-comment { animation: highlightGlow 2s ease-out; }
-        @keyframes highlightGlow { 0% { background: #444; } 100% { background: var(--card-bg); } }
-
-        .card img { width: 100%; border-radius: 8px; margin-bottom: 12px; }
-        .time-txt { font-size: 10px; color: #777; display: block; margin-bottom: 5px; }
-        .interaction-bar { border-top: 1px solid #333; margin-top: 10px; padding-top: 10px; display: flex; gap: 25px; }
-        .comment-btn { background: none; border: none; color: var(--gold); cursor: pointer; display: flex; align-items: center; font-size: 16px; gap: 5px; padding: 0; }
-        .comment-section { display: none; margin-top: 15px; background: #181818; padding: 10px; border-radius: 8px; }
-        .comment-input-box { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
-        .comment-input-box input { background: #2d2d2d; border: 1px solid #444; color: white; padding: 8px; border-radius: 5px; }
-        .comment-input-box input:disabled { background: #1a1a1a; color: #555; cursor: not-allowed; }
-        .send-comment-btn { background: var(--gold); border: none; padding: 8px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        
-        .comment-item { border-bottom: 1px solid #222; padding: 10px 0; scroll-margin-top: 70px; }
-        .reply-thread { margin-left: 20px; border-left: 1px solid #444; padding-left: 10px; margin-top: 8px; }
-        .reply-item { font-size: 13px; margin-bottom: 5px; padding: 4px 0; }
-        .reply-trigger { background: none; border: none; color: #888; font-size: 11px; cursor: pointer; padding: 0; margin-top: 5px; font-weight: bold; }
-        .reply-trigger:hover { color: var(--gold); }
-        .nested-input-group { display: none; gap: 5px; margin-top: 8px; }
-        
-        .action-link { font-size: 10px; color: #777; margin-left: 10px; cursor: pointer; text-decoration: underline; }
-        .search-container { margin: 0 0 15px 0; display: flex; justify-content: flex-end; }
-        .search-box { background: #1a1a1a; border: 1px solid #333; border-radius: 20px; padding: 5px 12px; display: flex; align-items: center; width: 140px; transition: width 0.3s; }
-        .search-box:focus-within { width: 200px; border-color: var(--gold); }
-        .search-box input { background: transparent; border: none; color: white; font-size: 11px; outline: none; width: 100%; margin-left: 5px; }
-        .search-icon { font-size: 12px; color: var(--gold); }
-
-        .notif-item { padding: 12px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; color: #eee; }
-        .notif-item:active { background: #252525; }
-        .notif-item small { color: #777; display: block; margin-top: 4px; }
-
-        .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; }
-        .devo-card { background: linear-gradient(rgba(212, 175, 55, 0.1), rgba(0,0,0,0)); border: 1px solid var(--gold); border-radius: 15px; padding: 15px; margin-bottom: 10px; text-align: center; position: relative; }
-        .devo-title { color: var(--gold); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: bold; }
-        .devo-close { position: absolute; right: 10px; top: 10px; color: #777; font-size: 18px; cursor: pointer; padding: 5px; }
-        .sermon-nav { display: flex; gap: 10px; margin-bottom: 15px; }
-        .s-btn { flex: 1; padding: 20px 10px; border-radius: 12px; border: 1px solid var(--gold); background: #1a1a1a; color: white; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; }
-        .s-btn.active { background: var(--gold); color: black; }
-        .audio-player-container { background: #111; padding: 15px; border-radius: 10px; border: 1px solid #333; margin-top: 10px; display: flex; align-items: center; gap: 15px; }
-        audio { height: 35px; flex: 1; filter: invert(80%) sepia(50%) saturate(1000%) hue-rotate(10deg); }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        /* PREVIOUS STYLES */
+        .notif-bell-wrapper { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); cursor: pointer; }
+        .bell-icon { font-size: 24px; color: var(--gold); }
+        .bell-badge { position: absolute; top: -5px; right: -8px; background: #ff3b30; color: white; font-size: 10px; font-weight: bold; border-radius: 50%; padding: 2px 6px; display: none; border: 2px solid var(--navy); }
+        #notif-dropdown { display: none; position: absolute; top: 60px; right: 10px; width: 280px; background: #252525; border: 1px solid var(--gold); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 2000; max-height: 400px; overflow-y: auto; }
+        .notif-item { padding: 12px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; transition: background 0.2s; }
+        .notif-item:hover { background: #333; }
+        .notif-item b { color: var(--gold); display: block; margin-bottom: 3px; }
+        .notif-item span { color: #888; font-size: 11px; display: block; margin-top: 5px; font-style: italic; }
+        .admin-content { padding: 15px; display: none; }
+        .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 15px; border-top: 3px solid var(--gold); }
+        input, textarea, select { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #333; background: #2d2d2d; color: white; box-sizing: border-box; }
+        .btn { background: var(--gold); color: #000; padding: 12px; border: none; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .live-preview-box { border: 2px solid #444; border-radius: 15px; overflow: hidden; margin-bottom: 20px; background: #000; }
+        .preview-label { background: #444; color: white; font-size: 10px; text-align: center; padding: 4px; text-transform: uppercase; }
+        .mini-slider { width: 100%; height: 160px; position: relative; overflow: hidden; background: #000; }
+        .mini-slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: cover; }
+        .mini-slide.active { opacity: 1; }
+        .menu-btn { background: #2d2d2d; color: var(--gold); border: 1px solid var(--gold); padding: 15px; border-radius: 10px; width: 100%; text-align: left; font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; cursor: pointer; }
+        .unread-badge { background: #ff3b30; color: white; padding: 2px 8px; border-radius: 50px; font-size: 12px; }
+        .section-content { display: none; margin-bottom: 20px; }
+        .admin-item { background: #252525; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid var(--gold); }
+        .interaction-row { display: flex; gap: 20px; margin: 12px 0; align-items: center; border-top: 1px solid #333; padding-top: 10px; }
+        .msg-icon-btn { background: none; border: none; color: var(--gold); font-size: 18px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .comment-container { display: none; background: #1a1a1a; border-radius: 8px; padding: 10px; margin-top: 10px; }
+        .member-msg { border-bottom: 1px solid #333; padding: 10px 0; font-size: 14px; position: relative; }
+        .reply-input-group { display: flex; gap: 5px; margin-top: 8px; }
+        .reply-input-group input { margin-top: 0; padding: 8px; font-size: 13px; }
+        .send-reply-btn { background: #28a745; color: white; border: none; padding: 0 15px; border-radius: 5px; cursor: pointer; }
+        .bishop-reply { color: var(--gold); font-size: 12px; margin-top: 5px; padding-left: 10px; border-left: 2px solid var(--gold); }
+        .thread-reply { margin-left: 20px; border-left: 1px solid #444; padding-left: 10px; background: #151515; margin-top: 12px; border-radius: 0 5px 5px 0; padding-bottom: 8px; position: relative; }
+        .del-comment-btn { color: #ff3b30; background: none; border: none; cursor: pointer; font-size: 11px; padding: 0; margin-left: 10px; }
+        .big-sermon-btn { flex: 1; padding: 25px 10px; border-radius: 15px; border: 2px solid var(--gold); background: #1a1a1a; color: white; font-weight: bold; cursor: pointer; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .sermon-type-container { display: none; margin-top: 15px; background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px dashed var(--gold); }
+        .admin-search-wrap { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+        .admin-search-box { background: #1a1a1a; border: 1px solid var(--gold); border-radius: 20px; padding: 5px 12px; display: flex; align-items: center; width: 100%; max-width: 250px; }
+        .admin-search-box input { background: transparent; border: none; color: white; font-size: 12px; outline: none; width: 100%; margin: 0 0 0 8px; padding: 5px 0; }
+        .search-icon { color: var(--gold); font-size: 12px; }
+        #login-screen { max-width: 400px; margin: 50px auto; padding: 20px; }
     </style>
 </head>
 <body>
     <header>
-        <div class="menu-container" onclick="toggleSideMenu()">
-            <span>☰</span>
-        </div>
-        <div class="bell-container" onclick="toggleNotifDropdown()">
+        <h1>UICC Admin Portal</h1>
+        <div class="notif-bell-wrapper" onclick="toggleDropdown()">
             <span class="bell-icon">🔔</span>
-            <span id="notif-count" class="bell-badge">0</span>
+            <span id="bell-count" class="bell-badge">0</span>
         </div>
-        <h1>Union in Christ Church</h1>
-        <div class="logo-sub">Founder: Lady Bishop E. Chafulumira</div>
+        <div id="notif-dropdown">
+            <div style="padding:10px; border-bottom:1px solid var(--gold); font-size:12px; font-weight:bold;">Recent Activity</div>
+            <div id="notif-list"></div>
+        </div>
     </header>
-
-    <div id="side-menu-overlay" class="menu-overlay" onclick="toggleSideMenu()"></div>
-    <div id="side-menu" class="side-menu">
-        <div class="menu-header">
-            <span>MENU</span>
-            <span onclick="toggleSideMenu()" style="cursor:pointer; font-size: 20px;">&times;</span>
-        </div>
-        <div class="menu-links">
-            <div class="menu-link" onclick="handleMenuClick('home')">🏠 Home</div>
-            <div class="menu-link" onclick="handleMenuClick('sermons')">📖 Sermons</div>
-            <div class="menu-link" onclick="handleMenuClick('testimonies')">🙌 Testimonies</div>
-            <div class="menu-link" onclick="handleMenuClick('prayer')">🙏 Prayer</div>
-            <div class="menu-link" onclick="handleMenuClick('about')">ℹ️ About Us</div>
-        </div>
-    </div>
-
-    <div id="notif-dropdown" class="notif-dropdown">
-        <div class="notif-header">
-            <span style="color:var(--gold); font-weight:bold;">Notifications</span>
-            <button onclick="clearNotifs()" style="background:none; border:none; color:#777; font-size:11px; cursor:pointer;">Clear</button>
-        </div>
-        <div id="notif-list">
-            <p style="padding:20px; text-align:center; color:#555; font-size:12px;">No new alerts</p>
-        </div>
-    </div>
-
-    <div class="slider-container"><img id="img1" class="slide active" src=""><img id="img2" class="slide" src=""></div>
     
-    <div class="nav-tabs">
-        <div class="tab active" onclick="showTab('home', this)">HOME</div>
-        <div class="tab" onclick="showTab('sermons', this)">SERMONS</div>
-        <div class="tab" onclick="showTab('testimonies', this)">TESTIMONIES</div>
-        <div class="tab" onclick="showTab('prayer', this)">PRAYER</div>
-        <div class="tab" onclick="showTab('about', this)">ABOUT</div>
-    </div>
-    
-    <div id="home" class="content-section active">
-        <div id="devotional-display" class="devo-card" style="display:none;">
-            <div class="devo-close" onclick="closeDevo()">&times;</div>
-            <div class="devo-title">✨ Word For Today</div>
-            <h3 id="devo-verse" style="margin: 5px 0; color: white;"></h3>
-            <p id="devo-text" style="font-style: italic; color: #ccc; margin-top: 10px;"></p>
-        </div>
-        <div class="search-container"><div class="search-box"><span class="search-icon">🔍</span><input type="text" id="homeSearch" placeholder="Search home..." onkeyup="filterPosts('homeSearch', 'updates-list')"></div></div>
-        <div id="updates-list"></div>
+    <div id="login-screen" class="card">
+        <input type="password" id="admin-key" placeholder="Password"><button class="btn" onclick="checkAdmin()">Login</button>
     </div>
 
-    <div id="sermons" class="content-section">
-        <div class="sermon-nav">
-            <button class="s-btn active" id="btn-vid" onclick="filterSermons('video')"><span>🎥</span>VIDEO</button>
-            <button class="s-btn" id="btn-aud" onclick="filterSermons('audio')"><span>🔊</span>AUDIO</button>
-        </div>
+    <div id="dashboard" class="admin-content">
         
-        <div class="folder-scroll" id="sermon-folders">
-            <div class="folder-pill active" onclick="filterByFolder('All', this)">All</div>
+        <div class="preview-label">Live Member View Preview</div>
+        <div class="live-preview-box">
+            <div class="mini-slider">
+                <img id="p-img1" class="mini-slide active" src="">
+                <img id="p-img2" class="mini-slide" src="">
+            </div>
         </div>
 
-        <div class="search-container"><div class="search-box"><span class="search-icon">🔍</span><input type="text" id="sermonSearch" placeholder="Search sermons..." onkeyup="filterPosts('sermonSearch', 'sermons-list')"></div></div>
-        <div id="sermons-list"></div>
-    </div>
-
-    <div id="testimonies" class="content-section">
-        <div class="search-container"><div class="search-box"><span class="search-icon">🔍</span><input type="text" id="testimonySearch" placeholder="Search testimonies..." onkeyup="filterPosts('testimonySearch', 'testimonies-list')"></div></div>
-        <div id="testimonies-list"></div>
-    </div>
-
-    <div id="prayer" class="content-section">
-        <div class="card"><h3>How can we pray for you?</h3><textarea id="prayer-text" style="width:100%; background:#2d2d2d; color:white; border-radius:8px; padding:10px; box-sizing:border-box; border:1px solid #444;" rows="4" placeholder="Remember to include your name..."></textarea>
-        <button class="btn" style="margin-top:10px;" onclick="submitPrayer()">Submit Request</button></div>
-    </div>
-
-    <div id="about" class="content-section">
         <div class="card">
-            <h2 style="color: var(--gold); margin-top: 0;">Our Vision</h2>
-            <p>Seeing people getting saved and uniting the body of Christ in Love through the Holy Spirit.</p>
-            <h2 style="color: var(--gold);">Contact Us</h2>
-            <p>+265 998 352 637</p>
-            <h2 style="color: var(--gold);">Address</h2>
-            <p>Ndirande main market, next to Ndirande post office, Blantyre.</p>
+            <h3>Update Slider Pictures</h3>
+            <input type="text" id="slide1" placeholder="Image URL 1">
+            <input type="text" id="slide2" placeholder="Image URL 2">
+            <button class="btn" onclick="updateSlider()" style="background: #28a745; color: white;">Apply to App</button>
         </div>
+
+        <div class="card" style="border-top: 3px solid #40A5E7;">
+            <h3 style="color: #40A5E7;">Daily Devotional</h3>
+            <input type="text" id="devo-v-in" placeholder="Scripture (e.g. John 3:16)">
+            <textarea id="devo-t-in" placeholder="Today's message..." rows="2"></textarea>
+            <button class="btn" onclick="updateDevo()" style="background: #40A5E7; color: white;">Update Word for Today</button>
+        </div>
+
+        <div class="card" style="border-top: 3px solid #f39c12;">
+            <h3 style="color: #f39c12;">Post New Update</h3>
+            <textarea id="update-text" placeholder="General announcement or update text..." rows="3"></textarea>
+            <input type="text" id="update-img" placeholder="Paste Image URL for update (optional)...">
+            <button class="btn" onclick="publishUpdate()" style="background: #f39c12; color: white;">Publish to Updates</button>
+        </div>
+
+        <div class="card">
+            <h3>Manage Sermons</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <button class="big-sermon-btn" onclick="showSermonUpload('video')"><span>🎥</span>VIDEO SERMON</button>
+                <button class="big-sermon-btn" onclick="showSermonUpload('audio')"><span>🔊</span>AUDIO SERMON</button>
+            </div>
+            <div id="audio-form" class="sermon-type-container">
+                <h4 style="margin:0; color:var(--gold);">Upload Audio Link</h4>
+                <input type="text" id="audio-title" placeholder="Sermon Title">
+                <input type="text" id="audio-link" placeholder="Paste .mp3 Link here">
+                <button class="btn" onclick="publishAudio()">Publish Audio Sermon</button>
+            </div>
+            <div id="video-form" class="sermon-type-container">
+                <h4 style="margin:0; color:var(--gold);">Post Video Sermon</h4>
+                <textarea id="post-text" placeholder="Sermon description..." rows="3"></textarea>
+                <input type="text" id="post-img" placeholder="Paste Video URL here...">
+                <button class="btn" onclick="publishPost()">Publish Video Sermon</button>
+            </div>
+        </div>
+
+        <button class="menu-btn" onclick="toggleSection('sec-posts')">Updates <span id="count-btn-updates">(0)</span></button>
+        <div id="sec-posts" class="section-content">
+            <div class="admin-search-wrap">
+                <div class="admin-search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="search-updates" placeholder="Search updates..." onkeyup="filterAdminList('search-updates', 'updates-list-admin')">
+                </div>
+            </div>
+            <div id="updates-list-admin"></div>
+        </div>
+
+        <button class="menu-btn" onclick="toggleSection('sec-sermons')">Sermons <span id="count-btn-sermons">(0)</span></button>
+        <div id="sec-sermons" class="section-content">
+            <div class="admin-search-wrap">
+                <div class="admin-search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="search-sermons" placeholder="Search sermons..." onkeyup="filterAdminList('search-sermons', 'sermons-list-admin')">
+                </div>
+            </div>
+            <div id="sermons-list-admin"></div>
+        </div>
+
+        <button class="menu-btn" onclick="toggleSection('sec-prayers')">Prayers <span id="unread-count-container">(0)</span></button>
+        <div id="sec-prayers" class="section-content">
+            <div class="admin-search-wrap">
+                <div class="admin-search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="search-prayers" placeholder="Search prayers..." onkeyup="filterAdminList('search-prayers', 'prayers-list-admin')">
+                </div>
+            </div>
+            <div id="prayers-list-admin"></div>
+        </div>
+
+        <div class="card" style="border-top: 3px solid var(--accent-blue); margin-top: 40px;">
+            <h3 style="color: var(--accent-blue); margin-bottom:15px;">📊 Insights Dashboard</h3>
+            <div class="analytics-grid">
+                <div class="stat-card"><h4>Total Likes</h4><p id="stat-likes">0</p></div>
+                <div class="stat-card"><h4>Comments</h4><p id="stat-comm">0</p></div>
+                <div class="stat-card"><h4>Sermons</h4><p id="stat-sermons">0</p></div>
+                <div class="stat-card"><h4>Updates</h4><p id="stat-updates">0</p></div>
+            </div>
+            
+            <h4 style="font-size:11px; color:#888; text-transform:uppercase;">🔥 Most Liked Content</h4>
+            <div id="top-post-display" class="top-post-item">Calculating...</div>
+            
+            <h4 style="font-size:11px; color:#888; text-transform:uppercase;">💬 Most Discussed Content</h4>
+            <div id="top-comm-display" class="top-post-item" style="border-left-color: var(--accent-green);">Calculating...</div>
+        </div>
+
+        <button class="btn" style="background:#444; color:white; margin-top: 20px;" onclick="logOut()">Logout</button>
     </div>
 
     <script>
@@ -287,279 +191,306 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let currentSermonFilter = 'video';
-        let currentSermonFolder = 'All';
-        let userNotifId = localStorage.getItem('userNotifId') || 'user_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('userNotifId', userNotifId);
-
-        function toggleSideMenu() {
-            const menu = document.getElementById('side-menu');
-            const overlay = document.getElementById('side-menu-overlay');
-            if(menu.classList.contains('open')) {
-                menu.classList.remove('open');
-                overlay.style.display = 'none';
-            } else {
-                menu.classList.add('open');
-                overlay.style.display = 'block';
-            }
+        function checkAdmin() { if(document.getElementById('admin-key').value === 'church111') { localStorage.setItem('uic_admin', 'authenticated'); showDashboard(); } else alert("Access Denied"); }
+        function showDashboard() { 
+            document.getElementById('login-screen').style.display = 'none'; 
+            document.getElementById('dashboard').style.display = 'block'; 
+            loadAdminData(); 
+            startPreviewSlider(); 
+            initBellWatcher();
+            refreshAnalytics();
         }
 
-        function handleMenuClick(tabId) {
-            const tabElement = document.querySelector(`.tab[onclick*="'${tabId}'"]`);
-            showTab(tabId, tabElement);
-            toggleSideMenu();
-        }
+        // --- ENHANCED ANALYTICS LOGIC ---
+        function refreshAnalytics() {
+            let totalLikes = 0, totalComm = 0, totalSermons = 0, totalUpdates = 0;
+            let bestLiked = { text: "None", score: -1 };
+            let bestCommented = { text: "None", score: -1 };
+            let commentCounts = {};
 
-        function toggleNotifDropdown() {
-            const dd = document.getElementById('notif-dropdown');
-            dd.style.display = (dd.style.display === 'block') ? 'none' : 'block';
-        }
-
-        function filterPosts(inputId, listId) {
-            const query = document.getElementById(inputId).value.toLowerCase();
-            const cards = document.querySelectorAll(`#${listId} .card`);
-            cards.forEach(card => {
-                const text = card.innerText.toLowerCase();
-                card.style.display = text.includes(query) ? "block" : "none";
-            });
-        }
-
-        function linkify(text) {
-            const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
-            if(text.includes('.mp3') || text.includes('archive.org/download')) return text; 
-            return text.replace(urlPattern, '<a href="$1" target="_blank" style="color: var(--gold); text-decoration: underline;">$1</a>');
-        }
-
-        function filterSermons(type) {
-            currentSermonFilter = type;
-            document.getElementById('btn-vid').classList.toggle('active', type === 'video');
-            document.getElementById('btn-aud').classList.toggle('active', type === 'audio');
-            render('sermons', 'sermons-list');
-        }
-
-        function filterByFolder(folder, el) {
-            currentSermonFolder = folder;
-            document.querySelectorAll('.folder-pill').forEach(p => p.classList.remove('active'));
-            el.classList.add('active');
-            render('sermons', 'sermons-list');
-        }
-
-        function showTab(t, e) {
-            document.querySelectorAll('.content-section, .tab').forEach(x => x.classList.remove('active'));
-            document.getElementById(t).classList.add('active'); e.classList.add('active');
-        }
-
-        function closeDevo() {
-            const verse = document.getElementById('devo-verse').innerText;
-            localStorage.setItem('hidden_verse', verse);
-            document.getElementById('devotional-display').style.display = 'none';
-        }
-
-        function loadData() {
-            db.ref('settings/slider').on('value', s => { const d = s.val(); if(d){ document.getElementById('img1').src=d.img1; document.getElementById('img2').src=d.img2; } });
-            db.ref('settings/devotional').on('value', s => {
-                const d = s.val();
-                const box = document.getElementById('devotional-display');
-                const lastHidden = localStorage.getItem('hidden_verse');
-                if(d && d.verse && d.verse !== lastHidden) {
-                    box.style.display = 'block';
-                    document.getElementById('devo-verse').innerText = d.verse;
-                    document.getElementById('devo-text').innerText = d.text;
-                } else { box.style.display = 'none'; }
-            });
-            
-            // Load Categories/Folders for Sermons
-            db.ref('categories').on('value', s => {
-                const folders = s.val();
-                const container = document.getElementById('sermon-folders');
-                container.innerHTML = `<div class="folder-pill ${currentSermonFolder === 'All' ? 'active' : ''}" onclick="filterByFolder('All', this)">All</div>`;
-                if(folders) {
-                    Object.values(folders).forEach(f => {
-                        container.innerHTML += `<div class="folder-pill ${currentSermonFolder === f.name ? 'active' : ''}" onclick="filterByFolder('${f.name}', this)">${f.name}</div>`;
+            // 1. Process Comments first to find the most discussed post
+            db.ref('comments').on('value', s => {
+                const data = s.val();
+                totalComm = 0;
+                commentCounts = {};
+                if(data) {
+                    Object.keys(data).forEach(postId => {
+                        let count = Object.keys(data[postId]).length;
+                        commentCounts[postId] = count;
+                        totalComm += count;
                     });
                 }
+                updateSermonsAndUpdates();
             });
 
-            render('updates', 'updates-list');
-            render('sermons', 'sermons-list');
-            render('testimonies', 'testimonies-list');
-            listenNotifs();
-        }
+            function updateSermonsAndUpdates() {
+                // Reset counters before scan
+                totalLikes = 0; bestLiked = { text: "None", score: -1 }; bestCommented = { text: "None", score: -1 };
 
-        function render(path, divId) {
-            db.ref(path).on('value', s => {
-                const list = document.getElementById(divId); list.innerHTML = "";
-                const data = s.val(); if(!data) return;
-                const likedPosts = JSON.parse(localStorage.getItem('likedPosts')) || [];
-                const savedName = localStorage.getItem('userName') || '';
-
-                Object.keys(data).reverse().forEach(k => {
-                    const item = data[k];
-                    
-                    // Folder and Type Filtering for Sermons
-                    if(path === 'sermons') {
-                        const isAudio = item.text.includes('.mp3') || item.text.includes('archive.org');
-                        if(currentSermonFilter === 'audio' && !isAudio) return;
-                        if(currentSermonFilter === 'video' && isAudio) return;
-                        if(currentSermonFolder !== 'All' && item.category !== currentSermonFolder) return;
+                db.ref('updates').once('value', s => {
+                    const data = s.val(); if(data) {
+                        totalUpdates = Object.keys(data).length;
+                        Object.keys(data).forEach(k => {
+                            let likes = data[k].likes || 0; totalLikes += likes;
+                            if(likes > bestLiked.score) bestLiked = { text: data[k].text, score: likes };
+                            let cCount = commentCounts[k] || 0;
+                            if(cCount > bestCommented.score) bestCommented = { text: data[k].text, score: cCount };
+                        });
                     }
-
-                    const isLiked = likedPosts.includes(k);
-                    const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
-                    const card = document.createElement('div'); card.className = 'card';
-                    card.id = 'post-' + k;
-                    
-                    const isAudio = item.text && (item.text.includes('.mp3') || item.text.includes('archive.org'));
-                    
-                    let contentHtml = isAudio ? `
-                        <h4 style="margin:0 0 10px 0; color:var(--gold);">🔊 ${item.text.replace(/(https?:\/\/[^\s]+)/g, '') || 'Audio Sermon'}</h4>
-                        <div class="audio-player-container"><audio controls><source src="${item.text.match(/(https?:\/\/[^\s]+)/g)[0]}" type="audio/mpeg"></audio></div>
-                    ` : `${item.image ? `<img src="${item.image}">` : ''}<p>${linkify(item.text || '')}</p>`;
-
-                    card.innerHTML = `
-                        <span class="time-txt">${item.date || ''} at ${timeStr}</span>
-                        ${contentHtml}
-                        <div class="interaction-bar">
-                            <button class="comment-btn" onclick="toggleComments('${k}')">💬 <span id="count-${k}">(0)</span></button>
-                            <button class="comment-btn" id="likebtn-${k}" style="color: ${isLiked ? '#ff4d4d' : 'var(--gold)'}" onclick="likePost('${path}','${k}')">❤️ <span id="likes-${k}">${item.likes || 0}</span></button>
-                        </div>
-                        <div id="section-${k}" class="comment-section">
-                            <div id="display-${k}"></div>
-                            <div class="comment-input-box">
-                                <input type="text" id="name-${k}" placeholder="Your Name" value="${savedName}" oninput="validateName('${k}')">
-                                <div style="display:flex; gap:5px;">
-                                    <input type="text" id="in-${k}" placeholder="Comment..." ${!savedName ? 'disabled' : ''} style="flex:1;">
-                                    <button class="send-comment-btn" onclick="addComment('${k}', '${path === 'updates' ? 'home' : (path === 'testimonies' ? 'testimonies' : 'sermons')}')">Send</button>
-                                </div>
-                            </div>
-                        </div>`;
-                    list.appendChild(card);
-                    loadComments(k, path === 'updates' ? 'home' : (path === 'testimonies' ? 'testimonies' : 'sermons'));
-                });
-            });
-        }
-
-        // --- REST OF THE FUNCTIONS REMAIN THE SAME ---
-        function listenNotifs() {
-            db.ref(`notifications/${userNotifId}`).on('value', s => {
-                const list = document.getElementById('notif-list');
-                const badge = document.getElementById('notif-count');
-                const data = s.val();
-                if(!data) { list.innerHTML = '<p style="padding:20px; text-align:center; color:#555; font-size:12px;">No new alerts</p>'; badge.style.display='none'; return; }
-                list.innerHTML = "";
-                const keys = Object.keys(data).reverse();
-                badge.innerText = keys.length;
-                badge.style.display = 'block';
-                keys.forEach(k => {
-                    const n = data[k];
-                    const div = document.createElement('div');
-                    div.className = 'notif-item';
-                    div.onclick = () => {
-                        const tabBtn = document.querySelector(`.tab[onclick*="${n.tab}"]`);
-                        showTab(n.tab, tabBtn);
-                        document.getElementById('notif-dropdown').style.display = 'none';
-                        setTimeout(() => {
-                            const target = document.getElementById('post-' + n.postId);
-                            if(target) { target.scrollIntoView({behavior: 'smooth'}); target.classList.add('highlight-comment'); }
-                        }, 500);
-                        db.ref(`notifications/${userNotifId}/${k}`).remove();
-                    };
-                    div.innerHTML = `<strong>${n.from}</strong> ${n.msg || 'replied'} <small>${new Date(n.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small>`;
-                    list.appendChild(div);
-                });
-            });
-        }
-
-        function validateName(id) {
-            const nameVal = document.getElementById('name-' + id).value.trim();
-            document.querySelectorAll(`[id^='in-']`).forEach(el => el.disabled = (nameVal === ""));
-            localStorage.setItem('userName', nameVal);
-        }
-
-        function likePost(p, id) {
-            let likedPosts = JSON.parse(localStorage.getItem('likedPosts')) || [];
-            if (likedPosts.includes(id)) {
-                db.ref(`${p}/${id}/likes`).transaction(c => (c || 1) - 1);
-                likedPosts = likedPosts.filter(i => i !== id);
-            } else {
-                db.ref(`${p}/${id}/likes`).transaction(c => (c || 0) + 1);
-                likedPosts.push(id);
-            }
-            localStorage.setItem('likedPosts', JSON.stringify(likedPosts));
-        }
-
-        function toggleComments(id) { const el = document.getElementById('section-' + id); el.style.display = el.style.display === 'block' ? 'none' : 'block'; }
-        
-        function addComment(id, tab) {
-            const name = document.getElementById('name-' + id).value;
-            const text = document.getElementById('in-' + id).value;
-            if(!name || !text) return;
-            db.ref(`comments/${id}`).push({ userName: name, text: text, userNotifId: userNotifId, timestamp: new Date().getTime() })
-              .then(() => document.getElementById('in-' + id).value = "");
-        }
-
-        function loadComments(postId, tabName) {
-            db.ref(`comments/${postId}`).on('value', s => {
-                const box = document.getElementById('display-' + postId);
-                const countBadge = document.getElementById('count-' + postId);
-                const data = s.val(); if(!box) return; box.innerHTML = "";
-                const myName = localStorage.getItem('userName') || '';
-                let totalInteractions = 0;
-                if(data) {
-                    Object.keys(data).forEach(ck => { 
-                        totalInteractions++;
-                        const c = data[ck]; 
-                        let threadHTML = "";
-                        if(c.adminReply) { totalInteractions++; threadHTML += `<div class="reply-item"><strong style="color:var(--gold)">Admin:</strong> ${c.adminReply}</div>`; }
-                        if(c.replies) {
-                            Object.keys(c.replies).forEach(rk => {
-                                totalInteractions++;
-                                const r = c.replies[rk];
-                                threadHTML += `<div class="reply-item"><strong style="color:var(--gold)">${r.userName}:</strong> ${r.text}
-                                ${r.userName === myName ? `<span class="action-link" style="color:red" onclick="deleteItem('comments/${postId}/${ck}/replies/${rk}')">del</span>` : ''}</div>`;
+                    db.ref('sermons').once('value', s2 => {
+                        const data2 = s2.val(); if(data2) {
+                            totalSermons = Object.keys(data2).length;
+                            Object.keys(data2).forEach(k => {
+                                let likes = data2[k].likes || 0; totalLikes += likes;
+                                if(likes > bestLiked.score) bestLiked = { text: data2[k].text, score: likes };
+                                let cCount = commentCounts[k] || 0;
+                                if(cCount > bestCommented.score) bestCommented = { text: data2[k].text, score: cCount };
                             });
                         }
-                        box.innerHTML += `<div class="comment-item" id="cmt-${ck}"><strong style="color:var(--gold); font-size:12px;">${c.userName}</strong><div>${c.text}</div>${c.userName === myName ? `<span class="action-link" style="color:red" onclick="deleteItem('comments/${postId}/${ck}')">del</span>` : ''}<div class="reply-thread">${threadHTML}</div><button class="reply-trigger" onclick="toggleReplyField('${ck}')">Reply</button><div id="nested-box-${ck}" class="nested-input-group"><input type="text" id="nest-in-${ck}" placeholder="Reply..." style="flex:1; background:#333; color:white; border:1px solid #444; padding:5px; border-radius:4px;"><button onclick="sendNestedReply('${postId}','${ck}','${c.userNotifId}','${tabName}')" style="background:var(--gold); border:none; padding:0 10px; border-radius:4px;">Send</button></div></div>`; 
+                        updateUI();
+                    });
+                });
+            }
+
+            function updateUI() {
+                document.getElementById('stat-likes').innerText = totalLikes;
+                document.getElementById('stat-updates').innerText = totalUpdates;
+                document.getElementById('stat-sermons').innerText = totalSermons;
+                document.getElementById('stat-comm').innerText = totalComm;
+                document.getElementById('top-post-display').innerText = bestLiked.text.substring(0, 70) + "... (" + (bestLiked.score === -1 ? 0 : bestLiked.score) + " likes)";
+                document.getElementById('top-comm-display').innerText = bestCommented.text.substring(0, 70) + "... (" + (bestCommented.score === -1 ? 0 : bestCommented.score) + " comments)";
+            }
+        }
+
+        // REST OF EXISTING CODE UNTOUCHED...
+        function filterAdminList(inputId, containerId) {
+            const query = document.getElementById(inputId).value.toLowerCase();
+            const items = document.querySelectorAll(`#${containerId} .admin-item`);
+            items.forEach(item => {
+                const text = item.innerText.toLowerCase();
+                item.style.display = text.includes(query) ? "block" : "none";
+            });
+        }
+
+        function showSermonUpload(type) {
+            document.getElementById('audio-form').style.display = type === 'audio' ? 'block' : 'none';
+            document.getElementById('video-form').style.display = type === 'video' ? 'block' : 'none';
+        }
+
+        function toggleSection(id) { 
+            const el = document.getElementById(id); 
+            if(!el) return;
+            const isOpening = el.style.display !== 'block';
+            el.style.display = isOpening ? 'block' : 'none'; 
+            if (isOpening && id === 'sec-prayers') {
+                db.ref('prayers').once('value', s => {
+                    const data = s.val();
+                    if (data) { Object.keys(data).forEach(k => { if (data[k].status === "unread") db.ref(`prayers/${k}`).update({ status: "read" }); }); }
+                });
+            }
+        }
+
+        function updateDevo() {
+            const v = document.getElementById('devo-v-in').value;
+            const t = document.getElementById('devo-t-in').value;
+            db.ref('settings/devotional').set({ verse: v, text: t }).then(() => alert("Devotional Updated"));
+        }
+
+        function updateSlider() {
+            const img1 = document.getElementById('slide1').value;
+            const img2 = document.getElementById('slide2').value;
+            db.ref('settings/slider').set({ img1, img2 }).then(() => alert("Slider Updated"));
+        }
+
+        function loadAdminData() {
+            db.ref('settings/devotional').on('value', s => {
+                const d = s.val(); if(d) { document.getElementById('devo-v-in').value = d.verse; document.getElementById('devo-t-in').value = d.text; }
+            });
+            db.ref('settings/slider').on('value', s => {
+                const d = s.val();
+                if(d) {
+                    document.getElementById('p-img1').src = d.img1;
+                    document.getElementById('p-img2').src = d.img2;
+                    document.getElementById('slide1').value = d.img1;
+                    document.getElementById('slide2').value = d.img2;
+                }
+            });
+            renderList('updates', 'updates-list-admin');
+            renderList('sermons', 'sermons-list-admin');
+            db.ref('prayers').on('value', s => {
+                const div = document.getElementById('prayers-list-admin');
+                const badge = document.getElementById('unread-count-container');
+                const d = s.val(); div.innerHTML = "";
+                if(d) {
+                    const keys = Object.keys(d);
+                    const unread = keys.filter(k => d[k].status === "unread").length;
+                    badge.innerHTML = unread > 0 ? `<span class="unread-badge">${unread}</span>` : `(0)`;
+                    keys.reverse().forEach(k => {
+                        div.innerHTML += `<div class="admin-item" id="prayer-${k}"><p>${d[k].text}</p><button onclick="deleteItem('prayers/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button></div>`;
+                    });
+                } else { badge.innerHTML = `(0)`; }
+            });
+        }
+
+        function startPreviewSlider() {
+            let cur = 0; setInterval(() => {
+                const s = document.querySelectorAll('.mini-slide'); if(s.length < 2) return;
+                s[cur].classList.remove('active'); cur = (cur + 1) % s.length; s[cur].classList.add('active');
+            }, 8000);
+        }
+
+        function renderList(type, containerId) {
+            db.ref(type).on('value', s => {
+                const div = document.getElementById(containerId);
+                const btnCount = document.getElementById('count-btn-' + type);
+                div.innerHTML = ""; const data = s.val();
+                if(data) {
+                    const keys = Object.keys(data); btnCount.innerText = `(${keys.length})`;
+                    keys.reverse().forEach(k => {
+                        const item = data[k];
+                        const postCard = document.createElement('div');
+                        postCard.className = 'admin-item';
+                        postCard.id = 'post-' + k;
+                        postCard.innerHTML = `
+                            ${item.image ? `<img src="${item.image}" style="width:100%; border-radius:5px; margin-bottom:10px;">` : ''}
+                            <textarea id="edit-${k}" rows="2">${item.text}</textarea>
+                            <div class="interaction-row">
+                                <span style="color:#ff3b30; font-size:14px;">❤️ ${item.likes || 0}</span>
+                                <button class="msg-icon-btn" onclick="toggleSection('comm-box-${k}')">💬 <span id="c-count-${k}">0</span></button>
+                            </div>
+                            <div id="comm-box-${k}" class="comment-container"></div>
+                            <div style="display:flex; justify-content: space-between; margin-top:10px;">
+                                <button onclick="saveEdit('${type}','${k}')" style="color:var(--gold); background:none; border:none; cursor:pointer; font-weight:bold;">Save Changes</button>
+                                <button onclick="deleteItem('${type}/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete Post</button>
+                            </div>
+                        `;
+                        div.appendChild(postCard);
+                        loadComments(k);
                     });
                 }
-                countBadge.innerText = `(${totalInteractions})`;
             });
         }
 
-        function toggleReplyField(id) {
-            const box = document.getElementById('nested-box-' + id);
-            box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
-        }
-
-        function sendNestedReply(postId, commentId, targetUserNotifId, tab) {
-            const input = document.getElementById('nest-in-' + commentId);
-            const text = input.value;
-            const name = localStorage.getItem('userName') || "Member";
-            if(!text) return;
-            db.ref(`comments/${postId}/${commentId}/replies`).push({ userName: name, text: text, userNotifId: userNotifId, timestamp: new Date().getTime() }).then(() => {
-                if(targetUserNotifId && targetUserNotifId !== userNotifId) {
-                    db.ref(`notifications/${targetUserNotifId}`).push({ from: name, msg: "replied to your comment", postId: postId, tab: tab, time: new Date().getTime() });
+        function loadComments(postId) {
+            db.ref(`comments/${postId}`).on('value', s => {
+                const box = document.getElementById(`comm-box-${postId}`);
+                const countSpan = document.getElementById(`c-count-${postId}`);
+                const data = s.val(); if(!box) return; box.innerHTML = "";
+                let totalCount = 0; 
+                if(data) {
+                    Object.keys(data).forEach(ck => {
+                        totalCount++; const c = data[ck];
+                        let html = `<div class="member-msg" id="comm-item-${ck}">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <div style="color:var(--gold); font-weight:bold; font-size:12px;">${c.userName || 'Member'}:</div>
+                                <button class="del-comment-btn" onclick="deleteComment('${postId}', '${ck}')">Delete Comment</button>
+                            </div>
+                            <div>${c.text}</div>`;
+                        if(c.adminReply) { totalCount++; html += `<div class="bishop-reply"><strong>Admin:</strong> ${c.adminReply}</div>`; }
+                        html += `<div class="reply-input-group"><input type="text" id="reply-to-${ck}" placeholder="Type reply..."><button class="send-reply-btn" onclick="sendAdminReply('${postId}', '${ck}')">Reply</button></div>`;
+                        if(c.replies) {
+                            Object.keys(c.replies).forEach(rk => {
+                                totalCount++; const r = c.replies[rk];
+                                html += `<div class="thread-reply" id="thread-reply-${rk}">
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <div style="color:#888; font-size:11px;">↳ ${r.userName}:</div>
+                                        <button class="del-comment-btn" onclick="deleteComment('${postId}', '${ck}', '${rk}')">Delete Reply</button>
+                                    </div>
+                                    <div style="font-size:13px;">${r.text}</div>
+                                </div>`;
+                            });
+                        }
+                        html += `</div>`; box.innerHTML += html;
+                    });
                 }
-                input.value = ""; toggleReplyField(commentId);
+                countSpan.innerText = totalCount;
             });
         }
 
-        function deleteItem(path) { if(confirm("Delete this?")) db.ref(path).remove(); }
-
-        function submitPrayer() {
-            const text = document.getElementById('prayer-text').value; if(!text) return;
-            db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), status: "unread" }).then(() => { alert("Sent successfully"); document.getElementById('prayer-text').value=""; });
+        function deleteComment(postId, commentId, replyId = null) {
+            if(confirm("Moderate this message?")) {
+                let path = `comments/${postId}/${commentId}`;
+                if(replyId) path += `/replies/${replyId}`;
+                db.ref(path).update({ text: "⚠️ This message has been deleted by the admin.", userName: "Moderated" });
+            }
         }
 
-        function clearNotifs() { db.ref(`notifications/${userNotifId}`).remove(); }
-        
-        setInterval(() => {
-            const s = document.querySelectorAll('.slide'); if(s.length<2) return;
-            const cur = Array.from(s).findIndex(img => img.classList.contains('active'));
-            s[cur].classList.remove('active'); s[(cur+1)%s.length].classList.add('active');
-        }, 8000);
+        function sendAdminReply(postId, commentId) {
+            const input = document.getElementById(`reply-to-${commentId}`);
+            if(!input.value) return;
+            db.ref(`comments/${postId}/${commentId}`).update({ adminReply: input.value }).then(() => input.value = "");
+        }
 
-        window.onload = loadData;
+        function publishAudio() {
+            const title = document.getElementById('audio-title').value;
+            const link = document.getElementById('audio-link').value;
+            db.ref('sermons').push({ text: title + " " + link, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
+                alert("Posted!"); document.getElementById('audio-title').value = ""; document.getElementById('audio-link').value = "";
+            });
+        }
+
+        function publishPost() {
+            const txt = document.getElementById('post-text').value;
+            const img = document.getElementById('post-img').value;
+            db.ref('sermons').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
+                alert("Posted!"); document.getElementById('post-text').value = ""; document.getElementById('post-img').value = "";
+            });
+        }
+
+        function publishUpdate() {
+            const txt = document.getElementById('update-text').value;
+            const img = document.getElementById('update-img').value;
+            db.ref('updates').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
+                alert("Posted!"); document.getElementById('update-text').value = ""; document.getElementById('update-img').value = "";
+            });
+        }
+
+        function saveEdit(type, id) {
+            const newText = document.getElementById('edit-' + id).value;
+            db.ref(`${type}/${id}`).update({ text: newText });
+        }
+
+        function deleteItem(path) { if(confirm("Delete?")) db.ref(path).remove(); }
+        function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
+        window.onload = () => { if(localStorage.getItem('uic_admin') === 'authenticated') showDashboard(); };
+
+        let bellCount = parseInt(localStorage.getItem('uic_notif_count')) || 0;
+        let initialLoadDone = false;
+        function toggleDropdown() { const d = document.getElementById('notif-dropdown'); const isOpen = d.style.display === 'block'; d.style.display = isOpen ? 'none' : 'block'; if (!isOpen) resetBell(); }
+        function initBellWatcher() {
+            updateBellUI();
+            db.ref('comments').on('child_added', (postSnap) => {
+                const postId = postSnap.key;
+                db.ref(`comments/${postId}`).on('child_added', (commSnap) => {
+                    const c = commSnap.val(); if (initialLoadDone && c.userName !== "Admin") addNotifItem(c.userName + " replied", c.text, postId, 'New Activity', 'comm-item-' + commSnap.key);
+                    db.ref(`comments/${postId}/${commSnap.key}/replies`).on('child_added', (replySnap) => {
+                        const r = replySnap.val(); if (initialLoadDone && r.userName !== "Admin") addNotifItem(r.userName + " replied", r.text, postId, 'Member Reply', 'thread-reply-' + replySnap.key);
+                    });
+                });
+            });
+            db.ref('prayers').on('child_added', (snap) => { if (initialLoadDone) addNotifItem("New Prayer", snap.val().text, 'sec-prayers', 'Prayer', 'prayer-' + snap.key); });
+            db.ref('settings').once('value', () => { setTimeout(() => { initialLoadDone = true; }, 3000); });
+        }
+        function addNotifItem(headerText, text, targetId, typeLabel, elementId) {
+            bellCount++; localStorage.setItem('uic_notif_count', bellCount); updateBellUI();
+            const list = document.getElementById('notif-list');
+            const item = document.createElement('div'); item.className = 'notif-item';
+            item.innerHTML = `<b>${headerText}</b> ${text.substring(0,40)}... <span>View</span>`;
+            item.onclick = () => { goToPost(targetId, elementId); document.getElementById('notif-dropdown').style.display = 'none'; };
+            list.prepend(item);
+        }
+        function updateBellUI() { const b = document.getElementById('bell-count'); if (bellCount > 0) { b.innerText = bellCount; b.style.display = "block"; } else { b.style.display = "none"; } }
+        function goToPost(id, elementId) {
+            const el = document.getElementById('post-' + id) || document.getElementById(id);
+            if (el) {
+                const section = el.closest('.section-content'); if (section) toggleSection(section.id);
+                const commBox = document.getElementById('comm-box-' + id); if (commBox) commBox.style.display = 'block';
+                const targetElement = document.getElementById(elementId) || el;
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                targetElement.style.backgroundColor = '#333'; setTimeout(() => targetElement.style.backgroundColor = '', 3000);
+            }
+        }
+        function resetBell() { bellCount = 0; localStorage.setItem('uic_notif_count', 0); updateBellUI(); }
     </script>
 </body>
 </html>
