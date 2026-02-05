@@ -126,10 +126,26 @@
 
         <div class="card">
             <h3>Manage Sermons</h3>
+            <div style="background: #1a1a1a; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333;">
+                <h4 style="margin:0 0 10px 0; color:var(--gold); font-size: 11px; text-transform: uppercase;">Create Sermon Series Folder</h4>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="new-folder-name" placeholder="Folder Name (e.g. Feb 2026)" style="margin:0; font-size: 12px;">
+                    <button class="btn" onclick="createFolder()" style="margin:0; width: 80px; font-size: 11px;">Create</button>
+                </div>
+            </div>
+
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                 <button class="big-sermon-btn" onclick="showSermonUpload('video')"><span>🎥</span>VIDEO SERMON</button>
                 <button class="big-sermon-btn" onclick="showSermonUpload('audio')"><span>🔊</span>AUDIO SERMON</button>
             </div>
+
+            <div id="series-selector-wrap" style="display:none; margin-bottom: 10px;">
+                <label class="schedule-label">Target Series Folder:</label>
+                <select id="sermon-series-select">
+                    <option value="uncategorized">General (No Folder)</option>
+                </select>
+            </div>
+
             <div id="audio-form" class="sermon-type-container">
                 <h4 style="margin:0; color:var(--gold);">Upload Audio Link</h4>
                 <input type="text" id="audio-title" placeholder="Sermon Title">
@@ -164,6 +180,11 @@
                 </div>
             </div>
             <div id="sermons-list-admin"></div>
+        </div>
+
+        <button class="menu-btn" onclick="toggleSection('sec-testimonies')" style="border-color: var(--accent-green); color: var(--accent-green);">Testimonies <span id="count-btn-testimonies">(0)</span></button>
+        <div id="sec-testimonies" class="section-content">
+            <div id="testimonies-list-admin"></div>
         </div>
 
         <button class="menu-btn" onclick="toggleSection('sec-prayers')">Prayers <span id="unread-count-container">(0)</span></button>
@@ -218,13 +239,36 @@
             initBellWatcher();
             refreshAnalytics();
             processScheduledTasks(); 
-            loadPendingList(); // New call
+            loadPendingList();
+            loadFolders();
+        }
+
+        // --- NEW: SERMON FOLDERS LOGIC ---
+        function createFolder() {
+            const name = document.getElementById('new-folder-name').value;
+            if(!name) return;
+            db.ref('series').push({ name: name, timestamp: new Date().getTime() }).then(() => {
+                alert("Series folder created!");
+                document.getElementById('new-folder-name').value = "";
+            });
+        }
+
+        function loadFolders() {
+            db.ref('series').on('value', snapshot => {
+                const select = document.getElementById('sermon-series-select');
+                select.innerHTML = '<option value="uncategorized">General (No Folder)</option>';
+                const data = snapshot.val();
+                if(data) {
+                    Object.keys(data).forEach(k => {
+                        select.innerHTML += `<option value="${k}">${data[k].name}</option>`;
+                    });
+                }
+            });
         }
 
         // --- ENHANCED SCHEDULING SYSTEM ---
         function processScheduledTasks() {
             const now = new Date().getTime();
-            
             db.ref('scheduled_updates').once('value', snapshot => {
                 const data = snapshot.val();
                 if (data) {
@@ -235,7 +279,6 @@
                     });
                 }
             });
-
             db.ref('scheduled_devotionals').once('value', snapshot => {
                 const data = snapshot.val();
                 if (data) {
@@ -249,21 +292,15 @@
             });
         }
 
-        // --- NEW: LOAD PENDING LIST ---
         function loadPendingList() {
             const listDiv = document.getElementById('pending-list-admin');
             const countSpan = document.getElementById('pending-count');
-            
-            // Watch both paths
             db.ref().on('value', snapshot => {
                 const allData = snapshot.val();
                 const pendingUpdates = allData.scheduled_updates || {};
                 const pendingDevos = allData.scheduled_devotionals || {};
-                
                 listDiv.innerHTML = "";
                 let total = 0;
-
-                // Process Pending Updates
                 Object.keys(pendingUpdates).forEach(k => {
                     total++;
                     const item = pendingUpdates[k];
@@ -274,8 +311,6 @@
                             <button onclick="deleteItem('scheduled_updates/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer; font-size:12px;">Cancel Schedule</button>
                         </div>`;
                 });
-
-                // Process Pending Devotionals
                 Object.keys(pendingDevos).forEach(k => {
                     total++;
                     const item = pendingDevos[k];
@@ -286,7 +321,6 @@
                             <button onclick="deleteItem('scheduled_devotionals/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer; font-size:12px;">Cancel Schedule</button>
                         </div>`;
                 });
-
                 countSpan.innerText = `(${total})`;
                 if(total === 0) listDiv.innerHTML = "<p style='text-align:center; font-size:12px; color:#666;'>No scheduled posts pending.</p>";
             });
@@ -297,7 +331,6 @@
             let bestLiked = { text: "None", score: -1 };
             let bestCommented = { text: "None", score: -1 };
             let commentCounts = {};
-
             db.ref('comments').on('value', s => {
                 const data = s.val();
                 totalComm = 0;
@@ -311,7 +344,6 @@
                 }
                 updateSermonsAndUpdates();
             });
-
             function updateSermonsAndUpdates() {
                 totalLikes = 0; bestLiked = { text: "None", score: -1 }; bestCommented = { text: "None", score: -1 };
                 db.ref('updates').once('value', s => {
@@ -338,7 +370,6 @@
                     });
                 });
             }
-
             function updateUI() {
                 document.getElementById('stat-likes').innerText = totalLikes;
                 document.getElementById('stat-updates').innerText = totalUpdates;
@@ -361,17 +392,16 @@
         function showSermonUpload(type) {
             document.getElementById('audio-form').style.display = type === 'audio' ? 'block' : 'none';
             document.getElementById('video-form').style.display = type === 'video' ? 'block' : 'none';
+            document.getElementById('series-selector-wrap').style.display = 'block';
         }
 
         function toggleSection(id) { 
-            const el = document.getElementById(id); 
-            if(!el) return;
+            const el = document.getElementById(id); if(!el) return;
             const isOpening = el.style.display !== 'block';
             el.style.display = isOpening ? 'block' : 'none'; 
             if (isOpening && id === 'sec-prayers') {
                 db.ref('prayers').once('value', s => {
-                    const data = s.val();
-                    if (data) { Object.keys(data).forEach(k => { if (data[k].status === "unread") db.ref(`prayers/${k}`).update({ status: "read" }); }); }
+                    const data = s.val(); if (data) { Object.keys(data).forEach(k => { if (data[k].status === "unread") db.ref(`prayers/${k}`).update({ status: "read" }); }); }
                 });
             }
         }
@@ -380,20 +410,14 @@
             const v = document.getElementById('devo-v-in').value;
             const t = document.getElementById('devo-t-in').value;
             const schedDate = document.getElementById('devo-schedule-date').value;
-
             if(!v || !t) { alert("Please enter both scripture and message."); return; }
-
             if(schedDate) {
                 const timestamp = new Date(schedDate).getTime();
                 db.ref('scheduled_devotionals').push({ verse: v, text: t, timestamp }).then(() => {
                     alert("Devotional scheduled for " + schedDate);
-                    document.getElementById('devo-v-in').value = "";
-                    document.getElementById('devo-t-in').value = "";
-                    document.getElementById('devo-schedule-date').value = "";
+                    document.getElementById('devo-v-in').value = ""; document.getElementById('devo-t-in').value = ""; document.getElementById('devo-schedule-date').value = "";
                 });
-            } else {
-                db.ref('settings/devotional').set({ verse: v, text: t }).then(() => alert("Devotional Updated Live"));
-            }
+            } else { db.ref('settings/devotional').set({ verse: v, text: t }).then(() => alert("Devotional Updated Live")); }
         }
 
         function updateSlider() {
@@ -409,14 +433,14 @@
             db.ref('settings/slider').on('value', s => {
                 const d = s.val();
                 if(d) {
-                    document.getElementById('p-img1').src = d.img1;
-                    document.getElementById('p-img2').src = d.img2;
-                    document.getElementById('slide1').value = d.img1;
-                    document.getElementById('slide2').value = d.img2;
+                    document.getElementById('p-img1').src = d.img1; document.getElementById('p-img2').src = d.img2;
+                    document.getElementById('slide1').value = d.img1; document.getElementById('slide2').value = d.img2;
                 }
             });
             renderList('updates', 'updates-list-admin');
             renderList('sermons', 'sermons-list-admin');
+            
+            // Prayers Loader
             db.ref('prayers').on('value', s => {
                 const div = document.getElementById('prayers-list-admin');
                 const badge = document.getElementById('unread-count-container');
@@ -425,10 +449,27 @@
                     const keys = Object.keys(d);
                     const unread = keys.filter(k => d[k].status === "unread").length;
                     badge.innerHTML = unread > 0 ? `<span class="unread-badge">${unread}</span>` : `(0)`;
-                    keys.reverse().forEach(k => {
-                        div.innerHTML += `<div class="admin-item" id="prayer-${k}"><p>${d[k].text}</p><button onclick="deleteItem('prayers/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button></div>`;
-                    });
+                    keys.reverse().forEach(k => { div.innerHTML += `<div class="admin-item" id="prayer-${k}"><p>${d[k].text}</p><button onclick="deleteItem('prayers/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button></div>`; });
                 } else { badge.innerHTML = `(0)`; }
+            });
+
+            // --- TESTIMONIES LOADER ---
+            db.ref('testimonies').on('value', s => {
+                const div = document.getElementById('testimonies-list-admin');
+                const btnCount = document.getElementById('count-btn-testimonies');
+                div.innerHTML = ""; const data = s.val();
+                if(data) {
+                    const keys = Object.keys(data); btnCount.innerText = `(${keys.length})`;
+                    keys.reverse().forEach(k => {
+                        div.innerHTML += `<div class="admin-item" style="border-left-color:var(--accent-green);">
+                            <b>${data[k].userName || 'Member'}</b>
+                            <p>${data[k].text}</p>
+                            <span style="font-size:10px; color:#888;">${data[k].date || ''}</span>
+                            <button onclick="deleteItem('testimonies/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer; float:right; font-size:12px;">Delete</button>
+                            <div style="clear:both;"></div>
+                        </div>`;
+                    });
+                } else { btnCount.innerText = `(0)`; }
             });
         }
 
@@ -524,7 +565,14 @@
         function publishAudio() {
             const title = document.getElementById('audio-title').value;
             const link = document.getElementById('audio-link').value;
-            db.ref('sermons').push({ text: title + " " + link, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
+            const folder = document.getElementById('sermon-series-select').value;
+            db.ref('sermons').push({ 
+                text: title + " " + link, 
+                date: new Date().toLocaleDateString(), 
+                timestamp: new Date().getTime(), 
+                likes: 0,
+                seriesId: folder 
+            }).then(() => {
                 alert("Posted!"); document.getElementById('audio-title').value = ""; document.getElementById('audio-link').value = "";
             });
         }
@@ -532,7 +580,15 @@
         function publishPost() {
             const txt = document.getElementById('post-text').value;
             const img = document.getElementById('post-img').value;
-            db.ref('sermons').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
+            const folder = document.getElementById('sermon-series-select').value;
+            db.ref('sermons').push({ 
+                text: txt, 
+                image: img, 
+                date: new Date().toLocaleDateString(), 
+                timestamp: new Date().getTime(), 
+                likes: 0,
+                seriesId: folder 
+            }).then(() => {
                 alert("Posted!"); document.getElementById('post-text').value = ""; document.getElementById('post-img').value = "";
             });
         }
@@ -546,17 +602,11 @@
             const path = schedDate ? 'scheduled_updates' : 'updates';
             db.ref(path).push(postData).then(() => {
                 alert(schedDate ? "Scheduled for " + schedDate : "Published live!"); 
-                document.getElementById('update-text').value = ""; 
-                document.getElementById('update-img').value = "";
-                document.getElementById('schedule-date').value = "";
+                document.getElementById('update-text').value = ""; document.getElementById('update-img').value = ""; document.getElementById('schedule-date').value = "";
             });
         }
 
-        function saveEdit(type, id) {
-            const newText = document.getElementById('edit-' + id).value;
-            db.ref(`${type}/${id}`).update({ text: newText });
-        }
-
+        function saveEdit(type, id) { const newText = document.getElementById('edit-' + id).value; db.ref(`${type}/${id}`).update({ text: newText }); }
         function deleteItem(path) { if(confirm("Delete?")) db.ref(path).remove(); }
         function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
         window.onload = () => { if(localStorage.getItem('uic_admin') === 'authenticated') showDashboard(); };
@@ -576,6 +626,7 @@
                 });
             });
             db.ref('prayers').on('child_added', (snap) => { if (initialLoadDone) addNotifItem("New Prayer", snap.val().text, 'sec-prayers', 'Prayer', 'prayer-' + snap.key); });
+            db.ref('testimonies').on('child_added', (snap) => { if (initialLoadDone) addNotifItem("New Testimony", snap.val().text, 'sec-testimonies', 'Testimony', 'testimony-' + snap.key); });
             db.ref('settings').once('value', () => { setTimeout(() => { initialLoadDone = true; }, 3000); });
         }
         function addNotifItem(headerText, text, targetId, typeLabel, elementId) {
@@ -591,7 +642,6 @@
             const el = document.getElementById('post-' + id) || document.getElementById(id);
             if (el) {
                 const section = el.closest('.section-content'); if (section) toggleSection(section.id);
-                const commBox = document.getElementById('comm-box-' + id); if (commBox) commBox.style.display = 'block';
                 const targetElement = document.getElementById(elementId) || el;
                 targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 targetElement.style.backgroundColor = '#333'; setTimeout(() => targetElement.style.backgroundColor = '', 3000);
