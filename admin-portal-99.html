@@ -7,32 +7,35 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
-        :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; }
+        :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; --accent-blue: #40A5E7; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); padding-bottom: 50px; }
         header { background: linear-gradient(135deg, #000c24, var(--navy)); color: var(--gold); padding: 15px; text-align: center; border-bottom: 3px solid var(--gold); position: relative; z-index: 1000; }
         
-        /* BELL & DROPDOWN */
+        /* NEW ANALYTICS STYLES */
+        .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .stat-card { background: #252525; padding: 15px; border-radius: 12px; border-bottom: 3px solid var(--gold); text-align: center; }
+        .stat-card h4 { margin: 0; font-size: 12px; color: #888; text-transform: uppercase; }
+        .stat-card p { margin: 5px 0 0; font-size: 24px; font-weight: bold; color: var(--gold); }
+        .top-post-item { background: #1a1a1a; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 13px; border-left: 3px solid var(--accent-blue); }
+
+        /* PREVIOUS STYLES (UNCHANGED) */
         .notif-bell-wrapper { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); cursor: pointer; }
         .bell-icon { font-size: 24px; color: var(--gold); }
         .bell-badge { position: absolute; top: -5px; right: -8px; background: #ff3b30; color: white; font-size: 10px; font-weight: bold; border-radius: 50%; padding: 2px 6px; display: none; border: 2px solid var(--navy); }
-        
         #notif-dropdown { display: none; position: absolute; top: 60px; right: 10px; width: 280px; background: #252525; border: 1px solid var(--gold); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 2000; max-height: 400px; overflow-y: auto; }
         .notif-item { padding: 12px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; transition: background 0.2s; }
         .notif-item:hover { background: #333; }
         .notif-item b { color: var(--gold); display: block; margin-bottom: 3px; }
         .notif-item span { color: #888; font-size: 11px; display: block; margin-top: 5px; font-style: italic; }
-
         .admin-content { padding: 15px; display: none; }
         .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 15px; border-top: 3px solid var(--gold); }
         input, textarea, select { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #333; background: #2d2d2d; color: white; box-sizing: border-box; }
         .btn { background: var(--gold); color: #000; padding: 12px; border: none; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        
         .live-preview-box { border: 2px solid #444; border-radius: 15px; overflow: hidden; margin-bottom: 20px; background: #000; }
         .preview-label { background: #444; color: white; font-size: 10px; text-align: center; padding: 4px; text-transform: uppercase; }
         .mini-slider { width: 100%; height: 160px; position: relative; overflow: hidden; background: #000; }
         .mini-slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: cover; }
         .mini-slide.active { opacity: 1; }
-        
         .menu-btn { background: #2d2d2d; color: var(--gold); border: 1px solid var(--gold); padding: 15px; border-radius: 10px; width: 100%; text-align: left; font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; cursor: pointer; }
         .unread-badge { background: #ff3b30; color: white; padding: 2px 8px; border-radius: 50px; font-size: 12px; }
         .section-content { display: none; margin-bottom: 20px; }
@@ -46,17 +49,13 @@
         .send-reply-btn { background: #28a745; color: white; border: none; padding: 0 15px; border-radius: 5px; cursor: pointer; }
         .bishop-reply { color: var(--gold); font-size: 12px; margin-top: 5px; padding-left: 10px; border-left: 2px solid var(--gold); }
         .thread-reply { margin-left: 20px; border-left: 1px solid #444; padding-left: 10px; background: #151515; margin-top: 12px; border-radius: 0 5px 5px 0; padding-bottom: 8px; position: relative; }
-
         .del-comment-btn { color: #ff3b30; background: none; border: none; cursor: pointer; font-size: 11px; padding: 0; margin-left: 10px; }
-
         .big-sermon-btn { flex: 1; padding: 25px 10px; border-radius: 15px; border: 2px solid var(--gold); background: #1a1a1a; color: white; font-weight: bold; cursor: pointer; font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .sermon-type-container { display: none; margin-top: 15px; background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px dashed var(--gold); }
-
         .admin-search-wrap { display: flex; justify-content: flex-end; margin-bottom: 10px; }
         .admin-search-box { background: #1a1a1a; border: 1px solid var(--gold); border-radius: 20px; padding: 5px 12px; display: flex; align-items: center; width: 100%; max-width: 250px; }
         .admin-search-box input { background: transparent; border: none; color: white; font-size: 12px; outline: none; width: 100%; margin: 0 0 0 8px; padding: 5px 0; }
         .search-icon { color: var(--gold); font-size: 12px; }
-
         #login-screen { max-width: 400px; margin: 50px auto; padding: 20px; }
     </style>
 </head>
@@ -78,6 +77,33 @@
     </div>
 
     <div id="dashboard" class="admin-content">
+        
+        <div class="card" style="border-top: 3px solid var(--accent-blue);">
+            <h3 style="color: var(--accent-blue); margin-bottom:15px;">📊 Insights Dashboard</h3>
+            <div class="analytics-grid">
+                <div class="stat-card">
+                    <h4>Total Likes</h4>
+                    <p id="stat-likes">0</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Comments</h4>
+                    <p id="stat-comm">0</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Sermons</h4>
+                    <p id="stat-sermons">0</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Updates</h4>
+                    <p id="stat-updates">0</p>
+                </div>
+            </div>
+            <div id="most-engaged-box">
+                <h4 style="font-size:11px; color:#888; text-transform:uppercase;">🔥 Most Engaging Post</h4>
+                <div id="top-post-display" class="top-post-item">Calculating...</div>
+            </div>
+        </div>
+
         <div class="preview-label">Live Member View Preview</div>
         <div class="live-preview-box">
             <div class="mini-slider">
@@ -113,14 +139,12 @@
                 <button class="big-sermon-btn" onclick="showSermonUpload('video')"><span>🎥</span>VIDEO SERMON</button>
                 <button class="big-sermon-btn" onclick="showSermonUpload('audio')"><span>🔊</span>AUDIO SERMON</button>
             </div>
-
             <div id="audio-form" class="sermon-type-container">
                 <h4 style="margin:0; color:var(--gold);">Upload Audio Link</h4>
                 <input type="text" id="audio-title" placeholder="Sermon Title">
                 <input type="text" id="audio-link" placeholder="Paste .mp3 Link here">
                 <button class="btn" onclick="publishAudio()">Publish Audio Sermon</button>
             </div>
-
             <div id="video-form" class="sermon-type-container">
                 <h4 style="margin:0; color:var(--gold);">Post Video Sermon</h4>
                 <textarea id="post-text" placeholder="Sermon description..." rows="3"></textarea>
@@ -184,7 +208,66 @@
             loadAdminData(); 
             startPreviewSlider(); 
             initBellWatcher();
+            refreshAnalytics(); // Start calculating insights
         }
+
+        // --- NEW ANALYTICS LOGIC ---
+        function refreshAnalytics() {
+            let totalLikes = 0;
+            let totalComm = 0;
+            let totalSermons = 0;
+            let totalUpdates = 0;
+            let bestPost = { text: "None", score: -1 };
+
+            // Scan Updates
+            db.ref('updates').on('value', s => {
+                const data = s.val();
+                if(data) {
+                    totalUpdates = Object.keys(data).length;
+                    Object.keys(data).forEach(k => {
+                        let likes = data[k].likes || 0;
+                        totalLikes += likes;
+                        if(likes > bestPost.score) bestPost = { text: data[k].text, score: likes };
+                    });
+                }
+                updateUI();
+            });
+
+            // Scan Sermons
+            db.ref('sermons').on('value', s => {
+                const data = s.val();
+                if(data) {
+                    totalSermons = Object.keys(data).length;
+                    Object.keys(data).forEach(k => {
+                        let likes = data[k].likes || 0;
+                        totalLikes += likes;
+                        if(likes > bestPost.score) bestPost = { text: data[k].text, score: likes };
+                    });
+                }
+                updateUI();
+            });
+
+            // Count Comments
+            db.ref('comments').on('value', s => {
+                const data = s.val();
+                if(data) {
+                    totalComm = 0;
+                    Object.keys(data).forEach(postId => {
+                        totalComm += Object.keys(data[postId]).length;
+                    });
+                }
+                updateUI();
+            });
+
+            function updateUI() {
+                document.getElementById('stat-likes').innerText = totalLikes;
+                document.getElementById('stat-updates').innerText = totalUpdates;
+                document.getElementById('stat-sermons').innerText = totalSermons;
+                document.getElementById('stat-comm').innerText = totalComm;
+                document.getElementById('top-post-display').innerText = bestPost.text.substring(0, 60) + "...";
+            }
+        }
+        // --- END ANALYTICS LOGIC ---
 
         function filterAdminList(inputId, containerId) {
             const query = document.getElementById(inputId).value.toLowerCase();
@@ -205,17 +288,10 @@
             if(!el) return;
             const isOpening = el.style.display !== 'block';
             el.style.display = isOpening ? 'block' : 'none'; 
-
             if (isOpening && id === 'sec-prayers') {
                 db.ref('prayers').once('value', s => {
                     const data = s.val();
-                    if (data) {
-                        Object.keys(data).forEach(k => {
-                            if (data[k].status === "unread") {
-                                db.ref(`prayers/${k}`).update({ status: "read" });
-                            }
-                        });
-                    }
+                    if (data) { Object.keys(data).forEach(k => { if (data[k].status === "unread") db.ref(`prayers/${k}`).update({ status: "read" }); }); }
                 });
             }
         }
@@ -258,9 +334,7 @@
                     keys.reverse().forEach(k => {
                         div.innerHTML += `<div class="admin-item" id="prayer-${k}"><p>${d[k].text}</p><button onclick="deleteItem('prayers/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button></div>`;
                     });
-                } else {
-                    badge.innerHTML = `(0)`;
-                }
+                } else { badge.innerHTML = `(0)`; }
             });
         }
 
@@ -318,16 +392,8 @@
                                 <button class="del-comment-btn" onclick="deleteComment('${postId}', '${ck}')">Delete Comment</button>
                             </div>
                             <div>${c.text}</div>`;
-                        
                         if(c.adminReply) { totalCount++; html += `<div class="bishop-reply"><strong>Admin:</strong> ${c.adminReply}</div>`; }
-                        
-                        html += `
-                            <div class="reply-input-group">
-                                <input type="text" id="reply-to-${ck}" placeholder="Type reply...">
-                                <button class="send-reply-btn" onclick="sendAdminReply('${postId}', '${ck}')">Reply</button>
-                            </div>
-                        `;
-
+                        html += `<div class="reply-input-group"><input type="text" id="reply-to-${ck}" placeholder="Type reply..."><button class="send-reply-btn" onclick="sendAdminReply('${postId}', '${ck}')">Reply</button></div>`;
                         if(c.replies) {
                             Object.keys(c.replies).forEach(rk => {
                                 totalCount++; const r = c.replies[rk];
@@ -347,35 +413,25 @@
             });
         }
 
-        // UPDATED: This now overwrites the text instead of deleting the entry
         function deleteComment(postId, commentId, replyId = null) {
-            if(confirm("Are you sure you want to moderate this message? It will be replaced with an admin notice.")) {
+            if(confirm("Moderate this message?")) {
                 let path = `comments/${postId}/${commentId}`;
                 if(replyId) path += `/replies/${replyId}`;
-                
-                db.ref(path).update({ 
-                    text: "⚠️ This message has been deleted by the admin.",
-                    userName: "Moderated" 
-                });
+                db.ref(path).update({ text: "⚠️ This message has been deleted by the admin.", userName: "Moderated" });
             }
         }
 
         function sendAdminReply(postId, commentId) {
             const input = document.getElementById(`reply-to-${commentId}`);
-            const text = input.value;
-            if(!text) return;
-            db.ref(`comments/${postId}/${commentId}`).update({ adminReply: text }).then(() => {
-                input.value = "";
-            });
+            if(!input.value) return;
+            db.ref(`comments/${postId}/${commentId}`).update({ adminReply: input.value }).then(() => input.value = "");
         }
 
         function publishAudio() {
             const title = document.getElementById('audio-title').value;
             const link = document.getElementById('audio-link').value;
             db.ref('sermons').push({ text: title + " " + link, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
-                alert("Audio Sermon has been posted successfully!");
-                document.getElementById('audio-title').value = "";
-                document.getElementById('audio-link').value = "";
+                alert("Posted!"); document.getElementById('audio-title').value = ""; document.getElementById('audio-link').value = "";
             });
         }
 
@@ -383,9 +439,7 @@
             const txt = document.getElementById('post-text').value;
             const img = document.getElementById('post-img').value;
             db.ref('sermons').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
-                alert("Video Sermon has been posted successfully!");
-                document.getElementById('post-text').value = "";
-                document.getElementById('post-img').value = "";
+                alert("Posted!"); document.getElementById('post-text').value = ""; document.getElementById('post-img').value = "";
             });
         }
 
@@ -393,9 +447,7 @@
             const txt = document.getElementById('update-text').value;
             const img = document.getElementById('update-img').value;
             db.ref('updates').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
-                alert("Update has been posted successfully!");
-                document.getElementById('update-text').value = "";
-                document.getElementById('update-img').value = "";
+                alert("Posted!"); document.getElementById('update-text').value = ""; document.getElementById('update-img').value = "";
             });
         }
 
@@ -408,97 +460,43 @@
         function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
         window.onload = () => { if(localStorage.getItem('uic_admin') === 'authenticated') showDashboard(); };
 
-        // PERSISTENT NOTIFICATION LOGIC
         let bellCount = parseInt(localStorage.getItem('uic_notif_count')) || 0;
         let initialLoadDone = false;
-
-        function toggleDropdown() {
-            const d = document.getElementById('notif-dropdown');
-            const isOpen = d.style.display === 'block';
-            d.style.display = isOpen ? 'none' : 'block';
-            if (!isOpen) resetBell();
-        }
-
+        function toggleDropdown() { const d = document.getElementById('notif-dropdown'); const isOpen = d.style.display === 'block'; d.style.display = isOpen ? 'none' : 'block'; if (!isOpen) resetBell(); }
         function initBellWatcher() {
             updateBellUI();
-            
             db.ref('comments').on('child_added', (postSnap) => {
                 const postId = postSnap.key;
                 db.ref(`comments/${postId}`).on('child_added', (commSnap) => {
-                    const c = commSnap.val();
-                    const commentId = commSnap.key;
-                    if (initialLoadDone && c.userName !== "Admin") {
-                        addNotifItem(c.userName + " replied to your post", c.text, postId, 'New Activity', 'comm-item-' + commentId);
-                    }
-
-                    db.ref(`comments/${postId}/${commentId}/replies`).on('child_added', (replySnap) => {
-                        const r = replySnap.val();
-                        if (initialLoadDone && r.userName !== "Admin") {
-                            const msg = `${r.userName} replied to ${c.userName}`;
-                            addNotifItem(msg, r.text, postId, 'Member Reply', 'thread-reply-' + replySnap.key);
-                        }
+                    const c = commSnap.val(); if (initialLoadDone && c.userName !== "Admin") addNotifItem(c.userName + " replied", c.text, postId, 'New Activity', 'comm-item-' + commSnap.key);
+                    db.ref(`comments/${postId}/${commSnap.key}/replies`).on('child_added', (replySnap) => {
+                        const r = replySnap.val(); if (initialLoadDone && r.userName !== "Admin") addNotifItem(r.userName + " replied", r.text, postId, 'Member Reply', 'thread-reply-' + replySnap.key);
                     });
                 });
             });
-
-            db.ref('prayers').on('child_added', (snap) => {
-                if (initialLoadDone) {
-                    addNotifItem("New Prayer Request", snap.val().text, 'sec-prayers', 'Prayer', 'prayer-' + snap.key);
-                }
-            });
-
+            db.ref('prayers').on('child_added', (snap) => { if (initialLoadDone) addNotifItem("New Prayer", snap.val().text, 'sec-prayers', 'Prayer', 'prayer-' + snap.key); });
             db.ref('settings').once('value', () => { setTimeout(() => { initialLoadDone = true; }, 3000); });
         }
-
         function addNotifItem(headerText, text, targetId, typeLabel, elementId) {
-            bellCount++;
-            localStorage.setItem('uic_notif_count', bellCount);
-            updateBellUI();
-            
+            bellCount++; localStorage.setItem('uic_notif_count', bellCount); updateBellUI();
             const list = document.getElementById('notif-list');
-            const item = document.createElement('div');
-            item.className = 'notif-item';
-            item.innerHTML = `<b>${headerText}</b> ${text.substring(0,40)}... <span>Click to view</span>`;
-            item.onclick = () => {
-                goToPost(targetId, elementId);
-                document.getElementById('notif-dropdown').style.display = 'none';
-            };
+            const item = document.createElement('div'); item.className = 'notif-item';
+            item.innerHTML = `<b>${headerText}</b> ${text.substring(0,40)}... <span>View</span>`;
+            item.onclick = () => { goToPost(targetId, elementId); document.getElementById('notif-dropdown').style.display = 'none'; };
             list.prepend(item);
         }
-
-        function updateBellUI() {
-            const b = document.getElementById('bell-count');
-            if (bellCount > 0) {
-                b.innerText = bellCount;
-                b.style.display = "block";
-            } else {
-                b.style.display = "none";
-            }
-        }
-
+        function updateBellUI() { const b = document.getElementById('bell-count'); if (bellCount > 0) { b.innerText = bellCount; b.style.display = "block"; } else { b.style.display = "none"; } }
         function goToPost(id, elementId) {
             const el = document.getElementById('post-' + id) || document.getElementById(id);
             if (el) {
-                const section = el.closest('.section-content');
-                if (section) toggleSection(section.id);
-
-                const commBox = document.getElementById('comm-box-' + id);
-                if (commBox) commBox.style.display = 'block';
-
+                const section = el.closest('.section-content'); if (section) toggleSection(section.id);
+                const commBox = document.getElementById('comm-box-' + id); if (commBox) commBox.style.display = 'block';
                 const targetElement = document.getElementById(elementId) || el;
                 targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-                targetElement.style.backgroundColor = '#333';
-                targetElement.style.transition = 'background 0.5s';
-                setTimeout(() => targetElement.style.backgroundColor = '', 3000);
+                targetElement.style.backgroundColor = '#333'; setTimeout(() => targetElement.style.backgroundColor = '', 3000);
             }
         }
-
-        function resetBell() {
-            bellCount = 0;
-            localStorage.setItem('uic_notif_count', 0);
-            updateBellUI();
-        }
+        function resetBell() { bellCount = 0; localStorage.setItem('uic_notif_count', 0); updateBellUI(); }
     </script>
 </body>
 </html>
