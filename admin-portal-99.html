@@ -57,6 +57,7 @@
         .admin-search-box input { background: transparent; border: none; color: white; font-size: 12px; outline: none; width: 100%; margin: 0 0 0 8px; padding: 5px 0; }
         .search-icon { color: var(--gold); font-size: 12px; }
         #login-screen { max-width: 400px; margin: 50px auto; padding: 20px; }
+        .schedule-label { font-size: 11px; color: #888; margin-top: 10px; display: block; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -104,6 +105,10 @@
             <h3 style="color: #f39c12;">Post New Update</h3>
             <textarea id="update-text" placeholder="General announcement or update text..." rows="3"></textarea>
             <input type="text" id="update-img" placeholder="Paste Image URL for update (optional)...">
+            
+            <label class="schedule-label">Schedule for later (Optional):</label>
+            <input type="date" id="schedule-date">
+            
             <button class="btn" onclick="publishUpdate()" style="background: #f39c12; color: white;">Publish to Updates</button>
         </div>
 
@@ -192,6 +197,7 @@
         const db = firebase.database();
 
         function checkAdmin() { if(document.getElementById('admin-key').value === 'church111') { localStorage.setItem('uic_admin', 'authenticated'); showDashboard(); } else alert("Access Denied"); }
+        
         function showDashboard() { 
             document.getElementById('login-screen').style.display = 'none'; 
             document.getElementById('dashboard').style.display = 'block'; 
@@ -199,6 +205,29 @@
             startPreviewSlider(); 
             initBellWatcher();
             refreshAnalytics();
+            processScheduledPosts(); // Auto-check for due scheduled posts
+        }
+
+        // --- NEW: SCHEDULED POSTS LOGIC ---
+        function processScheduledPosts() {
+            const now = new Date().getTime();
+            db.ref('scheduled_updates').once('value', snapshot => {
+                const data = snapshot.val();
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        const post = data[key];
+                        // If the scheduled time has passed
+                        if (post.timestamp <= now) {
+                            // Move to live updates
+                            db.ref('updates').push(post).then(() => {
+                                // Remove from schedule
+                                db.ref('scheduled_updates/' + key).remove();
+                                console.log("Scheduled post moved to live: " + post.text);
+                            });
+                        }
+                    });
+                }
+            });
         }
 
         // --- ENHANCED ANALYTICS LOGIC ---
@@ -208,7 +237,6 @@
             let bestCommented = { text: "None", score: -1 };
             let commentCounts = {};
 
-            // 1. Process Comments first to find the most discussed post
             db.ref('comments').on('value', s => {
                 const data = s.val();
                 totalComm = 0;
@@ -224,9 +252,7 @@
             });
 
             function updateSermonsAndUpdates() {
-                // Reset counters before scan
                 totalLikes = 0; bestLiked = { text: "None", score: -1 }; bestCommented = { text: "None", score: -1 };
-
                 db.ref('updates').once('value', s => {
                     const data = s.val(); if(data) {
                         totalUpdates = Object.keys(data).length;
@@ -257,12 +283,11 @@
                 document.getElementById('stat-updates').innerText = totalUpdates;
                 document.getElementById('stat-sermons').innerText = totalSermons;
                 document.getElementById('stat-comm').innerText = totalComm;
-                document.getElementById('top-post-display').innerText = bestLiked.text.substring(0, 70) + "... (" + (bestLiked.score === -1 ? 0 : bestLiked.score) + " likes)";
-                document.getElementById('top-comm-display').innerText = bestCommented.text.substring(0, 70) + "... (" + (bestCommented.score === -1 ? 0 : bestCommented.score) + " comments)";
+                document.getElementById('top-post-display').innerText = (bestLiked.text || "").substring(0, 70) + "... (" + (bestLiked.score === -1 ? 0 : bestLiked.score) + " likes)";
+                document.getElementById('top-comm-display').innerText = (bestCommented.text || "").substring(0, 70) + "... (" + (bestCommented.score === -1 ? 0 : bestCommented.score) + " comments)";
             }
         }
 
-        // REST OF EXISTING CODE UNTOUCHED...
         function filterAdminList(inputId, containerId) {
             const query = document.getElementById(inputId).value.toLowerCase();
             const items = document.querySelectorAll(`#${containerId} .admin-item`);
@@ -437,11 +462,29 @@
             });
         }
 
+        // --- UPDATED PUBLISH UPDATE WITH SCHEDULING ---
         function publishUpdate() {
             const txt = document.getElementById('update-text').value;
             const img = document.getElementById('update-img').value;
-            db.ref('updates').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
-                alert("Posted!"); document.getElementById('update-text').value = ""; document.getElementById('update-img').value = "";
+            const schedDate = document.getElementById('schedule-date').value;
+
+            if(!txt) { alert("Please enter update text."); return; }
+
+            const postData = { 
+                text: txt, 
+                image: img, 
+                date: schedDate || new Date().toLocaleDateString(), 
+                timestamp: schedDate ? new Date(schedDate).getTime() : new Date().getTime(), 
+                likes: 0 
+            };
+
+            const path = schedDate ? 'scheduled_updates' : 'updates';
+
+            db.ref(path).push(postData).then(() => {
+                alert(schedDate ? "Scheduled for " + schedDate : "Published live!"); 
+                document.getElementById('update-text').value = ""; 
+                document.getElementById('update-img').value = "";
+                document.getElementById('schedule-date').value = "";
             });
         }
 
