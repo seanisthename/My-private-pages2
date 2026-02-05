@@ -58,6 +58,7 @@
         .search-icon { color: var(--gold); font-size: 12px; }
         #login-screen { max-width: 400px; margin: 50px auto; padding: 20px; }
         .schedule-label { font-size: 11px; color: #888; margin-top: 10px; display: block; text-transform: uppercase; }
+        .pending-tag { font-size: 10px; background: #f39c12; color: #000; padding: 2px 5px; border-radius: 4px; font-weight: bold; margin-bottom: 5px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -114,6 +115,13 @@
             <input type="date" id="schedule-date">
             
             <button class="btn" onclick="publishUpdate()" style="background: #f39c12; color: white;">Publish to Updates</button>
+        </div>
+
+        <button class="menu-btn" onclick="toggleSection('sec-pending')" style="border-color: #f39c12; color: #f39c12;">
+            📅 Pending Scheduled Posts <span id="pending-count">(0)</span>
+        </button>
+        <div id="sec-pending" class="section-content">
+            <div id="pending-list-admin"></div>
         </div>
 
         <div class="card">
@@ -210,13 +218,13 @@
             initBellWatcher();
             refreshAnalytics();
             processScheduledTasks(); 
+            loadPendingList(); // New call
         }
 
         // --- ENHANCED SCHEDULING SYSTEM ---
         function processScheduledTasks() {
             const now = new Date().getTime();
             
-            // 1. Process Updates
             db.ref('scheduled_updates').once('value', snapshot => {
                 const data = snapshot.val();
                 if (data) {
@@ -228,7 +236,6 @@
                 }
             });
 
-            // 2. Process Devotionals
             db.ref('scheduled_devotionals').once('value', snapshot => {
                 const data = snapshot.val();
                 if (data) {
@@ -239,6 +246,49 @@
                         }
                     });
                 }
+            });
+        }
+
+        // --- NEW: LOAD PENDING LIST ---
+        function loadPendingList() {
+            const listDiv = document.getElementById('pending-list-admin');
+            const countSpan = document.getElementById('pending-count');
+            
+            // Watch both paths
+            db.ref().on('value', snapshot => {
+                const allData = snapshot.val();
+                const pendingUpdates = allData.scheduled_updates || {};
+                const pendingDevos = allData.scheduled_devotionals || {};
+                
+                listDiv.innerHTML = "";
+                let total = 0;
+
+                // Process Pending Updates
+                Object.keys(pendingUpdates).forEach(k => {
+                    total++;
+                    const item = pendingUpdates[k];
+                    listDiv.innerHTML += `
+                        <div class="admin-item" style="border-left-color:#f39c12;">
+                            <span class="pending-tag">UPDATE: ${new Date(item.timestamp).toLocaleDateString()}</span>
+                            <p>${item.text.substring(0,50)}...</p>
+                            <button onclick="deleteItem('scheduled_updates/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer; font-size:12px;">Cancel Schedule</button>
+                        </div>`;
+                });
+
+                // Process Pending Devotionals
+                Object.keys(pendingDevos).forEach(k => {
+                    total++;
+                    const item = pendingDevos[k];
+                    listDiv.innerHTML += `
+                        <div class="admin-item" style="border-left-color:#40A5E7;">
+                            <span class="pending-tag" style="background:#40A5E7; color:white;">DEVO: ${new Date(item.timestamp).toLocaleDateString()}</span>
+                            <p><b>${item.verse}</b>: ${item.text.substring(0,50)}...</p>
+                            <button onclick="deleteItem('scheduled_devotionals/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer; font-size:12px;">Cancel Schedule</button>
+                        </div>`;
+                });
+
+                countSpan.innerText = `(${total})`;
+                if(total === 0) listDiv.innerHTML = "<p style='text-align:center; font-size:12px; color:#666;'>No scheduled posts pending.</p>";
             });
         }
 
