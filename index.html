@@ -132,6 +132,12 @@
         .content-section.active { display: block; }
         .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 20px; border-top: 3px solid var(--gold); position: relative; }
         
+        /* Folder/Category Bar */
+        .folder-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; scrollbar-width: none; }
+        .folder-scroll::-webkit-scrollbar { display: none; }
+        .folder-pill { background: #252525; border: 1px solid #444; color: #888; padding: 6px 15px; border-radius: 20px; font-size: 12px; white-space: nowrap; cursor: pointer; }
+        .folder-pill.active { background: var(--gold); color: black; border-color: var(--gold); }
+
         .highlight-comment { animation: highlightGlow 2s ease-out; }
         @keyframes highlightGlow { 0% { background: #444; } 100% { background: var(--card-bg); } }
 
@@ -197,9 +203,9 @@
         <div class="menu-links">
             <div class="menu-link" onclick="handleMenuClick('home')">🏠 Home</div>
             <div class="menu-link" onclick="handleMenuClick('sermons')">📖 Sermons</div>
+            <div class="menu-link" onclick="handleMenuClick('testimonies')">🙌 Testimonies</div>
             <div class="menu-link" onclick="handleMenuClick('prayer')">🙏 Prayer</div>
             <div class="menu-link" onclick="handleMenuClick('about')">ℹ️ About Us</div>
-            <div class="menu-link" style="opacity: 0.5;">💰 Give</div>
         </div>
     </div>
 
@@ -218,6 +224,7 @@
     <div class="nav-tabs">
         <div class="tab active" onclick="showTab('home', this)">HOME</div>
         <div class="tab" onclick="showTab('sermons', this)">SERMONS</div>
+        <div class="tab" onclick="showTab('testimonies', this)">TESTIMONIES</div>
         <div class="tab" onclick="showTab('prayer', this)">PRAYER</div>
         <div class="tab" onclick="showTab('about', this)">ABOUT</div>
     </div>
@@ -238,8 +245,18 @@
             <button class="s-btn active" id="btn-vid" onclick="filterSermons('video')"><span>🎥</span>VIDEO</button>
             <button class="s-btn" id="btn-aud" onclick="filterSermons('audio')"><span>🔊</span>AUDIO</button>
         </div>
+        
+        <div class="folder-scroll" id="sermon-folders">
+            <div class="folder-pill active" onclick="filterByFolder('All', this)">All</div>
+        </div>
+
         <div class="search-container"><div class="search-box"><span class="search-icon">🔍</span><input type="text" id="sermonSearch" placeholder="Search sermons..." onkeyup="filterPosts('sermonSearch', 'sermons-list')"></div></div>
         <div id="sermons-list"></div>
+    </div>
+
+    <div id="testimonies" class="content-section">
+        <div class="search-container"><div class="search-box"><span class="search-icon">🔍</span><input type="text" id="testimonySearch" placeholder="Search testimonies..." onkeyup="filterPosts('testimonySearch', 'testimonies-list')"></div></div>
+        <div id="testimonies-list"></div>
     </div>
 
     <div id="prayer" class="content-section">
@@ -271,10 +288,10 @@
         const db = firebase.database();
 
         let currentSermonFilter = 'video';
+        let currentSermonFolder = 'All';
         let userNotifId = localStorage.getItem('userNotifId') || 'user_' + Math.random().toString(36).substr(2, 9);
         localStorage.setItem('userNotifId', userNotifId);
 
-        // Toggle Side Menu
         function toggleSideMenu() {
             const menu = document.getElementById('side-menu');
             const overlay = document.getElementById('side-menu-overlay');
@@ -287,25 +304,16 @@
             }
         }
 
-        // Handle Side Menu Clicks
         function handleMenuClick(tabId) {
             const tabElement = document.querySelector(`.tab[onclick*="'${tabId}'"]`);
             showTab(tabId, tabElement);
             toggleSideMenu();
         }
 
-        // Toggle Notification Dropdown
         function toggleNotifDropdown() {
             const dd = document.getElementById('notif-dropdown');
             dd.style.display = (dd.style.display === 'block') ? 'none' : 'block';
         }
-
-        // Close dropdown when clicking outside
-        window.addEventListener('click', function(e) {
-            if (!document.querySelector('.bell-container').contains(e.target) && !document.getElementById('notif-dropdown').contains(e.target) && !document.querySelector('.menu-container').contains(e.target)){
-                document.getElementById('notif-dropdown').style.display = 'none';
-            }
-        });
 
         function filterPosts(inputId, listId) {
             const query = document.getElementById(inputId).value.toLowerCase();
@@ -326,7 +334,13 @@
             currentSermonFilter = type;
             document.getElementById('btn-vid').classList.toggle('active', type === 'video');
             document.getElementById('btn-aud').classList.toggle('active', type === 'audio');
-            document.getElementById('sermonSearch').value = "";
+            render('sermons', 'sermons-list');
+        }
+
+        function filterByFolder(folder, el) {
+            currentSermonFolder = folder;
+            document.querySelectorAll('.folder-pill').forEach(p => p.classList.remove('active'));
+            el.classList.add('active');
             render('sermons', 'sermons-list');
         }
 
@@ -353,51 +367,24 @@
                     document.getElementById('devo-text').innerText = d.text;
                 } else { box.style.display = 'none'; }
             });
+            
+            // Load Categories/Folders for Sermons
+            db.ref('categories').on('value', s => {
+                const folders = s.val();
+                const container = document.getElementById('sermon-folders');
+                container.innerHTML = `<div class="folder-pill ${currentSermonFolder === 'All' ? 'active' : ''}" onclick="filterByFolder('All', this)">All</div>`;
+                if(folders) {
+                    Object.values(folders).forEach(f => {
+                        container.innerHTML += `<div class="folder-pill ${currentSermonFolder === f.name ? 'active' : ''}" onclick="filterByFolder('${f.name}', this)">${f.name}</div>`;
+                    });
+                }
+            });
+
             render('updates', 'updates-list');
             render('sermons', 'sermons-list');
+            render('testimonies', 'testimonies-list');
             listenNotifs();
         }
-
-        function listenNotifs() {
-            db.ref(`notifications/${userNotifId}`).on('value', s => {
-                const list = document.getElementById('notif-list');
-                const badge = document.getElementById('notif-count');
-                const data = s.val();
-                if(!data) { 
-                    list.innerHTML = '<p style="padding:20px; text-align:center; color:#555; font-size:12px;">No new alerts</p>'; 
-                    badge.style.display='none'; 
-                    return; 
-                }
-                
-                list.innerHTML = "";
-                const keys = Object.keys(data).reverse();
-                badge.innerText = keys.length;
-                badge.style.display = 'block';
-
-                keys.forEach(k => {
-                    const n = data[k];
-                    const div = document.createElement('div');
-                    div.className = 'notif-item';
-                    div.onclick = () => {
-                        showTab(n.tab, document.querySelector(`.tab[onclick*="${n.tab}"]`));
-                        document.getElementById('notif-dropdown').style.display = 'none';
-                        setTimeout(() => {
-                            const target = document.getElementById('post-' + n.postId);
-                            if(target) {
-                                target.scrollIntoView({behavior: 'smooth'});
-                                target.classList.add('highlight-comment');
-                                setTimeout(() => target.classList.remove('highlight-comment'), 2000);
-                            }
-                        }, 500);
-                        db.ref(`notifications/${userNotifId}/${k}`).remove();
-                    };
-                    div.innerHTML = `<strong>${n.from}</strong> ${n.msg || 'replied'} <small>${new Date(n.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small>`;
-                    list.appendChild(div);
-                });
-            });
-        }
-
-        function clearNotifs() { db.ref(`notifications/${userNotifId}`).remove(); }
 
         function render(path, divId) {
             db.ref(path).on('value', s => {
@@ -408,23 +395,29 @@
 
                 Object.keys(data).reverse().forEach(k => {
                     const item = data[k];
-                    const isAudio = item.text.includes('.mp3') || item.text.includes('archive.org');
+                    
+                    // Folder and Type Filtering for Sermons
                     if(path === 'sermons') {
+                        const isAudio = item.text.includes('.mp3') || item.text.includes('archive.org');
                         if(currentSermonFilter === 'audio' && !isAudio) return;
                         if(currentSermonFilter === 'video' && isAudio) return;
+                        if(currentSermonFolder !== 'All' && item.category !== currentSermonFolder) return;
                     }
+
                     const isLiked = likedPosts.includes(k);
                     const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
                     const card = document.createElement('div'); card.className = 'card';
                     card.id = 'post-' + k;
                     
+                    const isAudio = item.text && (item.text.includes('.mp3') || item.text.includes('archive.org'));
+                    
                     let contentHtml = isAudio ? `
                         <h4 style="margin:0 0 10px 0; color:var(--gold);">🔊 ${item.text.replace(/(https?:\/\/[^\s]+)/g, '') || 'Audio Sermon'}</h4>
                         <div class="audio-player-container"><audio controls><source src="${item.text.match(/(https?:\/\/[^\s]+)/g)[0]}" type="audio/mpeg"></audio></div>
-                    ` : `${item.image ? `<img src="${item.image}">` : ''}<p>${linkify(item.text)}</p>`;
+                    ` : `${item.image ? `<img src="${item.image}">` : ''}<p>${linkify(item.text || '')}</p>`;
 
                     card.innerHTML = `
-                        <span class="time-txt">${item.date} at ${timeStr}</span>
+                        <span class="time-txt">${item.date || ''} at ${timeStr}</span>
                         ${contentHtml}
                         <div class="interaction-bar">
                             <button class="comment-btn" onclick="toggleComments('${k}')">💬 <span id="count-${k}">(0)</span></button>
@@ -436,12 +429,43 @@
                                 <input type="text" id="name-${k}" placeholder="Your Name" value="${savedName}" oninput="validateName('${k}')">
                                 <div style="display:flex; gap:5px;">
                                     <input type="text" id="in-${k}" placeholder="Comment..." ${!savedName ? 'disabled' : ''} style="flex:1;">
-                                    <button class="send-comment-btn" onclick="addComment('${k}', '${path === 'updates' ? 'home' : 'sermons'}')">Send</button>
+                                    <button class="send-comment-btn" onclick="addComment('${k}', '${path === 'updates' ? 'home' : (path === 'testimonies' ? 'testimonies' : 'sermons')}')">Send</button>
                                 </div>
                             </div>
                         </div>`;
                     list.appendChild(card);
-                    loadComments(k, path === 'updates' ? 'home' : 'sermons');
+                    loadComments(k, path === 'updates' ? 'home' : (path === 'testimonies' ? 'testimonies' : 'sermons'));
+                });
+            });
+        }
+
+        // --- REST OF THE FUNCTIONS REMAIN THE SAME ---
+        function listenNotifs() {
+            db.ref(`notifications/${userNotifId}`).on('value', s => {
+                const list = document.getElementById('notif-list');
+                const badge = document.getElementById('notif-count');
+                const data = s.val();
+                if(!data) { list.innerHTML = '<p style="padding:20px; text-align:center; color:#555; font-size:12px;">No new alerts</p>'; badge.style.display='none'; return; }
+                list.innerHTML = "";
+                const keys = Object.keys(data).reverse();
+                badge.innerText = keys.length;
+                badge.style.display = 'block';
+                keys.forEach(k => {
+                    const n = data[k];
+                    const div = document.createElement('div');
+                    div.className = 'notif-item';
+                    div.onclick = () => {
+                        const tabBtn = document.querySelector(`.tab[onclick*="${n.tab}"]`);
+                        showTab(n.tab, tabBtn);
+                        document.getElementById('notif-dropdown').style.display = 'none';
+                        setTimeout(() => {
+                            const target = document.getElementById('post-' + n.postId);
+                            if(target) { target.scrollIntoView({behavior: 'smooth'}); target.classList.add('highlight-comment'); }
+                        }, 500);
+                        db.ref(`notifications/${userNotifId}/${k}`).remove();
+                    };
+                    div.innerHTML = `<strong>${n.from}</strong> ${n.msg || 'replied'} <small>${new Date(n.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small>`;
+                    list.appendChild(div);
                 });
             });
         }
@@ -481,18 +505,12 @@
                 const data = s.val(); if(!box) return; box.innerHTML = "";
                 const myName = localStorage.getItem('userName') || '';
                 let totalInteractions = 0;
-
                 if(data) {
                     Object.keys(data).forEach(ck => { 
                         totalInteractions++;
                         const c = data[ck]; 
                         let threadHTML = "";
-
-                        if(c.adminReply) {
-                            totalInteractions++;
-                            threadHTML += `<div class="reply-item"><strong style="color:var(--gold)">Admin:</strong> ${c.adminReply}</div>`;
-                        }
-
+                        if(c.adminReply) { totalInteractions++; threadHTML += `<div class="reply-item"><strong style="color:var(--gold)">Admin:</strong> ${c.adminReply}</div>`; }
                         if(c.replies) {
                             Object.keys(c.replies).forEach(rk => {
                                 totalInteractions++;
@@ -501,19 +519,7 @@
                                 ${r.userName === myName ? `<span class="action-link" style="color:red" onclick="deleteItem('comments/${postId}/${ck}/replies/${rk}')">del</span>` : ''}</div>`;
                             });
                         }
-
-                        box.innerHTML += `
-                        <div class="comment-item" id="cmt-${ck}">
-                            <strong style="color:var(--gold); font-size:12px;">${c.userName}</strong>
-                            <div>${c.text}</div>
-                            ${c.userName === myName ? `<span class="action-link" style="color:red" onclick="deleteItem('comments/${postId}/${ck}')">del</span>` : ''}
-                            <div class="reply-thread">${threadHTML}</div>
-                            <button class="reply-trigger" onclick="toggleReplyField('${ck}')">Reply</button>
-                            <div id="nested-box-${ck}" class="nested-input-group">
-                                <input type="text" id="nest-in-${ck}" placeholder="Reply..." style="flex:1; background:#333; color:white; border:1px solid #444; padding:5px; border-radius:4px;">
-                                <button onclick="sendNestedReply('${postId}','${ck}','${c.userNotifId}','${tabName}')" style="background:var(--gold); border:none; padding:0 10px; border-radius:4px;">Send</button>
-                            </div>
-                        </div>`; 
+                        box.innerHTML += `<div class="comment-item" id="cmt-${ck}"><strong style="color:var(--gold); font-size:12px;">${c.userName}</strong><div>${c.text}</div>${c.userName === myName ? `<span class="action-link" style="color:red" onclick="deleteItem('comments/${postId}/${ck}')">del</span>` : ''}<div class="reply-thread">${threadHTML}</div><button class="reply-trigger" onclick="toggleReplyField('${ck}')">Reply</button><div id="nested-box-${ck}" class="nested-input-group"><input type="text" id="nest-in-${ck}" placeholder="Reply..." style="flex:1; background:#333; color:white; border:1px solid #444; padding:5px; border-radius:4px;"><button onclick="sendNestedReply('${postId}','${ck}','${c.userNotifId}','${tabName}')" style="background:var(--gold); border:none; padding:0 10px; border-radius:4px;">Send</button></div></div>`; 
                     });
                 }
                 countBadge.innerText = `(${totalInteractions})`;
@@ -530,17 +536,11 @@
             const text = input.value;
             const name = localStorage.getItem('userName') || "Member";
             if(!text) return;
-
-            db.ref(`comments/${postId}/${commentId}/replies`).push({
-                userName: name, text: text, userNotifId: userNotifId, timestamp: new Date().getTime()
-            }).then(() => {
+            db.ref(`comments/${postId}/${commentId}/replies`).push({ userName: name, text: text, userNotifId: userNotifId, timestamp: new Date().getTime() }).then(() => {
                 if(targetUserNotifId && targetUserNotifId !== userNotifId) {
-                    db.ref(`notifications/${targetUserNotifId}`).push({
-                        from: name, msg: "replied to your comment", postId: postId, tab: tab, time: new Date().getTime()
-                    });
+                    db.ref(`notifications/${targetUserNotifId}`).push({ from: name, msg: "replied to your comment", postId: postId, tab: tab, time: new Date().getTime() });
                 }
-                input.value = "";
-                toggleReplyField(commentId);
+                input.value = ""; toggleReplyField(commentId);
             });
         }
 
@@ -550,58 +550,14 @@
             const text = document.getElementById('prayer-text').value; if(!text) return;
             db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), status: "unread" }).then(() => { alert("Sent successfully"); document.getElementById('prayer-text').value=""; });
         }
+
+        function clearNotifs() { db.ref(`notifications/${userNotifId}`).remove(); }
         
-        let cur = 0; setInterval(() => {
+        setInterval(() => {
             const s = document.querySelectorAll('.slide'); if(s.length<2) return;
-            s[cur].classList.remove('active'); cur = (cur+1)%s.length; s[cur].classList.add('active');
+            const cur = Array.from(s).findIndex(img => img.classList.contains('active'));
+            s[cur].classList.remove('active'); s[(cur+1)%s.length].classList.add('active');
         }, 8000);
-
-        // --- NEW NOTIFICATION LOGIC (WONT BREAK EXISTING CODE) ---
-        
-        function setupNewPostListeners() {
-            ['updates', 'sermons'].forEach(path => {
-                db.ref(path).orderByChild('timestamp').limitToLast(1).on('child_added', (snap) => {
-                    const post = snap.val();
-                    // Only notify if post was created in the last 2 minutes (to avoid old post alerts on refresh)
-                    if (post.timestamp > (Date.now() - 120000)) {
-                        const tab = (path === 'updates') ? 'home' : 'sermons';
-                        const msg = (path === 'sermons') ? "posted a new sermon" : "posted a new update";
-                        // Push to the current user's notification node
-                        db.ref(`notifications/${userNotifId}`).push({
-                            from: "Admin", msg: msg, postId: snap.key, tab: tab, time: Date.now()
-                        });
-                    }
-                });
-            });
-        }
-
-        function setupAdminReplyListener() {
-            db.ref('comments').on('child_changed', (snap) => {
-                const postId = snap.key;
-                const comments = snap.val();
-                Object.keys(comments).forEach(cId => {
-                    const c = comments[cId];
-                    // If admin replied to MY comment
-                    if (c.adminReply && c.userNotifId === userNotifId) {
-                        const notifiedKey = 'notified_' + cId;
-                        if (!localStorage.getItem(notifiedKey)) {
-                            db.ref(`notifications/${userNotifId}`).push({
-                                from: "Admin", msg: "replied to your post", postId: postId, tab: 'home', time: Date.now()
-                            });
-                            localStorage.setItem(notifiedKey, 'true');
-                        }
-                    }
-                });
-            });
-        }
-
-        // Extend original loadData without overwriting it
-        const originalLoadData = loadData;
-        loadData = function() {
-            originalLoadData();
-            setupNewPostListeners();
-            setupAdminReplyListener();
-        };
 
         window.onload = loadData;
     </script>
