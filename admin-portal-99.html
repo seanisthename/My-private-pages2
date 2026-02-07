@@ -237,10 +237,11 @@
             refreshAnalytics();
             processScheduledTasks(); 
             loadPendingList();
-            syncFolderDropdown(); // New: Initialize Folders
+            syncFolderDropdown(); 
+            loadAllSermonsIncludingFolders(); // Replaced renderList('sermons') with folder-aware version
         }
 
-        // --- NEW: FOLDER MANAGEMENT LOGIC ---
+        // --- FOLDER MANAGEMENT LOGIC ---
         function createFolder() {
             const name = document.getElementById('new-folder-name').value;
             if(!name) return alert("Please enter a series name.");
@@ -266,10 +267,70 @@
             });
         }
 
+        // --- NEW: FOLDER-AWARE SERMON LIST RENDERING ---
+        function loadAllSermonsIncludingFolders() {
+            const sermonsDiv = document.getElementById('sermons-list-admin');
+            const sermonCountBtn = document.getElementById('count-btn-sermons');
+
+            // Listen to both nodes to trigger a combined refresh
+            db.ref('sermons').on('value', () => refreshSermonUI());
+            db.ref('sermon_folders').on('value', () => refreshSermonUI());
+
+            function refreshSermonUI() {
+                sermonsDiv.innerHTML = "";
+                let totalCount = 0;
+
+                // 1. Fetch individual sermons
+                db.ref('sermons').once('value', snap => {
+                    const rootData = snap.val() || {};
+                    processSermonData(rootData, 'sermons');
+                    
+                    // 2. Fetch folder sermons
+                    db.ref('sermon_folders').once('value', folderSnap => {
+                        const folders = folderSnap.val() || {};
+                        Object.keys(folders).forEach(fKey => {
+                            if(folders[fKey].content) {
+                                processSermonData(folders[fKey].content, `sermon_folders/${fKey}/content`, folders[fKey].name);
+                            }
+                        });
+                        sermonCountBtn.innerText = `(${totalCount})`;
+                    });
+                });
+
+                function processSermonData(dataObj, path, folderName = null) {
+                    Object.keys(dataObj).reverse().forEach(k => {
+                        totalCount++;
+                        const item = dataObj[k];
+                        const postCard = document.createElement('div');
+                        postCard.className = 'admin-item';
+                        postCard.id = 'post-' + k;
+                        
+                        const folderTag = folderName ? `<span class="pending-tag" style="background:var(--gold); color:black; margin-bottom:5px;">📁 Folder: ${folderName}</span>` : '';
+                        
+                        postCard.innerHTML = `
+                            ${folderTag}
+                            ${item.image ? `<img src="${item.image}" style="width:100%; border-radius:5px; margin-bottom:10px;">` : ''}
+                            <textarea id="edit-${k}" rows="2">${item.text}</textarea>
+                            <div class="interaction-row">
+                                <span style="color:#ff3b30; font-size:14px;">❤️ ${item.likes || 0}</span>
+                                <button class="msg-icon-btn" onclick="toggleSection('comm-box-${k}')">💬 <span id="c-count-${k}">0</span></button>
+                            </div>
+                            <div id="comm-box-${k}" class="comment-container"></div>
+                            <div style="display:flex; justify-content: space-between; margin-top:10px;">
+                                <button onclick="saveEdit('${path}','${k}')" style="color:var(--gold); background:none; border:none; cursor:pointer; font-weight:bold;">Save Changes</button>
+                                <button onclick="deleteItem('${path}/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button>
+                            </div>
+                        `;
+                        sermonsDiv.appendChild(postCard);
+                        loadComments(k);
+                    });
+                }
+            }
+        }
+
         // --- ENHANCED SCHEDULING SYSTEM ---
         function processScheduledTasks() {
             const now = new Date().getTime();
-            
             db.ref('scheduled_updates').once('value', snapshot => {
                 const data = snapshot.val();
                 if (data) {
@@ -280,7 +341,6 @@
                     });
                 }
             });
-
             db.ref('scheduled_devotionals').once('value', snapshot => {
                 const data = snapshot.val();
                 if (data) {
@@ -297,15 +357,12 @@
         function loadPendingList() {
             const listDiv = document.getElementById('pending-list-admin');
             const countSpan = document.getElementById('pending-count');
-            
             db.ref().on('value', snapshot => {
                 const allData = snapshot.val();
                 const pendingUpdates = allData.scheduled_updates || {};
                 const pendingDevos = allData.scheduled_devotionals || {};
-                
                 listDiv.innerHTML = "";
                 let total = 0;
-
                 Object.keys(pendingUpdates).forEach(k => {
                     total++;
                     const item = pendingUpdates[k];
@@ -316,7 +373,6 @@
                             <button onclick="deleteItem('scheduled_updates/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer; font-size:12px;">Cancel Schedule</button>
                         </div>`;
                 });
-
                 Object.keys(pendingDevos).forEach(k => {
                     total++;
                     const item = pendingDevos[k];
@@ -327,7 +383,6 @@
                             <button onclick="deleteItem('scheduled_devotionals/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer; font-size:12px;">Cancel Schedule</button>
                         </div>`;
                 });
-
                 countSpan.innerText = `(${total})`;
                 if(total === 0) listDiv.innerHTML = "<p style='text-align:center; font-size:12px; color:#666;'>No scheduled posts pending.</p>";
             });
@@ -455,7 +510,6 @@
                 }
             });
             renderList('updates', 'updates-list-admin');
-            renderList('sermons', 'sermons-list-admin');
             db.ref('prayers').on('value', s => {
                 const div = document.getElementById('prayers-list-admin');
                 const badge = document.getElementById('unread-count-container');
@@ -513,8 +567,9 @@
         function loadComments(postId) {
             db.ref(`comments/${postId}`).on('value', s => {
                 const box = document.getElementById(`comm-box-${postId}`);
+                if(!box) return;
                 const countSpan = document.getElementById(`c-count-${postId}`);
-                const data = s.val(); if(!box) return; box.innerHTML = "";
+                const data = s.val(); box.innerHTML = "";
                 let totalCount = 0; 
                 if(data) {
                     Object.keys(data).forEach(ck => {
@@ -542,7 +597,7 @@
                         html += `</div>`; box.innerHTML += html;
                     });
                 }
-                countSpan.innerText = totalCount;
+                if(countSpan) countSpan.innerText = totalCount;
             });
         }
 
@@ -560,17 +615,13 @@
             db.ref(`comments/${postId}/${commentId}`).update({ adminReply: input.value }).then(() => input.value = "");
         }
 
-        // --- UPDATED PUBLISH FUNCTIONS FOR FOLDERS ---
         function publishAudio() {
             const title = document.getElementById('audio-title').value;
             const link = document.getElementById('audio-link').value;
             const folderId = document.getElementById('folder-select').value;
-            
             if(!title || !link) return alert("Please enter title and link.");
-
             const data = { text: title + " " + link, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0, mediaType: 'audio' };
             const path = folderId ? `sermon_folders/${folderId}/content` : 'sermons';
-
             db.ref(path).push(data).then(() => {
                 alert("Audio Posted!"); document.getElementById('audio-title').value = ""; document.getElementById('audio-link').value = "";
             });
@@ -580,12 +631,9 @@
             const txt = document.getElementById('post-text').value;
             const img = document.getElementById('post-img').value;
             const folderId = document.getElementById('folder-select').value;
-
             if(!txt || !img) return alert("Please enter description and URL.");
-
             const data = { text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0, mediaType: 'video' };
             const path = folderId ? `sermon_folders/${folderId}/content` : 'sermons';
-
             db.ref(path).push(data).then(() => {
                 alert("Video Posted!"); document.getElementById('post-text').value = ""; document.getElementById('post-img').value = "";
             });
@@ -606,9 +654,9 @@
             });
         }
 
-        function saveEdit(type, id) {
+        function saveEdit(path, id) {
             const newText = document.getElementById('edit-' + id).value;
-            db.ref(`${type}/${id}`).update({ text: newText });
+            db.ref(`${path}/${id}`).update({ text: newText });
         }
 
         function deleteItem(path) { if(confirm("Delete?")) db.ref(path).remove(); }
