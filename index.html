@@ -238,6 +238,8 @@
             <button class="s-btn active" id="btn-vid" onclick="filterSermons('video')"><span>🎥</span>VIDEO</button>
             <button class="s-btn" id="btn-aud" onclick="filterSermons('audio')"><span>🔊</span>AUDIO</button>
         </div>
+        <button id="back-btn" onclick="backToFolders()" style="display:none; background:none; border:1px solid var(--gold); color:var(--gold); padding:5px 10px; border-radius:5px; margin-bottom:10px; cursor:pointer;">⬅ Back to Folders</button>
+        
         <div class="search-container"><div class="search-box"><span class="search-icon">🔍</span><input type="text" id="sermonSearch" placeholder="Search sermons..." onkeyup="filterPosts('sermonSearch', 'sermons-list')"></div></div>
         <div id="sermons-list"></div>
     </div>
@@ -271,6 +273,7 @@
         const db = firebase.database();
 
         let currentSermonFilter = 'video';
+        let currentFolder = null; // New variable for folders
         let userNotifId = localStorage.getItem('userNotifId') || 'user_' + Math.random().toString(36).substr(2, 9);
         localStorage.setItem('userNotifId', userNotifId);
 
@@ -333,6 +336,9 @@
         function showTab(t, e) {
             document.querySelectorAll('.content-section, .tab').forEach(x => x.classList.remove('active'));
             document.getElementById(t).classList.add('active'); e.classList.add('active');
+            if(t !== 'sermons') {
+                currentFolder = null; // Reset folder view when leaving sermons tab
+            }
         }
 
         function closeDevo() {
@@ -408,19 +414,52 @@
                 const likedPosts = JSON.parse(localStorage.getItem('likedPosts')) || [];
                 const savedName = localStorage.getItem('userName') || '';
 
+                // --- START FOLDER LOGIC ---
+                if (path === 'sermons') {
+                    const backBtn = document.getElementById('back-btn');
+                    if (!currentFolder) {
+                        backBtn.style.display = 'none';
+                        db.ref('sermon_folders').once('value', fSnap => {
+                            const folders = fSnap.val();
+                            if (folders) {
+                                Object.keys(folders).forEach(fKey => {
+                                    const f = folders[fKey];
+                                    const folderCard = document.createElement('div');
+                                    folderCard.className = 'card';
+                                    folderCard.style.cursor = 'pointer';
+                                    folderCard.style.borderLeft = '6px solid var(--gold)';
+                                    folderCard.onclick = () => { currentFolder = fKey; render('sermons', 'sermons-list'); };
+                                    folderCard.innerHTML = `<h3 style="margin:0; color:var(--gold);">📁 ${f.name}</h3><small>Tap to open</small>`;
+                                    list.appendChild(folderCard);
+                                });
+                            }
+                        });
+                    } else {
+                        backBtn.style.display = 'block';
+                    }
+                }
+                // --- END FOLDER LOGIC ---
+
                 Object.keys(data).reverse().forEach(k => {
                     const item = data[k];
-                    const isAudio = item.text && (item.text.includes('.mp3') || item.text.includes('archive.org'));
+
+                    // Check if sermon belongs to the selected folder
                     if(path === 'sermons') {
+                        if(!currentFolder) return;
+                        if(item.folderId !== currentFolder) return;
+
+                        const isAudio = item.text && (item.text.includes('.mp3') || item.text.includes('archive.org'));
                         if(currentSermonFilter === 'audio' && !isAudio) return;
                         if(currentSermonFilter === 'video' && isAudio) return;
                     }
+
                     const isLiked = likedPosts.includes(k);
                     const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
                     const card = document.createElement('div'); card.className = 'card';
                     card.id = 'post-' + k;
                     
-                    let contentHtml = isAudio ? `
+                    const isAudioPost = item.text && (item.text.includes('.mp3') || item.text.includes('archive.org'));
+                    let contentHtml = isAudioPost ? `
                         <h4 style="margin:0 0 10px 0; color:var(--gold);">🔊 ${item.text.replace(/(https?:\/\/[^\s]+)/g, '') || 'Audio Sermon'}</h4>
                         <div class="audio-player-container"><audio controls><source src="${item.text.match(/(https?:\/\/[^\s]+)/g)[0]}" type="audio/mpeg"></audio></div>
                     ` : `${item.image ? `<img src="${item.image}">` : ''}<p>${linkify(item.text || '')}</p>`;
@@ -446,6 +485,12 @@
                     loadComments(k, path === 'updates' ? 'home' : 'sermons');
                 });
             });
+        }
+
+        // Return to main folder list
+        function backToFolders() {
+            currentFolder = null;
+            render('sermons', 'sermons-list');
         }
 
         function validateName(id) {
