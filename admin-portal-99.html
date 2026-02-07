@@ -240,6 +240,14 @@
             if(confirm("Delete this folder? Content inside will remain but category will be removed.")) db.ref(`folders/${id}`).remove();
         }
 
+        function editSermon(id, currentText) {
+            const newText = prompt("Edit Sermon Title/Content:", currentText);
+            if (newText !== null && newText !== currentText) {
+                db.ref(`sermons/${id}`).update({ text: newText })
+                    .then(() => alert("Sermon updated successfully"));
+            }
+        }
+
         function processScheduledTasks() {
             const now = new Date().getTime();
             db.ref('scheduled_updates').once('value', snapshot => {
@@ -288,7 +296,6 @@
                 const d = s.val(); if(d) { document.getElementById('p-img1').src = d.img1; document.getElementById('p-img2').src = d.img2; }
             });
             
-            // FOLDER SYNC FOR DROPDOWNS & LISTS
             db.ref('folders').on('value', fSnap => {
                 const folders = fSnap.val() || {};
                 const audioDrop = document.getElementById('audio-folder');
@@ -307,7 +314,6 @@
                     const keys = Object.keys(data);
                     document.getElementById('count-btn-sermons').innerText = `(${keys.length})`;
                     
-                    // Render Folders with Action Buttons
                     Object.keys(folders).forEach(fk => {
                         const folderName = folders[fk].name;
                         const contentId = `content-${fk}`;
@@ -327,26 +333,32 @@
                                 </div>
                             </div>`;
 
-                        // Populate the Viewable area for each folder
                         const subList = document.getElementById(`list-${contentId}`);
                         const items = keys.filter(k => data[k].folder === folderName);
                         if(items.length === 0) subList.innerHTML = '<span style="color:#555; font-size:12px;">Folder Empty</span>';
                         items.forEach(k => {
-                            subList.innerHTML += `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #222; padding:5px 0;">
-                                <span style="font-size:13px;">${data[k].text.substring(0,30)}...</span>
-                                <button onclick="deleteItem('sermons/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">&times;</button>
+                            // Modified to show full text and added an edit button
+                            subList.innerHTML += `
+                            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #222; padding:8px 0; gap:10px;">
+                                <span style="font-size:13px; color:white; word-break:break-word; flex:1;">${data[k].text}</span>
+                                <div style="display:flex; gap:10px; align-items:center;">
+                                    <button onclick="editSermon('${k}', \`${data[k].text.replace(/"/g, '&quot;')}\`)" style="color:var(--accent-blue); background:none; border:none; cursor:pointer; font-size:12px;">Edit</button>
+                                    <button onclick="deleteItem('sermons/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer; font-size:16px;">&times;</button>
+                                </div>
                             </div>`;
                         });
                     });
 
-                    // List General (Unfolderized) sermons
                     div.innerHTML += `<div style="margin: 15px 0 5px 0; font-size:11px; color:#888; text-transform:uppercase;">Uncategorized Sermons</div>`;
                     keys.reverse().forEach(k => {
                         const item = data[k];
                         if(!item.folder || item.folder === "General") {
-                            div.innerHTML += `<div class="admin-item">
-                                <p>${item.text}</p>
-                                <button onclick="deleteItem('sermons/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button>
+                            div.innerHTML += `<div class="admin-item" style="display:flex; justify-content:space-between; align-items:center;">
+                                <p style="margin:0; flex:1;">${item.text}</p>
+                                <div style="display:flex; gap:10px;">
+                                    <button onclick="editSermon('${k}', \`${item.text.replace(/"/g, '&quot;')}\`)" style="color:var(--accent-blue); background:none; border:none; cursor:pointer;">Edit</button>
+                                    <button onclick="deleteItem('sermons/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button>
+                                </div>
                             </div>`;
                         }
                     });
