@@ -356,6 +356,10 @@
             render('updates', 'updates-list');
             render('sermons', 'sermons-list');
             listenNotifs();
+            
+            // --- ADDED LISTENERS FOR NEW ALERTS ---
+            setupNewPostListeners();
+            setupAdminReplyListener();
         }
 
         function listenNotifs() {
@@ -511,99 +515,4 @@
                             <button class="reply-trigger" onclick="toggleReplyField('${ck}')">Reply</button>
                             <div id="nested-box-${ck}" class="nested-input-group">
                                 <input type="text" id="nest-in-${ck}" placeholder="Reply..." style="flex:1; background:#333; color:white; border:1px solid #444; padding:5px; border-radius:4px;">
-                                <button onclick="sendNestedReply('${postId}','${ck}','${c.userNotifId}','${tabName}')" style="background:var(--gold); border:none; padding:0 10px; border-radius:4px;">Send</button>
-                            </div>
-                        </div>`; 
-                    });
-                }
-                countBadge.innerText = `(${totalInteractions})`;
-            });
-        }
-
-        function toggleReplyField(id) {
-            const box = document.getElementById('nested-box-' + id);
-            box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
-        }
-
-        function sendNestedReply(postId, commentId, targetUserNotifId, tab) {
-            const input = document.getElementById('nest-in-' + commentId);
-            const text = input.value;
-            const name = localStorage.getItem('userName') || "Member";
-            if(!text) return;
-
-            db.ref(`comments/${postId}/${commentId}/replies`).push({
-                userName: name, text: text, userNotifId: userNotifId, timestamp: new Date().getTime()
-            }).then(() => {
-                if(targetUserNotifId && targetUserNotifId !== userNotifId) {
-                    db.ref(`notifications/${targetUserNotifId}`).push({
-                        from: name, msg: "replied to your comment", postId: postId, tab: tab, time: new Date().getTime()
-                    });
-                }
-                input.value = "";
-                toggleReplyField(commentId);
-            });
-        }
-
-        function deleteItem(path) { if(confirm("Delete this?")) db.ref(path).remove(); }
-
-        function submitPrayer() {
-            const text = document.getElementById('prayer-text').value; if(!text) return;
-            db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), status: "unread" }).then(() => { alert("Sent successfully"); document.getElementById('prayer-text').value=""; });
-        }
-        
-        let cur = 0; setInterval(() => {
-            const s = document.querySelectorAll('.slide'); if(s.length<2) return;
-            s[cur].classList.remove('active'); cur = (cur+1)%s.length; s[cur].classList.add('active');
-        }, 8000);
-
-        // --- NEW NOTIFICATION LOGIC (WONT BREAK EXISTING CODE) ---
-        
-        function setupNewPostListeners() {
-            ['updates', 'sermons'].forEach(path => {
-                db.ref(path).orderByChild('timestamp').limitToLast(1).on('child_added', (snap) => {
-                    const post = snap.val();
-                    // Only notify if post was created in the last 2 minutes (to avoid old post alerts on refresh)
-                    if (post.timestamp > (Date.now() - 120000)) {
-                        const tab = (path === 'updates') ? 'home' : 'sermons';
-                        const msg = (path === 'sermons') ? "posted a new sermon" : "posted a new update";
-                        // Push to the current user's notification node
-                        db.ref(`notifications/${userNotifId}`).push({
-                            from: "Admin", msg: msg, postId: snap.key, tab: tab, time: Date.now()
-                        });
-                    }
-                });
-            });
-        }
-
-        function setupAdminReplyListener() {
-            db.ref('comments').on('child_changed', (snap) => {
-                const postId = snap.key;
-                const comments = snap.val();
-                Object.keys(comments).forEach(cId => {
-                    const c = comments[cId];
-                    // If admin replied to MY comment
-                    if (c.adminReply && c.userNotifId === userNotifId) {
-                        const notifiedKey = 'notified_' + cId;
-                        if (!localStorage.getItem(notifiedKey)) {
-                            db.ref(`notifications/${userNotifId}`).push({
-                                from: "Admin", msg: "replied to your post", postId: postId, tab: 'home', time: Date.now()
-                            });
-                            localStorage.setItem(notifiedKey, 'true');
-                        }
-                    }
-                });
-            });
-        }
-
-        // Extend original loadData without overwriting it
-        const originalLoadData = loadData;
-        loadData = function() {
-            originalLoadData();
-            setupNewPostListeners();
-            setupAdminReplyListener();
-        };
-
-        window.onload = loadData;
-    </script>
-</body>
-</html>
+                                <button onclick="sendNested
