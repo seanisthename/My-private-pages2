@@ -18,6 +18,15 @@
         .stat-card p { margin: 5px 0 0; font-size: 24px; font-weight: bold; color: var(--gold); }
         .top-post-item { background: #1a1a1a; padding: 10px; border-radius: 8px; margin-top: 5px; margin-bottom: 15px; font-size: 13px; border-left: 3px solid var(--accent-blue); }
 
+        /* FOLDER MANAGEMENT STYLES - NEW */
+        .folder-card { background: #252525; border: 1px solid #444; border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+        .folder-header { padding: 12px; display: flex; justify-content: space-between; align-items: center; background: #2a2a2a; cursor: pointer; border-left: 4px solid var(--gold); }
+        .folder-title { font-weight: bold; color: var(--gold); display: flex; align-items: center; gap: 8px; }
+        .folder-content { display: none; padding: 10px; background: #1a1a1a; }
+        .move-tool { margin-top: 8px; font-size: 11px; color: #888; border-top: 1px solid #333; padding-top: 8px; }
+        .move-tool select { width: auto; padding: 4px; font-size: 11px; display: inline-block; margin-left: 5px; }
+        .folder-btn-sm { background: none; border: none; color: #888; cursor: pointer; font-size: 14px; padding: 0 5px; }
+
         /* PREVIOUS STYLES */
         .notif-bell-wrapper { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); cursor: pointer; }
         .bell-icon { font-size: 24px; color: var(--gold); }
@@ -126,6 +135,15 @@
 
         <div class="card">
             <h3>Manage Sermons</h3>
+            
+            <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #333;">
+                <h4 style="margin: 0 0 10px 0; color: var(--gold); font-size: 14px;">Folder Management</h4>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="new-folder-name" placeholder="Folder name..." style="margin:0;">
+                    <button class="btn" onclick="createFolder()" style="margin:0; width: auto; padding: 0 20px;">Create</button>
+                </div>
+            </div>
+
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                 <button class="big-sermon-btn" onclick="showSermonUpload('video')"><span>🎥</span>VIDEO SERMON</button>
                 <button class="big-sermon-btn" onclick="showSermonUpload('audio')"><span>🔊</span>AUDIO SERMON</button>
@@ -219,6 +237,7 @@
             refreshAnalytics();
             processScheduledTasks(); 
             loadPendingList(); // New call
+            renderSermonsWithFolders(); // Initialize folder view
         }
 
         // --- ENHANCED SCHEDULING SYSTEM ---
@@ -351,7 +370,7 @@
 
         function filterAdminList(inputId, containerId) {
             const query = document.getElementById(inputId).value.toLowerCase();
-            const items = document.querySelectorAll(`#${containerId} .admin-item`);
+            const items = document.querySelectorAll(`#${containerId} .admin-item, #${containerId} .folder-card`);
             items.forEach(item => {
                 const text = item.innerText.toLowerCase();
                 item.style.display = text.includes(query) ? "block" : "none";
@@ -416,7 +435,7 @@
                 }
             });
             renderList('updates', 'updates-list-admin');
-            renderList('sermons', 'sermons-list-admin');
+            // Sermon rendering is now handled by renderSermonsWithFolders() called in showDashboard
             db.ref('prayers').on('value', s => {
                 const div = document.getElementById('prayers-list-admin');
                 const badge = document.getElementById('unread-count-container');
@@ -470,6 +489,109 @@
                 }
             });
         }
+
+        // --- NEW SERMON FOLDER LOGIC ---
+
+        function createFolder() {
+            const name = document.getElementById('new-folder-name').value;
+            if(!name) return alert("Enter folder name");
+            db.ref('sermon_folders').push({ name: name }).then(() => {
+                document.getElementById('new-folder-name').value = "";
+            });
+        }
+
+        function deleteFolder(id) {
+            if(confirm("Delete folder? Sermons inside will stay but move back to the main list.")) {
+                db.ref('sermons').once('value', snapshot => {
+                    const data = snapshot.val();
+                    if(data) {
+                        Object.keys(data).forEach(k => {
+                            if(data[k].folderId === id) db.ref(`sermons/${k}`).update({ folderId: null });
+                        });
+                    }
+                    db.ref(`sermon_folders/${id}`).remove();
+                });
+            }
+        }
+
+        function renameFolder(id, current) {
+            const name = prompt("New folder name:", current);
+            if(name) db.ref(`sermon_folders/${id}`).update({ name: name });
+        }
+
+        function updateSermonText(id) {
+            const newText = document.getElementById('edit-sermon-' + id).value;
+            db.ref(`sermons/${id}`).update({ text: newText });
+            alert("Sermon updated!");
+        }
+
+        function moveSermon(sId, fId) {
+            const target = fId === "root" ? null : fId;
+            db.ref(`sermons/${sId}`).update({ folderId: target });
+        }
+
+        function renderSermonsWithFolders() {
+            db.ref('sermon_folders').on('value', fSnap => {
+                const folders = fSnap.val() || {};
+                db.ref('sermons').on('value', sSnap => {
+                    const container = document.getElementById('sermons-list-admin');
+                    const btnCount = document.getElementById('count-btn-sermons');
+                    container.innerHTML = "";
+                    const sermons = sSnap.val() || {};
+                    const sKeys = Object.keys(sermons);
+                    btnCount.innerText = `(${sKeys.length})`;
+
+                    // 1. Create Folder Containers
+                    Object.keys(folders).forEach(fId => {
+                        const folderCard = document.createElement('div');
+                        folderCard.className = 'folder-card';
+                        folderCard.innerHTML = `
+                            <div class="folder-header" onclick="toggleSection('folder-content-${fId}')">
+                                <span class="folder-title">📁 ${folders[fId].name}</span>
+                                <div>
+                                    <button class="folder-btn-sm" onclick="event.stopPropagation(); renameFolder('${fId}', '${folders[fId].name}')">✏️</button>
+                                    <button class="folder-btn-sm" onclick="event.stopPropagation(); deleteFolder('${fId}')">🗑️</button>
+                                </div>
+                            </div>
+                            <div id="folder-content-${fId}" class="folder-content"></div>
+                        `;
+                        container.appendChild(folderCard);
+                    });
+
+                    // 2. Distribute Sermons
+                    sKeys.reverse().forEach(sId => {
+                        const item = sermons[sId];
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'admin-item';
+                        itemDiv.style.borderLeft = "none";
+                        itemDiv.style.background = "#222";
+                        itemDiv.innerHTML = `
+                            <textarea id="edit-sermon-${sId}" rows="1" style="font-size:13px;">${item.text}</textarea>
+                            <div class="move-tool">
+                                Move to: 
+                                <select onchange="moveSermon('${sId}', this.value)">
+                                    <option value="root">Main List</option>
+                                    ${Object.keys(folders).map(fid => `<option value="${fid}" ${item.folderId === fid ? 'selected' : ''}>${folders[fid].name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div style="display:flex; justify-content: space-between; margin-top:8px;">
+                                <button onclick="updateSermonText('${sId}')" style="color:var(--gold); background:none; border:none; cursor:pointer; font-size:11px;">Update</button>
+                                <button onclick="deleteItem('sermons/${sId}')" style="color:#ff3b30; background:none; border:none; cursor:pointer; font-size:11px;">Delete</button>
+                            </div>
+                        `;
+
+                        if(item.folderId && folders[item.folderId]) {
+                            const folderInner = document.getElementById(`folder-content-${item.folderId}`);
+                            if(folderInner) folderInner.appendChild(itemDiv);
+                        } else {
+                            container.appendChild(itemDiv);
+                        }
+                    });
+                });
+            });
+        }
+
+        // --- END FOLDER LOGIC ---
 
         function loadComments(postId) {
             db.ref(`comments/${postId}`).on('value', s => {
