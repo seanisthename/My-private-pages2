@@ -294,7 +294,6 @@
                 const audioDrop = document.getElementById('audio-folder');
                 const videoDrop = document.getElementById('video-folder');
                 
-                // Clear and Populate Dropdowns
                 let dropHtml = '<option value="General">General (No Folder)</option>';
                 Object.keys(folders).forEach(fk => { dropHtml += `<option value="${folders[fk].name}">${folders[fk].name}</option>`; });
                 audioDrop.innerHTML = dropHtml;
@@ -302,30 +301,55 @@
 
                 db.ref('sermons').on('value', sSnap => {
                     const div = document.getElementById('sermons-list-admin');
-                    const data = sSnap.val(); div.innerHTML = "";
-                    if(data) {
-                        const keys = Object.keys(data);
-                        document.getElementById('count-btn-sermons').innerText = `(${keys.length})`;
+                    const data = sSnap.val() || {}; 
+                    div.innerHTML = "";
+                    
+                    const keys = Object.keys(data);
+                    document.getElementById('count-btn-sermons').innerText = `(${keys.length})`;
+                    
+                    // Render Folders with Action Buttons
+                    Object.keys(folders).forEach(fk => {
+                        const folderName = folders[fk].name;
+                        const contentId = `content-${fk}`;
                         
-                        // Render Folders
-                        Object.keys(folders).forEach(fk => {
-                            div.innerHTML += `<div class="admin-item" style="border-left: 5px solid var(--gold);">
-                                <div style="display:flex; justify-content:space-between;">
-                                    <h3 style="margin:0; color:var(--gold);">📁 ${folders[fk].name}</h3>
-                                    <button onclick="deleteFolder('${fk}')" style="background:none; border:none; color:#ff3b30; cursor:pointer; font-size:11px;">Remove Folder</button>
+                        div.innerHTML += `
+                            <div class="admin-item" style="border-left: 5px solid var(--gold); background: #1a1a1a;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <h3 style="margin:0; color:var(--gold); font-size:15px;">📁 ${folderName}</h3>
+                                    <div style="display:flex; gap:8px;">
+                                        <button onclick="renameFolder('${fk}', '${folderName}')" style="background:none; border:none; color:var(--accent-blue); cursor:pointer; font-size:11px;">Rename</button>
+                                        <button onclick="toggleSection('${contentId}')" style="background:var(--gold); border:none; color:black; padding:2px 8px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px;">View Content</button>
+                                        <button onclick="deleteFolder('${fk}')" style="background:none; border:none; color:#ff3b30; cursor:pointer; font-size:11px;">Delete</button>
+                                    </div>
+                                </div>
+                                <div id="${contentId}" style="display:none; margin-top:10px; padding:10px; background:#121212; border-radius:5px; border:1px solid #333;">
+                                    <div id="list-${contentId}"></div>
                                 </div>
                             </div>`;
-                        });
 
-                        keys.reverse().forEach(k => {
-                            const item = data[k];
+                        // Populate the Viewable area for each folder
+                        const subList = document.getElementById(`list-${contentId}`);
+                        const items = keys.filter(k => data[k].folder === folderName);
+                        if(items.length === 0) subList.innerHTML = '<span style="color:#555; font-size:12px;">Folder Empty</span>';
+                        items.forEach(k => {
+                            subList.innerHTML += `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #222; padding:5px 0;">
+                                <span style="font-size:13px;">${data[k].text.substring(0,30)}...</span>
+                                <button onclick="deleteItem('sermons/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">&times;</button>
+                            </div>`;
+                        });
+                    });
+
+                    // List General (Unfolderized) sermons
+                    div.innerHTML += `<div style="margin: 15px 0 5px 0; font-size:11px; color:#888; text-transform:uppercase;">Uncategorized Sermons</div>`;
+                    keys.reverse().forEach(k => {
+                        const item = data[k];
+                        if(!item.folder || item.folder === "General") {
                             div.innerHTML += `<div class="admin-item">
-                                ${item.folder ? `<span class="folder-tag">📁 ${item.folder}</span>` : ''}
                                 <p>${item.text}</p>
                                 <button onclick="deleteItem('sermons/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button>
                             </div>`;
-                        });
-                    }
+                        }
+                    });
                 });
             });
 
@@ -380,6 +404,7 @@
         function startPreviewSlider() { /* Existing code placeholder */ }
         function initBellWatcher() { /* Existing code placeholder */ }
         function toggleDropdown() { /* Existing code placeholder */ }
+        function filterAdminList(inputId, listId) { /* Existing code placeholder */ }
     </script>
 </body>
 </html>
