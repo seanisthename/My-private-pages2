@@ -108,7 +108,7 @@
     </div>
 
     <div id="notif-dropdown" class="notif-dropdown">
-        <div class="notif-header"><span style="color:var(--gold); font-weight:bold;">Notifications</span><button onclick="clearNotifs()" style="background:none; border:none; color:#777; font-size:11px;">Clear</button></div>
+        <div class="notif-header"><span style="color:var(--gold); font-weightbold;">Notifications</span><button onclick="clearNotifs()" style="background:none; border:none; color:#777; font-size:11px;">Clear</button></div>
         <div id="notif-list"></div>
     </div>
 
@@ -200,17 +200,22 @@
             }
         }
 
+        // FIXED: Real-time listeners for folders and sermons
         function renderSermonsTab() {
             const list = document.getElementById('sermons-list');
             const backBtn = document.getElementById('back-btn');
             const nav = document.querySelector('.sermon-nav');
-            list.innerHTML = "";
+            
+            // Turn off previous listeners to prevent memory leaks and double-rendering
+            db.ref('sermon_folders').off();
+            db.ref('sermons').off();
 
             if (!currentFolder) {
                 // Show Folders
                 backBtn.style.display = 'none';
                 nav.style.display = 'none';
-                db.ref('sermon_folders').once('value', s => {
+                db.ref('sermon_folders').on('value', s => {
+                    list.innerHTML = "";
                     const folders = s.val();
                     if (!folders) { list.innerHTML = "<p style='text-align:center; color:#555;'>No folders found.</p>"; return; }
                     Object.keys(folders).forEach(fk => {
@@ -225,12 +230,14 @@
                 // Show Sermons inside Folder
                 backBtn.style.display = 'block';
                 nav.style.display = 'flex';
-                db.ref('sermons').once('value', s => {
+                db.ref('sermons').on('value', s => {
+                    list.innerHTML = "";
                     const data = s.val();
                     if (!data) return;
                     Object.keys(data).reverse().forEach(k => {
                         const item = data[k];
-                        if (item.folderId !== currentFolder) return;
+                        // Ensure IDs are compared as strings for safety
+                        if (String(item.folderId) !== String(currentFolder)) return;
 
                         const isAudio = item.text && (item.text.includes('.mp3') || item.text.includes('archive.org'));
                         if (currentSermonFilter === 'audio' && !isAudio) return;
@@ -253,8 +260,18 @@
             const card = document.createElement('div');
             card.className = 'card';
             card.id = 'post-' + k;
+            
+            let content = '';
             const isAudio = item.text && (item.text.includes('.mp3') || item.text.includes('archive.org'));
-            let content = isAudio ? `<h4>🔊 Audio Sermon</h4><audio controls><source src="${item.text.match(/(https?:\/\/[^\s]+)/g)[0]}"></audio>` : `<p>${item.text || ''}</p>`;
+            
+            if (isAudio) {
+                const urlMatch = item.text.match(/(https?:\/\/[^\s]+)/g);
+                const url = urlMatch ? urlMatch[0] : '';
+                content = `<h4>🔊 Audio Sermon</h4><audio controls><source src="${url}"></audio>`;
+            } else {
+                content = `<p>${item.text || ''}</p>`;
+            }
+            
             if(item.image) content = `<img src="${item.image}">` + content;
             
             card.innerHTML = `
