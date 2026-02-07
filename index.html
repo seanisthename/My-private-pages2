@@ -173,6 +173,11 @@
         .audio-player-container { background: #111; padding: 15px; border-radius: 10px; border: 1px solid #333; margin-top: 10px; display: flex; align-items: center; gap: 15px; }
         audio { height: 35px; flex: 1; filter: invert(80%) sepia(50%) saturate(1000%) hue-rotate(10deg); }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* FOLDER STYLES */
+        .folder-card { background: #252525; border: 1px solid var(--gold); display: flex; align-items: center; gap: 15px; padding: 15px; cursor: pointer; margin-bottom: 10px; border-radius: 12px; }
+        .folder-icon { font-size: 24px; color: var(--gold); }
+        .back-btn { background: #333; color: var(--gold); border: 1px solid var(--gold); padding: 8px 12px; border-radius: 8px; margin-bottom: 15px; cursor: pointer; font-size: 12px; display: none; }
     </style>
 </head>
 <body>
@@ -238,6 +243,7 @@
             <button class="s-btn active" id="btn-vid" onclick="filterSermons('video')"><span>🎥</span>VIDEO</button>
             <button class="s-btn" id="btn-aud" onclick="filterSermons('audio')"><span>🔊</span>AUDIO</button>
         </div>
+        <button id="folder-back-btn" class="back-btn" onclick="exitFolder()">⬅ Back to Folders</button>
         <div class="search-container"><div class="search-box"><span class="search-icon">🔍</span><input type="text" id="sermonSearch" placeholder="Search sermons..." onkeyup="filterPosts('sermonSearch', 'sermons-list')"></div></div>
         <div id="sermons-list"></div>
     </div>
@@ -271,10 +277,10 @@
         const db = firebase.database();
 
         let currentSermonFilter = 'video';
+        let activeFolderId = null;
         let userNotifId = localStorage.getItem('userNotifId') || 'user_' + Math.random().toString(36).substr(2, 9);
         localStorage.setItem('userNotifId', userNotifId);
 
-        // Toggle Side Menu
         function toggleSideMenu() {
             const menu = document.getElementById('side-menu');
             const overlay = document.getElementById('side-menu-overlay');
@@ -287,20 +293,17 @@
             }
         }
 
-        // Handle Side Menu Clicks
         function handleMenuClick(tabId) {
             const tabElement = document.querySelector(`.tab[onclick*="'${tabId}'"]`);
             showTab(tabId, tabElement);
             toggleSideMenu();
         }
 
-        // Toggle Notification Dropdown
         function toggleNotifDropdown() {
             const dd = document.getElementById('notif-dropdown');
             dd.style.display = (dd.style.display === 'block') ? 'none' : 'block';
         }
 
-        // Close dropdown when clicking outside
         window.addEventListener('click', function(e) {
             if (!document.querySelector('.bell-container').contains(e.target) && !document.getElementById('notif-dropdown').contains(e.target) && !document.querySelector('.menu-container').contains(e.target)){
                 document.getElementById('notif-dropdown').style.display = 'none';
@@ -309,10 +312,10 @@
 
         function filterPosts(inputId, listId) {
             const query = document.getElementById(inputId).value.toLowerCase();
-            const cards = document.querySelectorAll(`#${listId} .card`);
+            const cards = document.querySelectorAll(`#${listId} .card, #${listId} .folder-card`);
             cards.forEach(card => {
                 const text = card.innerText.toLowerCase();
-                card.style.display = text.includes(query) ? "block" : "none";
+                card.style.display = text.includes(query) ? "flex" : "none";
             });
         }
 
@@ -333,6 +336,7 @@
         function showTab(t, e) {
             document.querySelectorAll('.content-section, .tab').forEach(x => x.classList.remove('active'));
             document.getElementById(t).classList.add('active'); e.classList.add('active');
+            if(t === 'sermons') exitFolder();
         }
 
         function closeDevo() {
@@ -356,59 +360,48 @@
             render('updates', 'updates-list');
             render('sermons', 'sermons-list');
             listenNotifs();
-            
-            // --- ADDED LISTENERS FOR NEW ALERTS ---
-            setupNewPostListeners();
-            setupAdminReplyListener();
         }
 
-        function listenNotifs() {
-            db.ref(`notifications/${userNotifId}`).on('value', s => {
-                const list = document.getElementById('notif-list');
-                const badge = document.getElementById('notif-count');
-                const data = s.val();
-                if(!data) { 
-                    list.innerHTML = '<p style="padding:20px; text-align:center; color:#555; font-size:12px;">No new alerts</p>'; 
-                    badge.style.display='none'; 
-                    return; 
-                }
-                
-                list.innerHTML = "";
-                const keys = Object.keys(data).reverse();
-                badge.innerText = keys.length;
-                badge.style.display = 'block';
-
-                keys.forEach(k => {
-                    const n = data[k];
-                    const div = document.createElement('div');
-                    div.className = 'notif-item';
-                    div.onclick = () => {
-                        showTab(n.tab, document.querySelector(`.tab[onclick*="${n.tab}"]`));
-                        document.getElementById('notif-dropdown').style.display = 'none';
-                        setTimeout(() => {
-                            const target = document.getElementById('post-' + n.postId);
-                            if(target) {
-                                target.scrollIntoView({behavior: 'smooth'});
-                                target.classList.add('highlight-comment');
-                                setTimeout(() => target.classList.remove('highlight-comment'), 2000);
-                            }
-                        }, 500);
-                        db.ref(`notifications/${userNotifId}/${k}`).remove();
-                    };
-                    div.innerHTML = `<strong>${n.from}</strong> ${n.msg || 'replied'} <small>${new Date(n.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small>`;
-                    list.appendChild(div);
-                });
-            });
+        function exitFolder() {
+            activeFolderId = null;
+            document.getElementById('folder-back-btn').style.display = 'none';
+            render('sermons', 'sermons-list');
         }
-
-        function clearNotifs() { db.ref(`notifications/${userNotifId}`).remove(); }
 
         function render(path, divId) {
-            db.ref(path).on('value', s => {
+            let actualPath = path;
+            if (path === 'sermons' && activeFolderId) {
+                actualPath = `sermonFolders/${activeFolderId}/items`;
+                document.getElementById('folder-back-btn').style.display = 'block';
+            }
+
+            db.ref(actualPath).on('value', s => {
                 const list = document.getElementById(divId); list.innerHTML = "";
-                const data = s.val(); if(!data) return;
-                const likedPosts = JSON.parse(localStorage.getItem('likedPosts')) || [];
+                const data = s.val();
                 const savedName = localStorage.getItem('userName') || '';
+
+                // Load Folders first if we are in the main sermons tab
+                if (path === 'sermons' && !activeFolderId) {
+                    db.ref('sermonFolders').once('value', snapshot => {
+                        const folders = snapshot.val();
+                        if (folders) {
+                            Object.keys(folders).forEach(fId => {
+                                const f = folders[fId];
+                                const folderDiv = document.createElement('div');
+                                folderDiv.className = 'folder-card';
+                                folderDiv.onclick = () => {
+                                    activeFolderId = fId;
+                                    render('sermons', 'sermons-list');
+                                };
+                                folderDiv.innerHTML = `<div class="folder-icon">📂</div><div><div style="font-weight:bold; color:var(--gold);">${f.name}</div><div style="font-size:10px; color:#777;">Browse Collection</div></div>`;
+                                list.prepend(folderDiv);
+                            });
+                        }
+                    });
+                }
+
+                if(!data) return;
+                const likedPosts = JSON.parse(localStorage.getItem('likedPosts')) || [];
 
                 Object.keys(data).reverse().forEach(k => {
                     const item = data[k];
@@ -432,7 +425,7 @@
                         ${contentHtml}
                         <div class="interaction-bar">
                             <button class="comment-btn" onclick="toggleComments('${k}')">💬 <span id="count-${k}">(0)</span></button>
-                            <button class="comment-btn" id="likebtn-${k}" style="color: ${isLiked ? '#ff4d4d' : 'var(--gold)'}" onclick="likePost('${path}','${k}')">❤️ <span id="likes-${k}">${item.likes || 0}</span></button>
+                            <button class="comment-btn" id="likebtn-${k}" style="color: ${isLiked ? '#ff4d4d' : 'var(--gold)'}" onclick="likePost('${actualPath}','${k}')">❤️ <span id="likes-${k}">${item.likes || 0}</span></button>
                         </div>
                         <div id="section-${k}" class="comment-section">
                             <div id="display-${k}"></div>
@@ -491,12 +484,7 @@
                         totalInteractions++;
                         const c = data[ck]; 
                         let threadHTML = "";
-
-                        if(c.adminReply) {
-                            totalInteractions++;
-                            threadHTML += `<div class="reply-item"><strong style="color:var(--gold)">Admin:</strong> ${c.adminReply}</div>`;
-                        }
-
+                        if(c.adminReply) { totalInteractions++; threadHTML += `<div class="reply-item"><strong style="color:var(--gold)">Admin:</strong> ${c.adminReply}</div>`; }
                         if(c.replies) {
                             Object.keys(c.replies).forEach(rk => {
                                 totalInteractions++;
@@ -505,14 +493,73 @@
                                 ${r.userName === myName ? `<span class="action-link" style="color:red" onclick="deleteItem('comments/${postId}/${ck}/replies/${rk}')">del</span>` : ''}</div>`;
                             });
                         }
+                        box.innerHTML += `<div class="comment-item" id="cmt-${ck}"><strong style="color:var(--gold); font-size:12px;">${c.userName}</strong><div>${c.text}</div>${c.userName === myName ? `<span class="action-link" style="color:red" onclick="deleteItem('comments/${postId}/${ck}')">del</span>` : ''}<div class="reply-thread">${threadHTML}</div><button class="reply-trigger" onclick="toggleReplyField('${ck}')">Reply</button><div id="nested-box-${ck}" class="nested-input-group"><input type="text" id="nest-in-${ck}" placeholder="Reply..." style="flex:1; background:#333; color:white; border:1px solid #444; padding:5px; border-radius:4px;"><button onclick="sendNestedReply('${postId}','${ck}','${c.userNotifId}','${tabName}')" style="background:var(--gold); border:none; padding:0 10px; border-radius:4px;">Send</button></div></div>`; 
+                    });
+                }
+                countBadge.innerText = `(${totalInteractions})`;
+            });
+        }
 
-                        box.innerHTML += `
-                        <div class="comment-item" id="cmt-${ck}">
-                            <strong style="color:var(--gold); font-size:12px;">${c.userName}</strong>
-                            <div>${c.text}</div>
-                            ${c.userName === myName ? `<span class="action-link" style="color:red" onclick="deleteItem('comments/${postId}/${ck}')">del</span>` : ''}
-                            <div class="reply-thread">${threadHTML}</div>
-                            <button class="reply-trigger" onclick="toggleReplyField('${ck}')">Reply</button>
-                            <div id="nested-box-${ck}" class="nested-input-group">
-                                <input type="text" id="nest-in-${ck}" placeholder="Reply..." style="flex:1; background:#333; color:white; border:1px solid #444; padding:5px; border-radius:4px;">
-                                <button onclick="sendNested
+        function toggleReplyField(id) {
+            const box = document.getElementById('nested-box-' + id);
+            box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function sendNestedReply(postId, commentId, targetUserNotifId, tab) {
+            const input = document.getElementById('nest-in-' + commentId);
+            const text = input.value;
+            const name = localStorage.getItem('userName') || "Member";
+            if(!text) return;
+            db.ref(`comments/${postId}/${commentId}/replies`).push({ userName: name, text: text, userNotifId: userNotifId, timestamp: new Date().getTime() }).then(() => {
+                if(targetUserNotifId && targetUserNotifId !== userNotifId) {
+                    db.ref(`notifications/${targetUserNotifId}`).push({ from: name, msg: "replied to your comment", postId: postId, tab: tab, time: new Date().getTime() });
+                }
+                input.value = ""; toggleReplyField(commentId);
+            });
+        }
+
+        function deleteItem(path) { if(confirm("Delete this?")) db.ref(path).remove(); }
+
+        function submitPrayer() {
+            const text = document.getElementById('prayer-text').value; if(!text) return;
+            db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), status: "unread" }).then(() => { alert("Sent successfully"); document.getElementById('prayer-text').value=""; });
+        }
+        
+        let cur = 0; setInterval(() => {
+            const s = document.querySelectorAll('.slide'); if(s.length<2) return;
+            s[cur].classList.remove('active'); cur = (cur+1)%s.length; s[cur].classList.add('active');
+        }, 8000);
+
+        function listenNotifs() {
+            db.ref(`notifications/${userNotifId}`).on('value', s => {
+                const list = document.getElementById('notif-list');
+                const badge = document.getElementById('notif-count');
+                const data = s.val();
+                if(!data) { list.innerHTML = '<p style="padding:20px; text-align:center; color:#555; font-size:12px;">No new alerts</p>'; badge.style.display='none'; return; }
+                list.innerHTML = ""; const keys = Object.keys(data).reverse();
+                badge.innerText = keys.length; badge.style.display = 'block';
+                keys.forEach(k => {
+                    const n = data[k];
+                    const div = document.createElement('div');
+                    div.className = 'notif-item';
+                    div.onclick = () => {
+                        showTab(n.tab, document.querySelector(`.tab[onclick*="${n.tab}"]`));
+                        document.getElementById('notif-dropdown').style.display = 'none';
+                        setTimeout(() => {
+                            const target = document.getElementById('post-' + n.postId);
+                            if(target) { target.scrollIntoView({behavior: 'smooth'}); target.classList.add('highlight-comment'); setTimeout(() => target.classList.remove('highlight-comment'), 2000); }
+                        }, 500);
+                        db.ref(`notifications/${userNotifId}/${k}`).remove();
+                    };
+                    div.innerHTML = `<strong>${n.from}</strong> ${n.msg || 'replied'} <small>${new Date(n.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small>`;
+                    list.appendChild(div);
+                });
+            });
+        }
+
+        function clearNotifs() { db.ref(`notifications/${userNotifId}`).remove(); }
+
+        window.onload = loadData;
+    </script>
+</body>
+</html>
