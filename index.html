@@ -356,6 +356,8 @@
             render('updates', 'updates-list');
             render('sermons', 'sermons-list');
             listenNotifs();
+            setupNewPostListeners();
+            setupAdminReplyListener();
         }
 
         function listenNotifs() {
@@ -408,7 +410,7 @@
 
                 Object.keys(data).reverse().forEach(k => {
                     const item = data[k];
-                    const isAudio = item.text.includes('.mp3') || item.text.includes('archive.org');
+                    const isAudio = item.text && (item.text.includes('.mp3') || item.text.includes('archive.org'));
                     if(path === 'sermons') {
                         if(currentSermonFilter === 'audio' && !isAudio) return;
                         if(currentSermonFilter === 'video' && isAudio) return;
@@ -421,10 +423,10 @@
                     let contentHtml = isAudio ? `
                         <h4 style="margin:0 0 10px 0; color:var(--gold);">🔊 ${item.text.replace(/(https?:\/\/[^\s]+)/g, '') || 'Audio Sermon'}</h4>
                         <div class="audio-player-container"><audio controls><source src="${item.text.match(/(https?:\/\/[^\s]+)/g)[0]}" type="audio/mpeg"></audio></div>
-                    ` : `${item.image ? `<img src="${item.image}">` : ''}<p>${linkify(item.text)}</p>`;
+                    ` : `${item.image ? `<img src="${item.image}">` : ''}<p>${linkify(item.text || '')}</p>`;
 
                     card.innerHTML = `
-                        <span class="time-txt">${item.date} at ${timeStr}</span>
+                        <span class="time-txt">${item.date || ''} at ${timeStr}</span>
                         ${contentHtml}
                         <div class="interaction-bar">
                             <button class="comment-btn" onclick="toggleComments('${k}')">💬 <span id="count-${k}">(0)</span></button>
@@ -556,17 +558,13 @@
             s[cur].classList.remove('active'); cur = (cur+1)%s.length; s[cur].classList.add('active');
         }, 8000);
 
-        // --- NEW NOTIFICATION LOGIC (WONT BREAK EXISTING CODE) ---
-        
         function setupNewPostListeners() {
             ['updates', 'sermons'].forEach(path => {
                 db.ref(path).orderByChild('timestamp').limitToLast(1).on('child_added', (snap) => {
                     const post = snap.val();
-                    // Only notify if post was created in the last 2 minutes (to avoid old post alerts on refresh)
                     if (post.timestamp > (Date.now() - 120000)) {
                         const tab = (path === 'updates') ? 'home' : 'sermons';
                         const msg = (path === 'sermons') ? "posted a new sermon" : "posted a new update";
-                        // Push to the current user's notification node
                         db.ref(`notifications/${userNotifId}`).push({
                             from: "Admin", msg: msg, postId: snap.key, tab: tab, time: Date.now()
                         });
@@ -581,12 +579,11 @@
                 const comments = snap.val();
                 Object.keys(comments).forEach(cId => {
                     const c = comments[cId];
-                    // If admin replied to MY comment
                     if (c.adminReply && c.userNotifId === userNotifId) {
                         const notifiedKey = 'notified_' + cId;
                         if (!localStorage.getItem(notifiedKey)) {
                             db.ref(`notifications/${userNotifId}`).push({
-                                from: "Admin", msg: "replied to your post", postId: postId, tab: 'home', time: Date.now()
+                                from: "Admin", msg: "replied to your comment", postId: postId, tab: 'home', time: Date.now()
                             });
                             localStorage.setItem(notifiedKey, 'true');
                         }
@@ -594,14 +591,6 @@
                 });
             });
         }
-
-        // Extend original loadData without overwriting it
-        const originalLoadData = loadData;
-        loadData = function() {
-            originalLoadData();
-            setupNewPostListeners();
-            setupAdminReplyListener();
-        };
 
         window.onload = loadData;
     </script>
