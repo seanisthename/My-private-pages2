@@ -59,12 +59,6 @@
         #login-screen { max-width: 400px; margin: 50px auto; padding: 20px; }
         .schedule-label { font-size: 11px; color: #888; margin-top: 10px; display: block; text-transform: uppercase; }
         .pending-tag { font-size: 10px; background: #f39c12; color: #000; padding: 2px 5px; border-radius: 4px; font-weight: bold; margin-bottom: 5px; display: inline-block; }
-        
-        /* NEW FOLDER STYLES */
-        .folder-manager { background: #151515; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
-        .folder-input-row { display: flex; gap: 8px; align-items: center; }
-        .folder-input-row input { margin-top: 0; flex: 2; }
-        .folder-input-row .btn { margin-top: 0; flex: 1; padding: 10px; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -132,16 +126,12 @@
 
         <div class="card">
             <h3>Manage Sermons</h3>
-            
-            <div class="folder-manager">
-                <h4 style="margin:0 0 8px 0; color:var(--gold); font-size: 13px;">📁 Sermon Series / Folders</h4>
-                <div class="folder-input-row">
-                    <input type="text" id="new-folder-name" placeholder="Create Series Name...">
-                    <button class="btn" onclick="createFolder()">Create Folder</button>
+            <div style="background: #1a1a1a; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333;">
+                <h4 style="margin: 0 0 10px 0; font-size: 13px; color: var(--gold);">📁 Create Sermon Folder</h4>
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" id="new-folder-name" placeholder="Folder Name..." style="margin-top:0;">
+                    <button class="btn" onclick="createFolder()" style="margin-top:0; width: auto; padding: 0 15px; background: var(--accent-blue); color: white;">Add</button>
                 </div>
-                <select id="folder-select">
-                    <option value="">-- No Folder (Individual Sermon) --</option>
-                </select>
             </div>
 
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
@@ -236,99 +226,26 @@
             initBellWatcher();
             refreshAnalytics();
             processScheduledTasks(); 
-            loadPendingList();
-            syncFolderDropdown(); 
-            loadAllSermonsIncludingFolders(); // Replaced renderList('sermons') with folder-aware version
+            loadPendingList(); 
         }
 
-        // --- FOLDER MANAGEMENT LOGIC ---
+        // --- FOLDER MANAGEMENT ---
         function createFolder() {
             const name = document.getElementById('new-folder-name').value;
-            if(!name) return alert("Please enter a series name.");
-            db.ref('sermon_folders').push({ name: name, createdAt: new Date().getTime() }).then(() => {
-                alert("Folder created!");
-                document.getElementById('new-folder-name').value = "";
-            });
+            if(!name) return alert("Enter folder name");
+            db.ref('folders').push({ name: name, timestamp: new Date().getTime() })
+                .then(() => { document.getElementById('new-folder-name').value = ""; alert("Folder Created"); });
         }
 
-        function syncFolderDropdown() {
-            db.ref('sermon_folders').on('value', snapshot => {
-                const select = document.getElementById('folder-select');
-                const data = snapshot.val();
-                select.innerHTML = '<option value="">-- No Folder (Individual Sermon) --</option>';
-                if(data) {
-                    Object.keys(data).forEach(k => {
-                        let opt = document.createElement('option');
-                        opt.value = k;
-                        opt.innerText = data[k].name;
-                        select.appendChild(opt);
-                    });
-                }
-            });
+        function renameFolder(id, oldName) {
+            const newName = prompt("Rename folder to:", oldName);
+            if(newName && newName !== oldName) db.ref(`folders/${id}`).update({ name: newName });
         }
 
-        // --- NEW: FOLDER-AWARE SERMON LIST RENDERING ---
-        function loadAllSermonsIncludingFolders() {
-            const sermonsDiv = document.getElementById('sermons-list-admin');
-            const sermonCountBtn = document.getElementById('count-btn-sermons');
-
-            // Listen to both nodes to trigger a combined refresh
-            db.ref('sermons').on('value', () => refreshSermonUI());
-            db.ref('sermon_folders').on('value', () => refreshSermonUI());
-
-            function refreshSermonUI() {
-                sermonsDiv.innerHTML = "";
-                let totalCount = 0;
-
-                // 1. Fetch individual sermons
-                db.ref('sermons').once('value', snap => {
-                    const rootData = snap.val() || {};
-                    processSermonData(rootData, 'sermons');
-                    
-                    // 2. Fetch folder sermons
-                    db.ref('sermon_folders').once('value', folderSnap => {
-                        const folders = folderSnap.val() || {};
-                        Object.keys(folders).forEach(fKey => {
-                            if(folders[fKey].content) {
-                                processSermonData(folders[fKey].content, `sermon_folders/${fKey}/content`, folders[fKey].name);
-                            }
-                        });
-                        sermonCountBtn.innerText = `(${totalCount})`;
-                    });
-                });
-
-                function processSermonData(dataObj, path, folderName = null) {
-                    Object.keys(dataObj).reverse().forEach(k => {
-                        totalCount++;
-                        const item = dataObj[k];
-                        const postCard = document.createElement('div');
-                        postCard.className = 'admin-item';
-                        postCard.id = 'post-' + k;
-                        
-                        const folderTag = folderName ? `<span class="pending-tag" style="background:var(--gold); color:black; margin-bottom:5px;">📁 Folder: ${folderName}</span>` : '';
-                        
-                        postCard.innerHTML = `
-                            ${folderTag}
-                            ${item.image ? `<img src="${item.image}" style="width:100%; border-radius:5px; margin-bottom:10px;">` : ''}
-                            <textarea id="edit-${k}" rows="2">${item.text}</textarea>
-                            <div class="interaction-row">
-                                <span style="color:#ff3b30; font-size:14px;">❤️ ${item.likes || 0}</span>
-                                <button class="msg-icon-btn" onclick="toggleSection('comm-box-${k}')">💬 <span id="c-count-${k}">0</span></button>
-                            </div>
-                            <div id="comm-box-${k}" class="comment-container"></div>
-                            <div style="display:flex; justify-content: space-between; margin-top:10px;">
-                                <button onclick="saveEdit('${path}','${k}')" style="color:var(--gold); background:none; border:none; cursor:pointer; font-weight:bold;">Save Changes</button>
-                                <button onclick="deleteItem('${path}/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button>
-                            </div>
-                        `;
-                        sermonsDiv.appendChild(postCard);
-                        loadComments(k);
-                    });
-                }
-            }
+        function deleteFolder(id) {
+            if(confirm("Delete this folder? This will not delete the sermons, just the category folder.")) db.ref(`folders/${id}`).remove();
         }
 
-        // --- ENHANCED SCHEDULING SYSTEM ---
         function processScheduledTasks() {
             const now = new Date().getTime();
             db.ref('scheduled_updates').once('value', snapshot => {
@@ -364,24 +281,12 @@
                 listDiv.innerHTML = "";
                 let total = 0;
                 Object.keys(pendingUpdates).forEach(k => {
-                    total++;
-                    const item = pendingUpdates[k];
-                    listDiv.innerHTML += `
-                        <div class="admin-item" style="border-left-color:#f39c12;">
-                            <span class="pending-tag">UPDATE: ${new Date(item.timestamp).toLocaleDateString()}</span>
-                            <p>${item.text.substring(0,50)}...</p>
-                            <button onclick="deleteItem('scheduled_updates/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer; font-size:12px;">Cancel Schedule</button>
-                        </div>`;
+                    total++; const item = pendingUpdates[k];
+                    listDiv.innerHTML += `<div class="admin-item" style="border-left-color:#f39c12;"><span class="pending-tag">UPDATE: ${new Date(item.timestamp).toLocaleDateString()}</span><p>${item.text.substring(0,50)}...</p><button onclick="deleteItem('scheduled_updates/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer; font-size:12px;">Cancel Schedule</button></div>`;
                 });
                 Object.keys(pendingDevos).forEach(k => {
-                    total++;
-                    const item = pendingDevos[k];
-                    listDiv.innerHTML += `
-                        <div class="admin-item" style="border-left-color:#40A5E7;">
-                            <span class="pending-tag" style="background:#40A5E7; color:white;">DEVO: ${new Date(item.timestamp).toLocaleDateString()}</span>
-                            <p><b>${item.verse}</b>: ${item.text.substring(0,50)}...</p>
-                            <button onclick="deleteItem('scheduled_devotionals/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer; font-size:12px;">Cancel Schedule</button>
-                        </div>`;
+                    total++; const item = pendingDevos[k];
+                    listDiv.innerHTML += `<div class="admin-item" style="border-left-color:#40A5E7;"><span class="pending-tag" style="background:#40A5E7; color:white;">DEVO: ${new Date(item.timestamp).toLocaleDateString()}</span><p><b>${item.verse}</b>: ${item.text.substring(0,50)}...</p><button onclick="deleteItem('scheduled_devotionals/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer; font-size:12px;">Cancel Schedule</button></div>`;
                 });
                 countSpan.innerText = `(${total})`;
                 if(total === 0) listDiv.innerHTML = "<p style='text-align:center; font-size:12px; color:#666;'>No scheduled posts pending.</p>";
@@ -393,21 +298,11 @@
             let bestLiked = { text: "None", score: -1 };
             let bestCommented = { text: "None", score: -1 };
             let commentCounts = {};
-
             db.ref('comments').on('value', s => {
-                const data = s.val();
-                totalComm = 0;
-                commentCounts = {};
-                if(data) {
-                    Object.keys(data).forEach(postId => {
-                        let count = Object.keys(data[postId]).length;
-                        commentCounts[postId] = count;
-                        totalComm += count;
-                    });
-                }
+                const data = s.val(); totalComm = 0; commentCounts = {};
+                if(data) { Object.keys(data).forEach(postId => { let count = Object.keys(data[postId]).length; commentCounts[postId] = count; totalComm += count; }); }
                 updateSermonsAndUpdates();
             });
-
             function updateSermonsAndUpdates() {
                 totalLikes = 0; bestLiked = { text: "None", score: -1 }; bestCommented = { text: "None", score: -1 };
                 db.ref('updates').once('value', s => {
@@ -434,7 +329,6 @@
                     });
                 });
             }
-
             function updateUI() {
                 document.getElementById('stat-likes').innerText = totalLikes;
                 document.getElementById('stat-updates').innerText = totalUpdates;
@@ -448,10 +342,7 @@
         function filterAdminList(inputId, containerId) {
             const query = document.getElementById(inputId).value.toLowerCase();
             const items = document.querySelectorAll(`#${containerId} .admin-item`);
-            items.forEach(item => {
-                const text = item.innerText.toLowerCase();
-                item.style.display = text.includes(query) ? "block" : "none";
-            });
+            items.forEach(item => { const text = item.innerText.toLowerCase(); item.style.display = text.includes(query) ? "block" : "none"; });
         }
 
         function showSermonUpload(type) {
@@ -466,8 +357,7 @@
             el.style.display = isOpening ? 'block' : 'none'; 
             if (isOpening && id === 'sec-prayers') {
                 db.ref('prayers').once('value', s => {
-                    const data = s.val();
-                    if (data) { Object.keys(data).forEach(k => { if (data[k].status === "unread") db.ref(`prayers/${k}`).update({ status: "read" }); }); }
+                    const data = s.val(); if (data) { Object.keys(data).forEach(k => { if (data[k].status === "unread") db.ref(`prayers/${k}`).update({ status: "read" }); }); }
                 });
             }
         }
@@ -481,13 +371,9 @@
                 const timestamp = new Date(schedDate).getTime();
                 db.ref('scheduled_devotionals').push({ verse: v, text: t, timestamp }).then(() => {
                     alert("Devotional scheduled for " + schedDate);
-                    document.getElementById('devo-v-in').value = "";
-                    document.getElementById('devo-t-in').value = "";
-                    document.getElementById('devo-schedule-date').value = "";
+                    document.getElementById('devo-v-in').value = ""; document.getElementById('devo-t-in').value = ""; document.getElementById('devo-schedule-date').value = "";
                 });
-            } else {
-                db.ref('settings/devotional').set({ verse: v, text: t }).then(() => alert("Devotional Updated Live"));
-            }
+            } else { db.ref('settings/devotional').set({ verse: v, text: t }).then(() => alert("Devotional Updated Live")); }
         }
 
         function updateSlider() {
@@ -503,24 +389,61 @@
             db.ref('settings/slider').on('value', s => {
                 const d = s.val();
                 if(d) {
-                    document.getElementById('p-img1').src = d.img1;
-                    document.getElementById('p-img2').src = d.img2;
-                    document.getElementById('slide1').value = d.img1;
-                    document.getElementById('slide2').value = d.img2;
+                    document.getElementById('p-img1').src = d.img1; document.getElementById('p-img2').src = d.img2;
+                    document.getElementById('slide1').value = d.img1; document.getElementById('slide2').value = d.img2;
                 }
             });
             renderList('updates', 'updates-list-admin');
+            
+            // CUSTOM SERMON RENDERER WITH FOLDERS
+            db.ref('folders').on('value', fSnap => {
+                const folders = fSnap.val() || {};
+                db.ref('sermons').on('value', sSnap => {
+                    const div = document.getElementById('sermons-list-admin');
+                    const btnCount = document.getElementById('count-btn-sermons');
+                    const data = sSnap.val(); div.innerHTML = "";
+                    if(data) {
+                        const keys = Object.keys(data); btnCount.innerText = `(${keys.length})`;
+                        // Render Folders First (Empty folders will show)
+                        Object.keys(folders).forEach(fk => {
+                            const f = folders[fk];
+                            div.innerHTML += `
+                            <div class="admin-item" style="border-left: 5px solid var(--gold); background: #1a1a1a;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <h3 style="margin:0; color:var(--gold);">📁 ${f.name}</h3>
+                                    <div>
+                                        <button onclick="renameFolder('${fk}', '${f.name}')" style="background:none; border:none; color:#888; cursor:pointer; font-size:11px;">Rename</button>
+                                        <button onclick="deleteFolder('${fk}')" style="background:none; border:none; color:#ff3b30; cursor:pointer; font-size:11px; margin-left:5px;">Delete</button>
+                                    </div>
+                                </div>
+                                <p style="font-size:11px; color:#666; margin-top:5px;">(Empty Folder)</p>
+                            </div>`;
+                        });
+                        // Render Sermons
+                        keys.reverse().forEach(k => {
+                            const item = data[k];
+                            div.innerHTML += `
+                            <div class="admin-item" id="post-${k}">
+                                ${item.image ? `<img src="${item.image}" style="width:100%; border-radius:5px; margin-bottom:10px;">` : ''}
+                                <textarea id="edit-${k}" rows="2">${item.text}</textarea>
+                                <div style="display:flex; justify-content: space-between; margin-top:10px;">
+                                    <button onclick="saveEdit('sermons','${k}')" style="color:var(--gold); background:none; border:none; cursor:pointer; font-weight:bold;">Save Changes</button>
+                                    <button onclick="deleteItem('sermons/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete Post</button>
+                                </div>
+                            </div>`;
+                        });
+                    }
+                });
+            });
+
             db.ref('prayers').on('value', s => {
                 const div = document.getElementById('prayers-list-admin');
                 const badge = document.getElementById('unread-count-container');
                 const d = s.val(); div.innerHTML = "";
                 if(d) {
-                    const keys = Object.keys(d);
-                    const unread = keys.filter(k => d[k].status === "unread").length;
+                    const keys = Object.keys(d); const unread = keys.filter(k => d[k].status === "unread").length;
                     badge.innerHTML = unread > 0 ? `<span class="unread-badge">${unread}</span>` : `(0)`;
-                    keys.reverse().forEach(k => {
-                        div.innerHTML += `<div class="admin-item" id="prayer-${k}"><p>${d[k].text}</p><button onclick="deleteItem('prayers/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button></div>`;
-                    });
+                    keys.reverse().forEach(k => { div.innerHTML += `<div class="admin-item" id="prayer-${k}"><p>${d[k].text}</p><button onclick="deleteItem('prayers/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete</button></div>`; });
                 } else { badge.innerHTML = `(0)`; }
             });
         }
@@ -567,9 +490,8 @@
         function loadComments(postId) {
             db.ref(`comments/${postId}`).on('value', s => {
                 const box = document.getElementById(`comm-box-${postId}`);
-                if(!box) return;
                 const countSpan = document.getElementById(`c-count-${postId}`);
-                const data = s.val(); box.innerHTML = "";
+                const data = s.val(); if(!box) return; box.innerHTML = "";
                 let totalCount = 0; 
                 if(data) {
                     Object.keys(data).forEach(ck => {
@@ -597,7 +519,7 @@
                         html += `</div>`; box.innerHTML += html;
                     });
                 }
-                if(countSpan) countSpan.innerText = totalCount;
+                countSpan.innerText = totalCount;
             });
         }
 
@@ -618,24 +540,16 @@
         function publishAudio() {
             const title = document.getElementById('audio-title').value;
             const link = document.getElementById('audio-link').value;
-            const folderId = document.getElementById('folder-select').value;
-            if(!title || !link) return alert("Please enter title and link.");
-            const data = { text: title + " " + link, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0, mediaType: 'audio' };
-            const path = folderId ? `sermon_folders/${folderId}/content` : 'sermons';
-            db.ref(path).push(data).then(() => {
-                alert("Audio Posted!"); document.getElementById('audio-title').value = ""; document.getElementById('audio-link').value = "";
+            db.ref('sermons').push({ text: title + " " + link, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
+                alert("Posted!"); document.getElementById('audio-title').value = ""; document.getElementById('audio-link').value = "";
             });
         }
 
         function publishPost() {
             const txt = document.getElementById('post-text').value;
             const img = document.getElementById('post-img').value;
-            const folderId = document.getElementById('folder-select').value;
-            if(!txt || !img) return alert("Please enter description and URL.");
-            const data = { text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0, mediaType: 'video' };
-            const path = folderId ? `sermon_folders/${folderId}/content` : 'sermons';
-            db.ref(path).push(data).then(() => {
-                alert("Video Posted!"); document.getElementById('post-text').value = ""; document.getElementById('post-img').value = "";
+            db.ref('sermons').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
+                alert("Posted!"); document.getElementById('post-text').value = ""; document.getElementById('post-img').value = "";
             });
         }
 
@@ -648,17 +562,11 @@
             const path = schedDate ? 'scheduled_updates' : 'updates';
             db.ref(path).push(postData).then(() => {
                 alert(schedDate ? "Scheduled for " + schedDate : "Published live!"); 
-                document.getElementById('update-text').value = ""; 
-                document.getElementById('update-img').value = "";
-                document.getElementById('schedule-date').value = "";
+                document.getElementById('update-text').value = ""; document.getElementById('update-img').value = ""; document.getElementById('schedule-date').value = "";
             });
         }
 
-        function saveEdit(path, id) {
-            const newText = document.getElementById('edit-' + id).value;
-            db.ref(`${path}/${id}`).update({ text: newText });
-        }
-
+        function saveEdit(type, id) { const newText = document.getElementById('edit-' + id).value; db.ref(`${type}/${id}`).update({ text: newText }); }
         function deleteItem(path) { if(confirm("Delete?")) db.ref(path).remove(); }
         function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
         window.onload = () => { if(localStorage.getItem('uic_admin') === 'authenticated') showDashboard(); };
