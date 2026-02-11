@@ -10,7 +10,6 @@
         :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); }
         
-        /* Header and Bell Styles */
         header { 
             background: linear-gradient(135deg, #40A5E7, var(--navy)); 
             color: var(--gold); 
@@ -39,7 +38,6 @@
             display: none;
         }
 
-        /* Menu Icon Styles */
         .menu-container {
             position: absolute;
             top: 20px;
@@ -50,7 +48,6 @@
             color: var(--gold);
         }
 
-        /* Side Menu Styles */
         .side-menu {
             position: fixed;
             top: 0;
@@ -96,7 +93,6 @@
             z-index: 1150;
         }
         
-        /* Dropdown Panel */
         .notif-dropdown {
             position: fixed;
             top: 60px;
@@ -174,7 +170,6 @@
         audio { height: 35px; flex: 1; filter: invert(80%) sepia(50%) saturate(1000%) hue-rotate(10deg); }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* Folder Styles */
         .folder-header { 
             background: #252525; 
             padding: 12px 15px; 
@@ -411,7 +406,6 @@
 
         function clearNotifs() { db.ref(`notifications/${userNotifId}`).remove(); }
 
-        /* --- FOLDER LOGIC HELPER (Toggle Logic) --- */
         function toggleFolder(id) {
             const el = document.getElementById(id);
             const icon = document.getElementById('icon-' + id);
@@ -488,12 +482,28 @@
                     <div class="audio-player-container"><audio controls><source src="${audioSrc}" type="audio/mpeg"></audio></div>
                 `;
             } else {
-                // Video Logic: Checks if it is a video link or just a photo
-                const isVideo = item.image && (item.image.includes('dropbox.com') || item.image.includes('drive.google') || item.image.includes('.mp4'));
+                const isVideo = item.image && (
+                    item.image.includes('dropbox.com') || 
+                    item.image.includes('drive.google') || 
+                    item.image.includes('.mp4') ||
+                    item.image.includes('youtube.com') || 
+                    item.image.includes('youtu.be')
+                );
+
                 if (isVideo) {
-                    contentHtml = `<video controls><source src="${item.image}" type="video/mp4">Your browser does not support the video tag.</video><p>${linkify(item.text)}</p>`;
+                    if (item.image.includes('youtube.com') || item.image.includes('youtu.be')) {
+                        let ytId = "";
+                        if(item.image.includes('v=')) {
+                            ytId = item.image.split('v=')[1].split('&')[0];
+                        } else {
+                            ytId = item.image.split('/').pop().split('?')[0];
+                        }
+                        contentHtml = `<iframe width="100%" height="220" src="https://www.youtube.com/embed/${ytId}" frameborder="0" allowfullscreen style="border-radius:8px; margin-bottom:12px;"></iframe><p>${linkify(item.text)}</p>`;
+                    } else {
+                        contentHtml = `<video controls style="width:100%; border-radius:8px; margin-bottom:12px;"><source src="${item.image}" type="video/mp4">Your browser does not support the video tag.</video><p>${linkify(item.text)}</p>`;
+                    }
                 } else {
-                    contentHtml = `${item.image ? `<img src="${item.image}">` : ''}<p>${linkify(item.text)}</p>`;
+                    contentHtml = `${item.image ? `<img src="${item.image}" style="width:100%; border-radius:8px; margin-bottom:12px;">` : ''}<p>${linkify(item.text)}</p>`;
                 }
             }
 
@@ -662,14 +672,13 @@
             });
         }
 
-        const originalLoadData = loadData;
-        loadData = function() {
-            originalLoadData();
+        function finalLoadData() {
+            loadData();
             setupNewPostListeners();
             setupAdminReplyListener();
         };
 
-        window.onload = loadData;
+        window.onload = finalLoadData;
     </script>
 </body>
 </html>
