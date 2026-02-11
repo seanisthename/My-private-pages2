@@ -173,6 +173,22 @@
         .audio-player-container { background: #111; padding: 15px; border-radius: 10px; border: 1px solid #333; margin-top: 10px; display: flex; align-items: center; gap: 15px; }
         audio { height: 35px; flex: 1; filter: invert(80%) sepia(50%) saturate(1000%) hue-rotate(10deg); }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Folder Styles */
+        .folder-header { 
+            background: #252525; 
+            padding: 12px 15px; 
+            margin-bottom: 10px; 
+            border-radius: 8px; 
+            border-left: 4px solid var(--gold); 
+            cursor: pointer; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--gold);
+        }
     </style>
 </head>
 <body>
@@ -274,7 +290,6 @@
         let userNotifId = localStorage.getItem('userNotifId') || 'user_' + Math.random().toString(36).substr(2, 9);
         localStorage.setItem('userNotifId', userNotifId);
 
-        // Toggle Side Menu
         function toggleSideMenu() {
             const menu = document.getElementById('side-menu');
             const overlay = document.getElementById('side-menu-overlay');
@@ -287,20 +302,17 @@
             }
         }
 
-        // Handle Side Menu Clicks
         function handleMenuClick(tabId) {
             const tabElement = document.querySelector(`.tab[onclick*="'${tabId}'"]`);
             showTab(tabId, tabElement);
             toggleSideMenu();
         }
 
-        // Toggle Notification Dropdown
         function toggleNotifDropdown() {
             const dd = document.getElementById('notif-dropdown');
             dd.style.display = (dd.style.display === 'block') ? 'none' : 'block';
         }
 
-        // Close dropdown when clicking outside
         window.addEventListener('click', function(e) {
             if (!document.querySelector('.bell-container').contains(e.target) && !document.getElementById('notif-dropdown').contains(e.target) && !document.querySelector('.menu-container').contains(e.target)){
                 document.getElementById('notif-dropdown').style.display = 'none';
@@ -399,51 +411,99 @@
 
         function clearNotifs() { db.ref(`notifications/${userNotifId}`).remove(); }
 
+        /* --- FOLDER LOGIC HELPER --- */
+        function toggleFolder(id) {
+            const el = document.getElementById(id);
+            const icon = document.getElementById('icon-' + id);
+            if (el.style.display === 'none') {
+                el.style.display = 'block';
+                icon.innerText = '▼';
+            } else {
+                el.style.display = 'none';
+                icon.innerText = '▶';
+            }
+        }
+
         function render(path, divId) {
             db.ref(path).on('value', s => {
-                const list = document.getElementById(divId); list.innerHTML = "";
+                const list = document.getElementById(divId); 
+                list.innerHTML = "";
                 const data = s.val(); if(!data) return;
                 const likedPosts = JSON.parse(localStorage.getItem('likedPosts')) || [];
                 const savedName = localStorage.getItem('userName') || '';
 
-                Object.keys(data).reverse().forEach(k => {
-                    const item = data[k];
-                    const isAudio = item.text.includes('.mp3') || item.text.includes('archive.org');
-                    if(path === 'sermons') {
+                if (path === 'sermons') {
+                    let folders = {};
+                    Object.keys(data).forEach(k => {
+                        const item = data[k];
+                        const isAudio = item.text.includes('.mp3') || item.text.includes('archive.org');
                         if(currentSermonFilter === 'audio' && !isAudio) return;
                         if(currentSermonFilter === 'video' && isAudio) return;
-                    }
-                    const isLiked = likedPosts.includes(k);
-                    const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
-                    const card = document.createElement('div'); card.className = 'card';
-                    card.id = 'post-' + k;
-                    
-                    let contentHtml = isAudio ? `
-                        <h4 style="margin:0 0 10px 0; color:var(--gold);">🔊 ${item.text.replace(/(https?:\/\/[^\s]+)/g, '') || 'Audio Sermon'}</h4>
-                        <div class="audio-player-container"><audio controls><source src="${item.text.match(/(https?:\/\/[^\s]+)/g)[0]}" type="audio/mpeg"></audio></div>
-                    ` : `${item.image ? `<img src="${item.image}">` : ''}<p>${linkify(item.text)}</p>`;
 
-                    card.innerHTML = `
-                        <span class="time-txt">${item.date} at ${timeStr}</span>
-                        ${contentHtml}
-                        <div class="interaction-bar">
-                            <button class="comment-btn" onclick="toggleComments('${k}')">💬 <span id="count-${k}">(0)</span></button>
-                            <button class="comment-btn" id="likebtn-${k}" style="color: ${isLiked ? '#ff4d4d' : 'var(--gold)'}" onclick="likePost('${path}','${k}')">❤️ <span id="likes-${k}">${item.likes || 0}</span></button>
-                        </div>
-                        <div id="section-${k}" class="comment-section">
-                            <div id="display-${k}"></div>
-                            <div class="comment-input-box">
-                                <input type="text" id="name-${k}" placeholder="Your Name" value="${savedName}" oninput="validateName('${k}')">
-                                <div style="display:flex; gap:5px;">
-                                    <input type="text" id="in-${k}" placeholder="Comment..." ${!savedName ? 'disabled' : ''} style="flex:1;">
-                                    <button class="send-comment-btn" onclick="addComment('${k}', '${path === 'updates' ? 'home' : 'sermons'}')">Send</button>
-                                </div>
+                        let folderName = item.category || "General Sermons";
+                        if (!folders[folderName]) folders[folderName] = [];
+                        folders[folderName].push({ key: k, ...item });
+                    });
+
+                    Object.keys(folders).forEach(folderName => {
+                        const folderId = 'folder-' + folderName.replace(/\s+/g, '-');
+                        const folderWrapper = document.createElement('div');
+                        folderWrapper.innerHTML = `
+                            <div class="folder-header" onclick="toggleFolder('${folderId}')">
+                                <span>📁 ${folderName}</span>
+                                <span id="icon-${folderId}">▼</span>
                             </div>
-                        </div>`;
-                    list.appendChild(card);
-                    loadComments(k, path === 'updates' ? 'home' : 'sermons');
-                });
+                            <div id="${folderId}" style="display: block;"></div>
+                        `;
+                        list.appendChild(folderWrapper);
+                        const folderContainer = document.getElementById(folderId);
+
+                        folders[folderName].reverse().forEach(item => {
+                            const card = createCard(item.key, item, path, likedPosts, savedName);
+                            folderContainer.appendChild(card);
+                        });
+                    });
+                } else {
+                    Object.keys(data).reverse().forEach(k => {
+                        const card = createCard(k, data[k], path, likedPosts, savedName);
+                        list.appendChild(card);
+                    });
+                }
             });
+        }
+
+        function createCard(k, item, path, likedPosts, savedName) {
+            const isAudio = item.text.includes('.mp3') || item.text.includes('archive.org');
+            const isLiked = likedPosts.includes(k);
+            const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
+            const card = document.createElement('div'); 
+            card.className = 'card';
+            card.id = 'post-' + k;
+            
+            let contentHtml = isAudio ? `
+                <h4 style="margin:0 0 10px 0; color:var(--gold);">🔊 ${item.text.replace(/(https?:\/\/[^\s]+)/g, '') || 'Audio Sermon'}</h4>
+                <div class="audio-player-container"><audio controls><source src="${item.text.match(/(https?:\/\/[^\s]+)/g)[0]}" type="audio/mpeg"></audio></div>
+            ` : `${item.image ? `<img src="${item.image}">` : ''}<p>${linkify(item.text)}</p>`;
+
+            card.innerHTML = `
+                <span class="time-txt">${item.date} at ${timeStr}</span>
+                ${contentHtml}
+                <div class="interaction-bar">
+                    <button class="comment-btn" onclick="toggleComments('${k}')">💬 <span id="count-${k}">(0)</span></button>
+                    <button class="comment-btn" id="likebtn-${k}" style="color: ${isLiked ? '#ff4d4d' : 'var(--gold)'}" onclick="likePost('${path}','${k}')">❤️ <span id="likes-${k}">${item.likes || 0}</span></button>
+                </div>
+                <div id="section-${k}" class="comment-section">
+                    <div id="display-${k}"></div>
+                    <div class="comment-input-box">
+                        <input type="text" id="name-${k}" placeholder="Your Name" value="${savedName}" oninput="validateName('${k}')">
+                        <div style="display:flex; gap:5px;">
+                            <input type="text" id="in-${k}" placeholder="Comment..." ${!savedName ? 'disabled' : ''} style="flex:1;">
+                            <button class="send-comment-btn" onclick="addComment('${k}', '${path === 'updates' ? 'home' : 'sermons'}')">Send</button>
+                        </div>
+                    </div>
+                </div>`;
+            loadComments(k, path === 'updates' ? 'home' : 'sermons');
+            return card;
         }
 
         function validateName(id) {
@@ -556,17 +616,13 @@
             s[cur].classList.remove('active'); cur = (cur+1)%s.length; s[cur].classList.add('active');
         }, 8000);
 
-        // --- NEW NOTIFICATION LOGIC (WONT BREAK EXISTING CODE) ---
-        
         function setupNewPostListeners() {
             ['updates', 'sermons'].forEach(path => {
                 db.ref(path).orderByChild('timestamp').limitToLast(1).on('child_added', (snap) => {
                     const post = snap.val();
-                    // Only notify if post was created in the last 2 minutes (to avoid old post alerts on refresh)
                     if (post.timestamp > (Date.now() - 120000)) {
                         const tab = (path === 'updates') ? 'home' : 'sermons';
                         const msg = (path === 'sermons') ? "posted a new sermon" : "posted a new update";
-                        // Push to the current user's notification node
                         db.ref(`notifications/${userNotifId}`).push({
                             from: "Admin", msg: msg, postId: snap.key, tab: tab, time: Date.now()
                         });
@@ -581,7 +637,6 @@
                 const comments = snap.val();
                 Object.keys(comments).forEach(cId => {
                     const c = comments[cId];
-                    // If admin replied to MY comment
                     if (c.adminReply && c.userNotifId === userNotifId) {
                         const notifiedKey = 'notified_' + cId;
                         if (!localStorage.getItem(notifiedKey)) {
@@ -595,7 +650,6 @@
             });
         }
 
-        // Extend original loadData without overwriting it
         const originalLoadData = loadData;
         loadData = function() {
             originalLoadData();
