@@ -135,7 +135,7 @@
         .highlight-comment { animation: highlightGlow 2s ease-out; }
         @keyframes highlightGlow { 0% { background: #444; } 100% { background: var(--card-bg); } }
 
-        .card img { width: 100%; border-radius: 8px; margin-bottom: 12px; }
+        .card img, .card video { width: 100%; border-radius: 8px; margin-bottom: 12px; }
         .time-txt { font-size: 10px; color: #777; display: block; margin-bottom: 5px; }
         .interaction-bar { border-top: 1px solid #333; margin-top: 10px; padding-top: 10px; display: flex; gap: 25px; }
         .comment-btn { background: none; border: none; color: var(--gold); cursor: pointer; display: flex; align-items: center; font-size: 16px; gap: 5px; padding: 0; }
@@ -436,7 +436,7 @@
                     let folders = {};
                     Object.keys(data).forEach(k => {
                         const item = data[k];
-                        const isAudio = item.text.includes('.mp3') || item.text.includes('archive.org');
+                        const isAudio = item.text.includes('.mp3') || (item.image && item.image.includes('.mp3')) || item.text.includes('archive.org');
                         if(currentSermonFilter === 'audio' && !isAudio) return;
                         if(currentSermonFilter === 'video' && isAudio) return;
 
@@ -448,7 +448,6 @@
                     Object.keys(folders).forEach(folderName => {
                         const folderId = 'folder-' + folderName.replace(/\s+/g, '-');
                         const folderWrapper = document.createElement('div');
-                        // Set style display to none by default
                         folderWrapper.innerHTML = `
                             <div class="folder-header" onclick="toggleFolder('${folderId}')">
                                 <span>📁 ${folderName}</span>
@@ -474,17 +473,29 @@
         }
 
         function createCard(k, item, path, likedPosts, savedName) {
-            const isAudio = item.text.includes('.mp3') || item.text.includes('archive.org');
+            const isAudio = item.text.includes('.mp3') || (item.image && item.image.includes('.mp3')) || item.text.includes('archive.org');
             const isLiked = likedPosts.includes(k);
             const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
             const card = document.createElement('div'); 
             card.className = 'card';
             card.id = 'post-' + k;
             
-            let contentHtml = isAudio ? `
-                <h4 style="margin:0 0 10px 0; color:var(--gold);">🔊 ${item.text.replace(/(https?:\/\/[^\s]+)/g, '') || 'Audio Sermon'}</h4>
-                <div class="audio-player-container"><audio controls><source src="${item.text.match(/(https?:\/\/[^\s]+)/g)[0]}" type="audio/mpeg"></audio></div>
-            ` : `${item.image ? `<img src="${item.image}">` : ''}<p>${linkify(item.text)}</p>`;
+            let contentHtml = "";
+            if (isAudio) {
+                const audioSrc = item.image || (item.text.match(/(https?:\/\/[^\s]+)/g) ? item.text.match(/(https?:\/\/[^\s]+)/g)[0] : "");
+                contentHtml = `
+                    <h4 style="margin:0 0 10px 0; color:var(--gold);">🔊 ${item.text.replace(/(https?:\/\/[^\s]+)/g, '') || 'Audio Sermon'}</h4>
+                    <div class="audio-player-container"><audio controls><source src="${audioSrc}" type="audio/mpeg"></audio></div>
+                `;
+            } else {
+                // Video Logic: Checks if it is a video link or just a photo
+                const isVideo = item.image && (item.image.includes('dropbox.com') || item.image.includes('drive.google') || item.image.includes('.mp4'));
+                if (isVideo) {
+                    contentHtml = `<video controls><source src="${item.image}" type="video/mp4">Your browser does not support the video tag.</video><p>${linkify(item.text)}</p>`;
+                } else {
+                    contentHtml = `${item.image ? `<img src="${item.image}">` : ''}<p>${linkify(item.text)}</p>`;
+                }
+            }
 
             card.innerHTML = `
                 <span class="time-txt">${item.date} at ${timeStr}</span>
