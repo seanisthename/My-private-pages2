@@ -386,6 +386,9 @@
                     const div = document.createElement('div');
                     div.className = 'notif-item';
                     div.onclick = () => {
+                        // Mark as seen in LocalStorage so it never comes back
+                        localStorage.setItem('seen_' + n.postId, 'true');
+                        
                         showTab(n.tab, document.querySelector(`.tab[onclick*="${n.tab}"]`));
                         document.getElementById('notif-dropdown').style.display = 'none';
                         setTimeout(() => {
@@ -404,7 +407,17 @@
             });
         }
 
-        function clearNotifs() { db.ref(`notifications/${userNotifId}`).remove(); }
+        function clearNotifs() { 
+            db.ref(`notifications/${userNotifId}`).once('value', snap => {
+                const data = snap.val();
+                if(data) {
+                    Object.values(data).forEach(n => {
+                        localStorage.setItem('seen_' + n.postId, 'true');
+                    });
+                }
+                db.ref(`notifications/${userNotifId}`).remove();
+            });
+        }
 
         function toggleFolder(id) {
             const el = document.getElementById(id);
@@ -642,11 +655,25 @@
             ['updates', 'sermons'].forEach(path => {
                 db.ref(path).orderByChild('timestamp').limitToLast(1).on('child_added', (snap) => {
                     const post = snap.val();
-                    if (post.timestamp > (Date.now() - 120000)) {
+                    const postId = snap.key;
+                    
+                    // CHECK: Is it new? (Last 2 mins) AND have we NOT seen it before?
+                    if (post.timestamp > (Date.now() - 120000) && !localStorage.getItem('seen_' + postId)) {
                         const tab = (path === 'updates') ? 'home' : 'sermons';
                         const msg = (path === 'sermons') ? "posted a new sermon" : "posted a new update";
-                        db.ref(`notifications/${userNotifId}`).push({
-                            from: "Admin", msg: msg, postId: snap.key, tab: tab, time: Date.now()
+                        
+                        // Only add if not already in the current notification list
+                        db.ref(`notifications/${userNotifId}`).once('value', nSnap => {
+                            let exists = false;
+                            const existing = nSnap.val();
+                            if(existing) {
+                                Object.values(existing).forEach(v => { if(v.postId === postId) exists = true; });
+                            }
+                            if(!exists) {
+                                db.ref(`notifications/${userNotifId}`).push({
+                                    from: "Admin", msg: msg, postId: postId, tab: tab, time: Date.now()
+                                });
+                            }
                         });
                     }
                 });
