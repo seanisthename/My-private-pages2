@@ -92,13 +92,20 @@
             </div>
         </div>
 
-        <div class="card" style="border-top-color: #9b59b6;">
-            <h3 style="color: #9b59b6;">📁 Sermon Folder Manager</h3>
-            <div class="folder-manager-item">
-                <input type="text" id="new-folder-name" placeholder="New Folder Name">
-                <button class="btn" onclick="addFolder()" style="margin-top:0; width:auto; padding: 12px 20px; background:#9b59b6; color:white;">Create</button>
-            </div>
-            <div id="folder-list-admin" style="margin-top:15px; border-top:1px solid #333; padding-top:10px;"></div>
+        <div class="card" style="border-top-color: #9b59b6; padding: 0;">
+            <details style="padding: 15px;">
+                <summary style="color: #9b59b6; font-size: 1.17em; font-weight: bold; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+                    <span>📁 Sermon Folder Manager</span>
+                    <span style="font-size: 12px; color: #888;">▼</span>
+                </summary>
+                <div style="margin-top: 15px;">
+                    <div class="folder-manager-item">
+                        <input type="text" id="new-folder-name" placeholder="New Folder Name">
+                        <button class="btn" onclick="addFolder()" style="margin-top:0; width:auto; padding: 12px 20px; background:#9b59b6; color:white;">Create</button>
+                    </div>
+                    <div id="folder-list-admin" style="margin-top:15px; border-top:1px solid #333; padding-top:10px;"></div>
+                </div>
+            </details>
         </div>
 
         <div class="card">
@@ -236,7 +243,7 @@
             refreshAnalytics();
             processScheduledTasks(); 
             loadPendingList();
-            loadFolderData(); // Initial load of folders
+            loadFolderData(); 
         }
 
         /* --- FOLDER MANAGEMENT FUNCTIONS --- */
@@ -568,7 +575,6 @@
             db.ref(`comments/${postId}/${commentId}`).update({ adminReply: input.value }).then(() => input.value = "");
         }
 
-        /* --- FIXED PUBLISH FUNCTIONS --- */
         function publishAudio() {
             const title = document.getElementById('audio-title').value;
             const link = document.getElementById('audio-link').value;
@@ -576,7 +582,7 @@
             if(!link) { alert("Please provide a link."); return; }
             db.ref('sermons').push({ 
                 text: title + " " + link, 
-                image: link, // App uses 'image' key for video/audio source
+                image: link, 
                 category: cat, 
                 date: new Date().toLocaleDateString(), 
                 timestamp: new Date().getTime(), 
@@ -593,7 +599,7 @@
             if(!vid) { alert("Please provide a video link."); return; }
             db.ref('sermons').push({ 
                 text: txt, 
-                image: vid, // FIXED: Ensure video URL is stored in 'image' key
+                image: vid, 
                 category: cat,
                 date: new Date().toLocaleDateString(), 
                 timestamp: new Date().getTime(), 
