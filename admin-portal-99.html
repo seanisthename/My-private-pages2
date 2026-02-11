@@ -146,7 +146,7 @@
             
             <div id="audio-form" class="sermon-type-container">
                 <h4 style="margin:0; color:var(--gold);">Upload Audio Link</h4>
-                <select id="audio-folder-select"><option value="General sermons">-- Select Folder --</option></select>
+                <select id="audio-folder-select"><option value="General sermons">General sermons</option></select>
                 <input type="text" id="audio-title" placeholder="Sermon Title">
                 <input type="text" id="audio-link" placeholder="Paste .mp3 Link here">
                 <button class="btn" onclick="publishAudio()">Publish Audio Sermon</button>
@@ -154,7 +154,7 @@
             
             <div id="video-form" class="sermon-type-container">
                 <h4 style="margin:0; color:var(--gold);">Post Video Sermon</h4>
-                <select id="video-folder-select"><option value="General sermons">-- Select Folder --</option></select>
+                <select id="video-folder-select"><option value="General sermons">General sermons</option></select>
                 <textarea id="post-text" placeholder="Sermon description..." rows="3"></textarea>
                 <input type="text" id="post-img" placeholder="Paste Video URL here...">
                 <button class="btn" onclick="publishPost()">Publish Video Sermon</button>
@@ -248,7 +248,6 @@
                 const data = s.val();
                 
                 list.innerHTML = "";
-                // Reset selects with default
                 const defaultOption = '<option value="General sermons">General sermons</option>';
                 audSelect.innerHTML = defaultOption;
                 vidSelect.innerHTML = defaultOption;
@@ -256,7 +255,6 @@
                 if (data) {
                     Object.keys(data).forEach(k => {
                         const name = data[k].name;
-                        // Build Folder Manager UI
                         list.innerHTML += `
                             <div class="folder-manager-item">
                                 <input type="text" id="edit-folder-${k}" value="${name}">
@@ -264,7 +262,6 @@
                                 <button onclick="deleteItem('folders/${k}')" style="background:none; border:none; color:red; cursor:pointer;">Del</button>
                             </div>
                         `;
-                        // Populate Dropdowns
                         audSelect.innerHTML += `<option value="${name}">${name}</option>`;
                         vidSelect.innerHTML += `<option value="${name}">${name}</option>`;
                     });
@@ -285,10 +282,8 @@
             db.ref('folders/' + id).update({ name: newName });
         }
 
-        // --- ENHANCED SCHEDULING SYSTEM ---
         function processScheduledTasks() {
             const now = new Date().getTime();
-            
             db.ref('scheduled_updates').once('value', snapshot => {
                 const data = snapshot.val();
                 if (data) {
@@ -299,7 +294,6 @@
                     });
                 }
             });
-
             db.ref('scheduled_devotionals').once('value', snapshot => {
                 const data = snapshot.val();
                 if (data) {
@@ -313,19 +307,15 @@
             });
         }
 
-        // --- NEW: LOAD PENDING LIST ---
         function loadPendingList() {
             const listDiv = document.getElementById('pending-list-admin');
             const countSpan = document.getElementById('pending-count');
-            
             db.ref().on('value', snapshot => {
                 const allData = snapshot.val();
                 const pendingUpdates = allData.scheduled_updates || {};
                 const pendingDevos = allData.scheduled_devotionals || {};
-                
                 listDiv.innerHTML = "";
                 let total = 0;
-
                 Object.keys(pendingUpdates).forEach(k => {
                     total++;
                     const item = pendingUpdates[k];
@@ -336,7 +326,6 @@
                             <button onclick="deleteItem('scheduled_updates/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer; font-size:12px;">Cancel Schedule</button>
                         </div>`;
                 });
-
                 Object.keys(pendingDevos).forEach(k => {
                     total++;
                     const item = pendingDevos[k];
@@ -347,7 +336,6 @@
                             <button onclick="deleteItem('scheduled_devotionals/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer; font-size:12px;">Cancel Schedule</button>
                         </div>`;
                 });
-
                 countSpan.innerText = `(${total})`;
                 if(total === 0) listDiv.innerHTML = "<p style='text-align:center; font-size:12px; color:#666;'>No scheduled posts pending.</p>";
             });
@@ -358,7 +346,6 @@
             let bestLiked = { text: "None", score: -1 };
             let bestCommented = { text: "None", score: -1 };
             let commentCounts = {};
-
             db.ref('comments').on('value', s => {
                 const data = s.val();
                 totalComm = 0;
@@ -372,7 +359,6 @@
                 }
                 updateSermonsAndUpdates();
             });
-
             function updateSermonsAndUpdates() {
                 totalLikes = 0; bestLiked = { text: "None", score: -1 }; bestCommented = { text: "None", score: -1 };
                 db.ref('updates').once('value', s => {
@@ -399,7 +385,6 @@
                     });
                 });
             }
-
             function updateUI() {
                 document.getElementById('stat-likes').innerText = totalLikes;
                 document.getElementById('stat-updates').innerText = totalUpdates;
@@ -508,13 +493,10 @@
                         const postCard = document.createElement('div');
                         postCard.className = 'admin-item';
                         postCard.id = 'post-' + k;
-                        
-                        // Added Folder Routing UI for existing sermons
                         let folderInfo = (type === 'sermons') ? `
                             <div style="margin-bottom:10px; font-size:11px; color:#888;">
                                 Folder: <span style="color:var(--gold)">${item.category || 'General sermons'}</span>
                             </div>` : '';
-
                         postCard.innerHTML = `
                             ${folderInfo}
                             ${item.image ? `<img src="${item.image}" style="width:100%; border-radius:5px; margin-bottom:10px;">` : ''}
@@ -586,13 +568,15 @@
             db.ref(`comments/${postId}/${commentId}`).update({ adminReply: input.value }).then(() => input.value = "");
         }
 
-        /* --- UPDATED PUBLISH FUNCTIONS WITH CATEGORY --- */
+        /* --- FIXED PUBLISH FUNCTIONS --- */
         function publishAudio() {
             const title = document.getElementById('audio-title').value;
             const link = document.getElementById('audio-link').value;
             const cat = document.getElementById('audio-folder-select').value;
+            if(!link) { alert("Please provide a link."); return; }
             db.ref('sermons').push({ 
                 text: title + " " + link, 
+                image: link, // App uses 'image' key for video/audio source
                 category: cat, 
                 date: new Date().toLocaleDateString(), 
                 timestamp: new Date().getTime(), 
@@ -604,11 +588,12 @@
 
         function publishPost() {
             const txt = document.getElementById('post-text').value;
-            const img = document.getElementById('post-img').value;
+            const vid = document.getElementById('post-img').value;
             const cat = document.getElementById('video-folder-select').value;
+            if(!vid) { alert("Please provide a video link."); return; }
             db.ref('sermons').push({ 
                 text: txt, 
-                image: img, 
+                image: vid, // FIXED: Ensure video URL is stored in 'image' key
                 category: cat,
                 date: new Date().toLocaleDateString(), 
                 timestamp: new Date().getTime(), 
