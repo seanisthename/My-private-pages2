@@ -411,11 +411,11 @@
 
         function clearNotifs() { db.ref(`notifications/${userNotifId}`).remove(); }
 
-        /* --- FOLDER LOGIC HELPER --- */
+        /* --- FOLDER LOGIC HELPER (Toggle Logic) --- */
         function toggleFolder(id) {
             const el = document.getElementById(id);
             const icon = document.getElementById('icon-' + id);
-            if (el.style.display === 'none') {
+            if (el.style.display === 'none' || el.style.display === '') {
                 el.style.display = 'block';
                 icon.innerText = '▼';
             } else {
@@ -448,12 +448,13 @@
                     Object.keys(folders).forEach(folderName => {
                         const folderId = 'folder-' + folderName.replace(/\s+/g, '-');
                         const folderWrapper = document.createElement('div');
+                        // Set style display to none by default
                         folderWrapper.innerHTML = `
                             <div class="folder-header" onclick="toggleFolder('${folderId}')">
                                 <span>📁 ${folderName}</span>
-                                <span id="icon-${folderId}">▼</span>
+                                <span id="icon-${folderId}">▶</span>
                             </div>
-                            <div id="${folderId}" style="display: block;"></div>
+                            <div id="${folderId}" style="display: none;"></div>
                         `;
                         list.appendChild(folderWrapper);
                         const folderContainer = document.getElementById(folderId);
