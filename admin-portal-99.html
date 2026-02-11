@@ -59,6 +59,10 @@
         #login-screen { max-width: 400px; margin: 50px auto; padding: 20px; }
         .schedule-label { font-size: 11px; color: #888; margin-top: 10px; display: block; text-transform: uppercase; }
         .pending-tag { font-size: 10px; background: #f39c12; color: #000; padding: 2px 5px; border-radius: 4px; font-weight: bold; margin-bottom: 5px; display: inline-block; }
+        
+        /* New Folder Management Styles */
+        .folder-manager-item { display: flex; gap: 5px; margin-bottom: 10px; align-items: center; }
+        .folder-manager-item input { margin-top: 0; }
     </style>
 </head>
 <body>
@@ -86,6 +90,15 @@
                 <img id="p-img1" class="mini-slide active" src="">
                 <img id="p-img2" class="mini-slide" src="">
             </div>
+        </div>
+
+        <div class="card" style="border-top-color: #9b59b6;">
+            <h3 style="color: #9b59b6;">📁 Sermon Folder Manager</h3>
+            <div class="folder-manager-item">
+                <input type="text" id="new-folder-name" placeholder="New Folder Name">
+                <button class="btn" onclick="addFolder()" style="margin-top:0; width:auto; padding: 12px 20px; background:#9b59b6; color:white;">Create</button>
+            </div>
+            <div id="folder-list-admin" style="margin-top:15px; border-top:1px solid #333; padding-top:10px;"></div>
         </div>
 
         <div class="card">
@@ -130,14 +143,18 @@
                 <button class="big-sermon-btn" onclick="showSermonUpload('video')"><span>🎥</span>VIDEO SERMON</button>
                 <button class="big-sermon-btn" onclick="showSermonUpload('audio')"><span>🔊</span>AUDIO SERMON</button>
             </div>
+            
             <div id="audio-form" class="sermon-type-container">
                 <h4 style="margin:0; color:var(--gold);">Upload Audio Link</h4>
+                <select id="audio-folder-select"><option value="General sermons">-- Select Folder --</option></select>
                 <input type="text" id="audio-title" placeholder="Sermon Title">
                 <input type="text" id="audio-link" placeholder="Paste .mp3 Link here">
                 <button class="btn" onclick="publishAudio()">Publish Audio Sermon</button>
             </div>
+            
             <div id="video-form" class="sermon-type-container">
                 <h4 style="margin:0; color:var(--gold);">Post Video Sermon</h4>
+                <select id="video-folder-select"><option value="General sermons">-- Select Folder --</option></select>
                 <textarea id="post-text" placeholder="Sermon description..." rows="3"></textarea>
                 <input type="text" id="post-img" placeholder="Paste Video URL here...">
                 <button class="btn" onclick="publishPost()">Publish Video Sermon</button>
@@ -218,7 +235,54 @@
             initBellWatcher();
             refreshAnalytics();
             processScheduledTasks(); 
-            loadPendingList(); // New call
+            loadPendingList();
+            loadFolderData(); // Initial load of folders
+        }
+
+        /* --- FOLDER MANAGEMENT FUNCTIONS --- */
+        function loadFolderData() {
+            db.ref('folders').on('value', s => {
+                const list = document.getElementById('folder-list-admin');
+                const audSelect = document.getElementById('audio-folder-select');
+                const vidSelect = document.getElementById('video-folder-select');
+                const data = s.val();
+                
+                list.innerHTML = "";
+                // Reset selects with default
+                const defaultOption = '<option value="General sermons">General sermons</option>';
+                audSelect.innerHTML = defaultOption;
+                vidSelect.innerHTML = defaultOption;
+
+                if (data) {
+                    Object.keys(data).forEach(k => {
+                        const name = data[k].name;
+                        // Build Folder Manager UI
+                        list.innerHTML += `
+                            <div class="folder-manager-item">
+                                <input type="text" id="edit-folder-${k}" value="${name}">
+                                <button onclick="updateFolderName('${k}')" style="background:none; border:none; color:var(--gold); cursor:pointer;">Rename</button>
+                                <button onclick="deleteItem('folders/${k}')" style="background:none; border:none; color:red; cursor:pointer;">Del</button>
+                            </div>
+                        `;
+                        // Populate Dropdowns
+                        audSelect.innerHTML += `<option value="${name}">${name}</option>`;
+                        vidSelect.innerHTML += `<option value="${name}">${name}</option>`;
+                    });
+                }
+            });
+        }
+
+        function addFolder() {
+            const name = document.getElementById('new-folder-name').value.trim();
+            if(!name) return;
+            db.ref('folders').push({ name: name }).then(() => {
+                document.getElementById('new-folder-name').value = "";
+            });
+        }
+
+        function updateFolderName(id) {
+            const newName = document.getElementById('edit-folder-' + id).value;
+            db.ref('folders/' + id).update({ name: newName });
         }
 
         // --- ENHANCED SCHEDULING SYSTEM ---
@@ -254,7 +318,6 @@
             const listDiv = document.getElementById('pending-list-admin');
             const countSpan = document.getElementById('pending-count');
             
-            // Watch both paths
             db.ref().on('value', snapshot => {
                 const allData = snapshot.val();
                 const pendingUpdates = allData.scheduled_updates || {};
@@ -263,7 +326,6 @@
                 listDiv.innerHTML = "";
                 let total = 0;
 
-                // Process Pending Updates
                 Object.keys(pendingUpdates).forEach(k => {
                     total++;
                     const item = pendingUpdates[k];
@@ -275,7 +337,6 @@
                         </div>`;
                 });
 
-                // Process Pending Devotionals
                 Object.keys(pendingDevos).forEach(k => {
                     total++;
                     const item = pendingDevos[k];
@@ -380,16 +441,12 @@
             const v = document.getElementById('devo-v-in').value;
             const t = document.getElementById('devo-t-in').value;
             const schedDate = document.getElementById('devo-schedule-date').value;
-
             if(!v || !t) { alert("Please enter both scripture and message."); return; }
-
             if(schedDate) {
                 const timestamp = new Date(schedDate).getTime();
                 db.ref('scheduled_devotionals').push({ verse: v, text: t, timestamp }).then(() => {
                     alert("Devotional scheduled for " + schedDate);
-                    document.getElementById('devo-v-in').value = "";
-                    document.getElementById('devo-t-in').value = "";
-                    document.getElementById('devo-schedule-date').value = "";
+                    document.getElementById('devo-v-in').value = ""; document.getElementById('devo-t-in').value = ""; document.getElementById('devo-schedule-date').value = "";
                 });
             } else {
                 db.ref('settings/devotional').set({ verse: v, text: t }).then(() => alert("Devotional Updated Live"));
@@ -451,7 +508,15 @@
                         const postCard = document.createElement('div');
                         postCard.className = 'admin-item';
                         postCard.id = 'post-' + k;
+                        
+                        // Added Folder Routing UI for existing sermons
+                        let folderInfo = (type === 'sermons') ? `
+                            <div style="margin-bottom:10px; font-size:11px; color:#888;">
+                                Folder: <span style="color:var(--gold)">${item.category || 'General sermons'}</span>
+                            </div>` : '';
+
                         postCard.innerHTML = `
+                            ${folderInfo}
                             ${item.image ? `<img src="${item.image}" style="width:100%; border-radius:5px; margin-bottom:10px;">` : ''}
                             <textarea id="edit-${k}" rows="2">${item.text}</textarea>
                             <div class="interaction-row">
@@ -521,19 +586,35 @@
             db.ref(`comments/${postId}/${commentId}`).update({ adminReply: input.value }).then(() => input.value = "");
         }
 
+        /* --- UPDATED PUBLISH FUNCTIONS WITH CATEGORY --- */
         function publishAudio() {
             const title = document.getElementById('audio-title').value;
             const link = document.getElementById('audio-link').value;
-            db.ref('sermons').push({ text: title + " " + link, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
-                alert("Posted!"); document.getElementById('audio-title').value = ""; document.getElementById('audio-link').value = "";
+            const cat = document.getElementById('audio-folder-select').value;
+            db.ref('sermons').push({ 
+                text: title + " " + link, 
+                category: cat, 
+                date: new Date().toLocaleDateString(), 
+                timestamp: new Date().getTime(), 
+                likes: 0 
+            }).then(() => {
+                alert("Posted to " + cat); document.getElementById('audio-title').value = ""; document.getElementById('audio-link').value = "";
             });
         }
 
         function publishPost() {
             const txt = document.getElementById('post-text').value;
             const img = document.getElementById('post-img').value;
-            db.ref('sermons').push({ text: txt, image: img, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), likes: 0 }).then(() => {
-                alert("Posted!"); document.getElementById('post-text').value = ""; document.getElementById('post-img').value = "";
+            const cat = document.getElementById('video-folder-select').value;
+            db.ref('sermons').push({ 
+                text: txt, 
+                image: img, 
+                category: cat,
+                date: new Date().toLocaleDateString(), 
+                timestamp: new Date().getTime(), 
+                likes: 0 
+            }).then(() => {
+                alert("Posted to " + cat); document.getElementById('post-text').value = ""; document.getElementById('post-img').value = "";
             });
         }
 
@@ -546,9 +627,7 @@
             const path = schedDate ? 'scheduled_updates' : 'updates';
             db.ref(path).push(postData).then(() => {
                 alert(schedDate ? "Scheduled for " + schedDate : "Published live!"); 
-                document.getElementById('update-text').value = ""; 
-                document.getElementById('update-img').value = "";
-                document.getElementById('schedule-date').value = "";
+                document.getElementById('update-text').value = ""; document.getElementById('update-img').value = ""; document.getElementById('schedule-date').value = "";
             });
         }
 
