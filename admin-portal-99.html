@@ -627,7 +627,19 @@
             db.ref(`${type}/${id}`).update({ text: newText });
         }
 
-        function deleteItem(path) { if(confirm("Delete?")) db.ref(path).remove(); }
+        function deleteItem(path) { 
+            if(confirm("Delete? This will also remove all associated likes and comments.")) {
+                // Get the unique ID from the end of the path
+                const id = path.split('/').pop();
+                
+                // Delete the post
+                db.ref(path).remove().then(() => {
+                    // Automatically delete comments linked to this post ID
+                    db.ref('comments/' + id).remove();
+                });
+            } 
+        }
+
         function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
         window.onload = () => { if(localStorage.getItem('uic_admin') === 'authenticated') showDashboard(); };
 
