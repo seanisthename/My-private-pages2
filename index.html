@@ -189,7 +189,7 @@
         .hymn-card { background: #1a1a1a; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #333; cursor: pointer; }
         .hymn-card:active { background: #252525; }
         .hymn-num { color: var(--gold); font-weight: bold; margin-right: 10px; }
-        .hymn-lyrics-display { white-space: pre-wrap; line-height: 1.6; color: #ccc; font-size: 16px; margin-top: 15px; padding: 15px; background: #111; border-radius: 8px; border: 1px dashed var(--gold); }
+        .hymn-lyrics-display { white-space: pre-wrap; line-height: 1.8; color: #ccc; font-size: 18px; margin-top: 15px; padding: 15px; background: #111; border-radius: 8px; border: 1px dashed var(--gold); font-family: 'Georgia', serif; }
     </style>
 </head>
 <body>
@@ -270,12 +270,12 @@
             <h2 style="color: var(--gold); margin-top: 0;">Nyimbo za Chitsitsimutso</h2>
             <div class="search-box" style="width: 100%; margin-bottom: 15px;">
                 <span class="search-icon">🔍</span>
-                <input type="text" id="hymnSearch" placeholder="Number or Title..." onkeyup="searchHymns()">
+                <input type="text" id="hymnSearch" placeholder="Fufuzani nambala kapena mutu..." onkeyup="searchHymns()">
             </div>
             <div id="hymn-results" style="max-height: 50vh; overflow-y: auto;"></div>
             <div id="hymn-viewer" style="display:none;">
-                <button onclick="backToHymns()" style="background:none; border:none; color:var(--gold); cursor:pointer; margin-bottom:10px;">← Back to list</button>
-                <h3 id="view-hymn-title" style="color:var(--gold); margin-bottom:5px;"></h3>
+                <button onclick="backToHymns()" style="background:none; border:none; color:var(--gold); cursor:pointer; margin-bottom:10px; font-weight:bold;">← BWELERA MBYOYO</button>
+                <h3 id="view-hymn-title" style="color:var(--gold); margin-bottom:5px; border-bottom:1px solid #333; padding-bottom:5px;"></h3>
                 <div id="view-hymn-lyrics" class="hymn-lyrics-display"></div>
             </div>
         </div>
@@ -308,40 +308,46 @@
         let userNotifId = localStorage.getItem('userNotifId') || 'user_' + Math.random().toString(36).substr(2, 9);
         localStorage.setItem('userNotifId', userNotifId);
 
-        // HYMN BOOK DATA & FUNCTIONS
-        const hymnData = [
-            { id: 1, title: "Yimbirani Chikondi Cha Yesu", lyrics: "1. Yimbirani chikondi cha Yesu,\nChifundo chake ndi chisomo;\nAmakonza malo m’mwamba\nKuti tikakhale naye.\n\nKorus:\nTidzakondwera kumeneko,\nTidzam’yamika mpulumutsi wathu,\nTikaonana m’mwambamo,\nTidzam’yamika mpulumutsi wathu." },
-            { id: 2, title: "Ndiyimba Ndi Chimwemwe Lero", lyrics: "1. Ndiyimba ndi chimwemwe lero,\nKale ndinalephera,\nKoma Yesu wandimasula,\nWandipatsa ine mphamvu.\n\nKorus:\nHaleluya! Haleluya!\nYesu wandipatsa moyo." },
-            { id: 124, title: "Mphamvu m’Mwazi", lyrics: "1. Kodi ufunadi kumasulidwa?\nMuli mphamvu m’mwazi wa Yesu;\nKodi ufunadi kupambana?\nMuli mphamvu m’mwazi wa Mwana wa nkhosa." }
-        ];
-
+        // FIREBASE HYMN SEARCH FUNCTION
         function searchHymns() {
             const query = document.getElementById('hymnSearch').value.toLowerCase();
             const results = document.getElementById('hymn-results');
-            results.innerHTML = "";
-            document.getElementById('hymn-viewer').style.display = 'none';
-            results.style.display = 'block';
+            const viewer = document.getElementById('hymn-viewer');
+            
+            if(!query) {
+                results.innerHTML = "";
+                return;
+            }
 
-            if(!query) return;
+            // Reference the 'hymns' node in Firebase
+            db.ref('hymns').once('value', snapshot => {
+                const data = snapshot.val();
+                results.innerHTML = "";
+                viewer.style.display = 'none';
+                results.style.display = 'block';
 
-            const filtered = hymnData.filter(h => 
-                h.id.toString().includes(query) || h.title.toLowerCase().includes(query)
-            );
+                if(!data) {
+                    results.innerHTML = "<p style='text-align:center; color:#555;'>Palibe nyimbo... (Host them in Firebase first)</p>";
+                    return;
+                }
 
-            filtered.forEach(h => {
-                const div = document.createElement('div');
-                div.className = 'hymn-card';
-                div.onclick = () => viewHymn(h);
-                div.innerHTML = `<span class="hymn-num">${h.id}</span> ${h.title}`;
-                results.appendChild(div);
+                Object.keys(data).forEach(key => {
+                    const h = data[key];
+                    // Search by Number (key) or Title
+                    if(key.includes(query) || (h.title && h.title.toLowerCase().includes(query))) {
+                        const div = document.createElement('div');
+                        div.className = 'hymn-card';
+                        div.onclick = () => {
+                            results.style.display = 'none';
+                            viewer.style.display = 'block';
+                            document.getElementById('view-hymn-title').innerText = `${key}. ${h.title}`;
+                            document.getElementById('view-hymn-lyrics').innerText = h.lyrics;
+                        };
+                        div.innerHTML = `<span class="hymn-num">${key}</span> ${h.title}`;
+                        results.appendChild(div);
+                    }
+                });
             });
-        }
-
-        function viewHymn(h) {
-            document.getElementById('hymn-results').style.display = 'none';
-            document.getElementById('hymn-viewer').style.display = 'block';
-            document.getElementById('view-hymn-title').innerText = `${h.id}. ${h.title}`;
-            document.getElementById('view-hymn-lyrics').innerText = h.lyrics;
         }
 
         function backToHymns() {
@@ -363,7 +369,6 @@
 
         function handleMenuClick(tabId) {
             const tabElement = document.querySelector(`.tab[onclick*="'${tabId}'"]`);
-            // If the tab is a main nav tab, activate it. Else just show the section.
             if(tabElement) {
                 showTab(tabId, tabElement);
             } else {
@@ -456,9 +461,7 @@
                     const div = document.createElement('div');
                     div.className = 'notif-item';
                     div.onclick = () => {
-                        // Mark as seen in LocalStorage so it never comes back
                         localStorage.setItem('seen_' + n.postId, 'true');
-                        
                         showTab(n.tab, document.querySelector(`.tab[onclick*="${n.tab}"]`));
                         document.getElementById('notif-dropdown').style.display = 'none';
                         setTimeout(() => {
@@ -726,13 +729,9 @@
                 db.ref(path).orderByChild('timestamp').limitToLast(1).on('child_added', (snap) => {
                     const post = snap.val();
                     const postId = snap.key;
-                    
-                    // CHECK: Is it new? (Last 2 mins) AND have we NOT seen it before?
                     if (post.timestamp > (Date.now() - 120000) && !localStorage.getItem('seen_' + postId)) {
                         const tab = (path === 'updates') ? 'home' : 'sermons';
                         const msg = (path === 'sermons') ? "posted a new sermon" : "posted a new update";
-                        
-                        // Only add if not already in the current notification list
                         db.ref(`notifications/${userNotifId}`).once('value', nSnap => {
                             let exists = false;
                             const existing = nSnap.val();
