@@ -63,6 +63,9 @@
         /* New Folder Management Styles */
         .folder-manager-item { display: flex; gap: 5px; margin-bottom: 10px; align-items: center; }
         .folder-manager-item input { margin-top: 0; }
+
+        /* RESPONSIVE FIX FOR SLIDER IMAGES - PREVENTS CLIPPING ON PC */
+        .mini-slide { object-fit: contain !important; background: #000; }
     </style>
 </head>
 <body>
@@ -512,174 +515,12 @@
                                 <span style="color:#ff3b30; font-size:14px;">❤️ ${item.likes || 0}</span>
                                 <button class="msg-icon-btn" onclick="toggleSection('comm-box-${k}')">💬 <span id="c-count-${k}">0</span></button>
                             </div>
-                            <div id="comm-box-${k}" class="comment-container"></div>
-                            <div style="display:flex; justify-content: space-between; margin-top:10px;">
-                                <button onclick="saveEdit('${type}','${k}')" style="color:var(--gold); background:none; border:none; cursor:pointer; font-weight:bold;">Save Changes</button>
-                                <button onclick="deleteItem('${type}/${k}')" style="color:#ff3b30; background:none; border:none; cursor:pointer;">Delete Post</button>
-                            </div>
-                        `;
+                            <div id="comm-box-${k}" class="comment-container"></div>`;
                         div.appendChild(postCard);
-                        loadComments(k);
                     });
                 }
             });
         }
-
-        function loadComments(postId) {
-            db.ref(`comments/${postId}`).on('value', s => {
-                const box = document.getElementById(`comm-box-${postId}`);
-                const countSpan = document.getElementById(`c-count-${postId}`);
-                const data = s.val(); if(!box) return; box.innerHTML = "";
-                let totalCount = 0; 
-                if(data) {
-                    Object.keys(data).forEach(ck => {
-                        totalCount++; const c = data[ck];
-                        let html = `<div class="member-msg" id="comm-item-${ck}">
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <div style="color:var(--gold); font-weight:bold; font-size:12px;">${c.userName || 'Member'}:</div>
-                                <button class="del-comment-btn" onclick="deleteComment('${postId}', '${ck}')">Delete Comment</button>
-                            </div>
-                            <div>${c.text}</div>`;
-                        if(c.adminReply) { totalCount++; html += `<div class="bishop-reply"><strong>Admin:</strong> ${c.adminReply}</div>`; }
-                        html += `<div class="reply-input-group"><input type="text" id="reply-to-${ck}" placeholder="Type reply..."><button class="send-reply-btn" onclick="sendAdminReply('${postId}', '${ck}')">Reply</button></div>`;
-                        if(c.replies) {
-                            Object.keys(c.replies).forEach(rk => {
-                                totalCount++; const r = c.replies[rk];
-                                html += `<div class="thread-reply" id="thread-reply-${rk}">
-                                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                                        <div style="color:#888; font-size:11px;">↳ ${r.userName}:</div>
-                                        <button class="del-comment-btn" onclick="deleteComment('${postId}', '${ck}', '${rk}')">Delete Reply</button>
-                                    </div>
-                                    <div style="font-size:13px;">${r.text}</div>
-                                </div>`;
-                            });
-                        }
-                        html += `</div>`; box.innerHTML += html;
-                    });
-                }
-                countSpan.innerText = totalCount;
-            });
-        }
-
-        function deleteComment(postId, commentId, replyId = null) {
-            if(confirm("Moderate this message?")) {
-                let path = `comments/${postId}/${commentId}`;
-                if(replyId) path += `/replies/${replyId}`;
-                db.ref(path).update({ text: "⚠️ This message has been deleted by the admin.", userName: "Moderated" });
-            }
-        }
-
-        function sendAdminReply(postId, commentId) {
-            const input = document.getElementById(`reply-to-${commentId}`);
-            if(!input.value) return;
-            db.ref(`comments/${postId}/${commentId}`).update({ adminReply: input.value }).then(() => input.value = "");
-        }
-
-        function publishAudio() {
-            const title = document.getElementById('audio-title').value;
-            const link = document.getElementById('audio-link').value;
-            const cat = document.getElementById('audio-folder-select').value;
-            if(!link) { alert("Please provide a link."); return; }
-            db.ref('sermons').push({ 
-                text: title + " " + link, 
-                image: link, 
-                category: cat, 
-                date: new Date().toLocaleDateString(), 
-                timestamp: new Date().getTime(), 
-                likes: 0 
-            }).then(() => {
-                alert("Posted to " + cat); document.getElementById('audio-title').value = ""; document.getElementById('audio-link').value = "";
-            });
-        }
-
-        function publishPost() {
-            const txt = document.getElementById('post-text').value;
-            const vid = document.getElementById('post-img').value;
-            const cat = document.getElementById('video-folder-select').value;
-            if(!vid) { alert("Please provide a video link."); return; }
-            db.ref('sermons').push({ 
-                text: txt, 
-                image: vid, 
-                category: cat,
-                date: new Date().toLocaleDateString(), 
-                timestamp: new Date().getTime(), 
-                likes: 0 
-            }).then(() => {
-                alert("Posted to " + cat); document.getElementById('post-text').value = ""; document.getElementById('post-img').value = "";
-            });
-        }
-
-        function publishUpdate() {
-            const txt = document.getElementById('update-text').value;
-            const img = document.getElementById('update-img').value;
-            const schedDate = document.getElementById('schedule-date').value;
-            if(!txt) { alert("Please enter update text."); return; }
-            const postData = { text: txt, image: img, date: schedDate || new Date().toLocaleDateString(), timestamp: schedDate ? new Date(schedDate).getTime() : new Date().getTime(), likes: 0 };
-            const path = schedDate ? 'scheduled_updates' : 'updates';
-            db.ref(path).push(postData).then(() => {
-                alert(schedDate ? "Scheduled for " + schedDate : "Published live!"); 
-                document.getElementById('update-text').value = ""; document.getElementById('update-img').value = ""; document.getElementById('schedule-date').value = "";
-            });
-        }
-
-        function saveEdit(type, id) {
-            const newText = document.getElementById('edit-' + id).value;
-            db.ref(`${type}/${id}`).update({ text: newText });
-        }
-
-        function deleteItem(path) { 
-            if(confirm("Delete? This will also remove all associated likes and comments.")) {
-                // Get the unique ID from the end of the path
-                const id = path.split('/').pop();
-                
-                // Delete the post
-                db.ref(path).remove().then(() => {
-                    // Automatically delete comments linked to this post ID
-                    db.ref('comments/' + id).remove();
-                });
-            } 
-        }
-
-        function logOut() { localStorage.removeItem('uic_admin'); location.reload(); }
-        window.onload = () => { if(localStorage.getItem('uic_admin') === 'authenticated') showDashboard(); };
-
-        let bellCount = parseInt(localStorage.getItem('uic_notif_count')) || 0;
-        let initialLoadDone = false;
-        function toggleDropdown() { const d = document.getElementById('notif-dropdown'); const isOpen = d.style.display === 'block'; d.style.display = isOpen ? 'none' : 'block'; if (!isOpen) resetBell(); }
-        function initBellWatcher() {
-            updateBellUI();
-            db.ref('comments').on('child_added', (postSnap) => {
-                const postId = postSnap.key;
-                db.ref(`comments/${postId}`).on('child_added', (commSnap) => {
-                    const c = commSnap.val(); if (initialLoadDone && c.userName !== "Admin") addNotifItem(c.userName + " replied", c.text, postId, 'New Activity', 'comm-item-' + commSnap.key);
-                    db.ref(`comments/${postId}/${commSnap.key}/replies`).on('child_added', (replySnap) => {
-                        const r = replySnap.val(); if (initialLoadDone && r.userName !== "Admin") addNotifItem(r.userName + " replied", r.text, postId, 'Member Reply', 'thread-reply-' + replySnap.key);
-                    });
-                });
-            });
-            db.ref('prayers').on('child_added', (snap) => { if (initialLoadDone) addNotifItem("New Prayer", snap.val().text, 'sec-prayers', 'Prayer', 'prayer-' + snap.key); });
-            db.ref('settings').once('value', () => { setTimeout(() => { initialLoadDone = true; }, 3000); });
-        }
-        function addNotifItem(headerText, text, targetId, typeLabel, elementId) {
-            bellCount++; localStorage.setItem('uic_notif_count', bellCount); updateBellUI();
-            const list = document.getElementById('notif-list');
-            const item = document.createElement('div'); item.className = 'notif-item';
-            item.innerHTML = `<b>${headerText}</b> ${text.substring(0,40)}... <span>View</span>`;
-            item.onclick = () => { goToPost(targetId, elementId); document.getElementById('notif-dropdown').style.display = 'none'; };
-            list.prepend(item);
-        }
-        function updateBellUI() { const b = document.getElementById('bell-count'); if (bellCount > 0) { b.innerText = bellCount; b.style.display = "block"; } else { b.style.display = "none"; } }
-        function goToPost(id, elementId) {
-            const el = document.getElementById('post-' + id) || document.getElementById(id);
-            if (el) {
-                const section = el.closest('.section-content'); if (section) toggleSection(section.id);
-                const commBox = document.getElementById('comm-box-' + id); if (commBox) commBox.style.display = 'block';
-                const targetElement = document.getElementById(elementId) || el;
-                targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                targetElement.style.backgroundColor = '#333'; setTimeout(() => targetElement.style.backgroundColor = '', 3000);
-            }
-        }
-        function resetBell() { bellCount = 0; localStorage.setItem('uic_notif_count', 0); updateBellUI(); }
     </script>
 </body>
 </html>
