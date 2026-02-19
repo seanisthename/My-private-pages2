@@ -537,7 +537,7 @@
                         let html = `<div class="member-msg" id="comm-item-${ck}">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <div style="color:var(--gold); font-weight:bold; font-size:12px;">${c.userName || 'Member'}:</div>
-                                <button class="del-comment-btn" onclick="deleteComment('${postId}', '${ck}')">Delete Comment</button>
+                                <button class="del-comment-btn" onclick="deleteComment('${postId}', '${commentId}')">Delete Comment</button>
                             </div>
                             <div>${c.text}</div>`;
                         if(c.adminReply) { totalCount++; html += `<div class="bishop-reply"><strong>Admin:</strong> ${c.adminReply}</div>`; }
@@ -681,5 +681,17 @@
         }
         function resetBell() { bellCount = 0; localStorage.setItem('uic_notif_count', 0); updateBellUI(); }
     </script>
+
+    <style>
+        .mini-slide {
+            object-fit: contain !important;
+            background-color: #000;
+        }
+        @media (min-width: 1024px) {
+            .mini-slider {
+                height: 350px !important;
+            }
+        }
+    </style>
 </body>
 </html>
