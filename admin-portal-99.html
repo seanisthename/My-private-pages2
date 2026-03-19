@@ -8,10 +8,25 @@
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
 
 <!--
-  FIREBASE MODULAR SDK v10  [Gemini Fix #3]
-  Tree-shakeable — only the functions we import are downloaded.
-  Old "compat" SDK shipped the entire library regardless of usage.
-  Bridge via window._fb so the main non-module script can access them.
+  Firebase Modular SDK v10 — identical version to index.html.
+  Both files use the same DB paths and data shapes:
+
+  DB PATH               WRITTEN BY        READ BY
+  settings/slider       admin             index (slider images)
+  settings/devotional   admin             index (Word for Today)
+  updates/{id}          admin             index (home feed)
+  sermons/{id}          admin             index (sermons feed)
+  folders/{id}          admin             index (sermon folders grouping)
+  comments/{pid}/{cid}  index (members)   admin (moderation)
+  prayers/{id}          index (members)   admin (view/delete)
+  notifications/{uid}   admin + index     index (bell)
+  scheduled_*           admin             admin (processScheduled)
+
+  DATA SHAPES
+    updates/sermons : { text, image, category?, date, timestamp, likes }
+    comments        : { userName, text, userNotifId, timestamp, adminReply?, replies? }
+    notifications   : { from, msg, postId, tab, time }
+    prayer          : { text, date, timestamp, status:'unread'|'read' }
 -->
 <script type="module">
   import { initializeApp }
@@ -30,38 +45,34 @@
 </script>
 
 <style>
-:root {
-  --gold:#D4AF37; --gold-dim:#9A7D1A; --gold-glow:rgba(212,175,55,0.14);
-  --dark:#0d0d0d; --sf:#161616; --s2:#1f1f1f; --s3:#272727;
-  --border:rgba(212,175,55,0.18); --bdr:rgba(255,255,255,0.07);
-  --text:#e8e8e8; --muted:#888;
-  --blue:#4fa8e8; --green:#3ec97a; --orange:#f0a030;
-  --red:#e05555; --purple:#a06cdc;
-  --r:10px; --rl:16px; --ease:.2s ease;
+:root{
+  --gold:#D4AF37;--gold-dim:#9A7D1A;--gold-glow:rgba(212,175,55,.14);
+  --dark:#0d0d0d;--sf:#161616;--s2:#1f1f1f;--s3:#272727;
+  --border:rgba(212,175,55,.18);--bdr:rgba(255,255,255,.07);
+  --text:#e8e8e8;--muted:#888;
+  --blue:#4fa8e8;--green:#3ec97a;--orange:#f0a030;--red:#e05555;--purple:#a06cdc;
+  --r:10px;--rl:16px;--ease:.2s ease;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{font-family:'Lato',sans-serif;background:var(--dark);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6}
 h1,h2,h3,h4{font-family:'Cinzel',serif;font-weight:600}
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:var(--dark)}
-::-webkit-scrollbar-thumb{background:var(--gold-dim);border-radius:4px}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--dark)}::-webkit-scrollbar-thumb{background:var(--gold-dim);border-radius:4px}
 
 header{position:sticky;top:0;z-index:200;background:linear-gradient(135deg,#060c1c,#001433);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(12px)}
 .hdr-title{font-family:'Cinzel',serif;font-size:1.05rem;color:var(--gold);letter-spacing:.08em}
-.hdr-title span{color:var(--muted);font-size:.75rem;display:block;font-family:'Lato',sans-serif;letter-spacing:.05em;margin-top:1px}
+.hdr-title span{color:var(--muted);font-size:.75rem;display:block;font-family:'Lato',sans-serif;margin-top:1px}
 
 .bell-wrap{position:relative;cursor:pointer;padding:6px}
 .bell-icon{font-size:20px;transition:transform var(--ease);display:block}
 .bell-wrap:hover .bell-icon{transform:rotate(15deg)}
-.bell-badge{position:absolute;top:0;right:0;background:var(--red);color:#fff;font-size:10px;font-weight:700;border-radius:50%;min-width:18px;height:18px;display:none;align-items:center;justify-content:center;border:2px solid var(--dark)}
+.bell-badge{position:absolute;top:0;right:0;background:var(--red);color:#fff;font-size:10px;font-weight:700;border-radius:50%;min-width:18px;height:18px;display:none;align-items:center;justify-content:center;border:2px solid #060c1c}
 .bell-badge.show{display:flex}
-
 #notif-dd{display:none;position:fixed;top:60px;right:10px;width:300px;background:var(--s2);border:1px solid var(--border);border-radius:var(--rl);box-shadow:0 20px 60px rgba(0,0,0,.7);z-index:999;max-height:420px;overflow-y:auto}
 #notif-dd.open{display:block;animation:slideDown .2s ease}
 @keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 .n-hdr{padding:12px 16px;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;display:flex;justify-content:space-between;align-items:center}
-.n-clear{color:var(--gold);cursor:pointer;font-size:11px}
+.n-clear{color:var(--gold);cursor:pointer;font-size:11px;text-transform:none;letter-spacing:0}
 .n-item{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background var(--ease)}
 .n-item:hover{background:var(--s3)}
 .n-item b{color:var(--gold);display:block;font-size:13px;margin-bottom:2px;font-family:'Cinzel',serif}
@@ -89,15 +100,15 @@ select{cursor:pointer}
 .btn-ghost{background:var(--s3);color:var(--text);border:1px solid var(--bdr)}.btn-ghost:hover:not(:disabled){border-color:var(--gold-dim);color:var(--gold)}
 .btn-danger{background:rgba(224,85,85,.15);color:var(--red);border:1px solid rgba(224,85,85,.25)}.btn-danger:hover:not(:disabled){background:rgba(224,85,85,.28)}
 .btn-sm{padding:7px 14px;font-size:12px;margin-top:0;width:auto}
+.load-more{width:100%;background:transparent;border:1px dashed var(--border);color:var(--muted);border-radius:var(--r);padding:10px;font-family:'Lato',sans-serif;font-size:13px;cursor:pointer;margin-top:4px;transition:all var(--ease)}
+.load-more:hover{border-color:var(--gold-dim);color:var(--gold)}
+.load-more:disabled{opacity:.4;cursor:not-allowed}
 
 #dashboard{display:none;max-width:700px;margin:0 auto;padding:20px 16px 60px}
-
 .card{background:var(--sf);border:1px solid var(--border);border-radius:var(--rl);padding:20px;margin-bottom:14px}
 .card-title{font-family:'Cinzel',serif;font-weight:600;font-size:.95rem;color:var(--gold);margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.acc-blue{border-top:2px solid var(--blue)}
-.acc-orange{border-top:2px solid var(--orange)}
-.acc-purple{border-top:2px solid var(--purple)}
-.acc-green{border-top:2px solid var(--green)}
+.acc-blue{border-top:2px solid var(--blue)}.acc-orange{border-top:2px solid var(--orange)}
+.acc-purple{border-top:2px solid var(--purple)}.acc-green{border-top:2px solid var(--green)}
 
 .preview-wrap{border-radius:var(--rl);overflow:hidden;margin-bottom:14px;background:#000;border:1px solid var(--border)}
 .preview-label{background:rgba(0,0,0,.7);color:var(--muted);font-size:10px;text-align:center;padding:5px;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid var(--border)}
@@ -130,14 +141,10 @@ select{cursor:pointer}
 .admin-item img{width:100%;border-radius:6px;margin-bottom:10px;max-height:200px;object-fit:cover}
 .admin-item textarea{font-size:13px;margin-top:0}
 .item-meta{display:flex;align-items:center;gap:14px;margin:10px 0 8px;border-top:1px solid rgba(255,255,255,.05);padding-top:10px}
-.item-meta .likes{color:var(--red);font-size:13px;display:flex;align-items:center;gap:5px}
-.item-meta .ctoggle{color:var(--blue);background:none;border:none;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:5px;padding:0}
+.item-meta .likes{color:var(--red);font-size:13px}
+.item-meta .ctoggle{color:var(--blue);background:none;border:none;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:5px;padding:0;font-family:'Lato',sans-serif}
 .item-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 .folder-tag{font-size:11px;color:var(--gold);background:var(--gold-glow);padding:2px 8px;border-radius:20px;display:inline-block;margin-bottom:8px}
-
-.load-more{width:100%;background:transparent;border:1px dashed var(--border);color:var(--muted);border-radius:var(--r);padding:10px;font-family:'Lato',sans-serif;font-size:13px;cursor:pointer;margin-top:4px;transition:all var(--ease)}
-.load-more:hover{border-color:var(--gold-dim);color:var(--gold)}
-.load-more:disabled{opacity:.4;cursor:not-allowed}
 
 .comment-box{display:none;background:var(--sf);border-radius:var(--r);padding:12px;margin-top:10px;border:1px solid var(--bdr)}
 .comment-box.open{display:block;animation:fadeIn .2s ease}
@@ -148,7 +155,7 @@ select{cursor:pointer}
 .thread-reply{margin-left:16px;padding-left:10px;border-left:1px solid rgba(255,255,255,.1);margin-top:8px;font-size:12px;color:var(--muted)}
 .reply-row{display:flex;gap:6px;margin-top:8px}
 .reply-row input{margin-top:0;font-size:12px;padding:7px 10px}
-.del-btn{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:0}
+.del-btn{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:0;font-family:'Lato',sans-serif}
 .del-btn:hover{color:var(--red)}
 
 .search-wrap{margin-bottom:12px;position:relative}
@@ -167,13 +174,11 @@ select{cursor:pointer}
 
 .pending-item{background:var(--s2);border:1px solid var(--bdr);border-radius:var(--r);padding:12px;margin-bottom:10px}
 .ptag{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:700;display:inline-block;margin-bottom:6px}
-.ptag-u{background:var(--orange);color:#000}
-.ptag-d{background:var(--blue);color:#000}
+.ptag-u{background:var(--orange);color:#000}.ptag-d{background:var(--blue);color:#000}
 
 #toast-ct{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
 .toast{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:12px 20px;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px;animation:toastIn .3s ease;box-shadow:0 8px 30px rgba(0,0,0,.5);pointer-events:all;white-space:nowrap}
-.toast.success{border-color:rgba(62,201,122,.4)}
-.toast.error{border-color:rgba(224,85,85,.4)}
+.toast.success{border-color:rgba(62,201,122,.4)}.toast.error{border-color:rgba(224,85,85,.4)}
 .toast.out{animation:toastOut .3s ease forwards}
 @keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateY(12px)}}
@@ -183,8 +188,7 @@ select{cursor:pointer}
 #modal-box{background:var(--s2);border:1px solid var(--border);border-radius:var(--rl);padding:28px;max-width:340px;width:90%;box-shadow:0 30px 80px rgba(0,0,0,.8)}
 #modal-box h3{font-size:16px;margin-bottom:10px}
 #modal-box p{color:var(--muted);font-size:14px;margin-bottom:22px;line-height:1.5}
-.modal-btns{display:flex;gap:10px}
-.modal-btns .btn{flex:1;margin-top:0}
+.modal-btns{display:flex;gap:10px}.modal-btns .btn{flex:1;margin-top:0}
 
 .divider{height:1px;background:var(--border);margin:6px 0 16px}
 @keyframes highlight{0%,100%{background:var(--s2)}50%{background:rgba(212,175,55,.1)}}
@@ -275,16 +279,26 @@ select{cursor:pointer}
       <button class="stype-btn" id="btn-video" onclick="showSermonType('video')"><span>&#127909;</span>Video</button>
       <button class="stype-btn" id="btn-audio" onclick="showSermonType('audio')"><span>&#128266;</span>Audio</button>
     </div>
+    <!--
+      AUDIO CONTRACT (must match index.html isAudioItem):
+        item.text  = title only (no URL — index strips URLs for display)
+        item.image = .mp3 URL   (index detects audio via item.image.includes('.mp3'))
+    -->
     <div id="audio-form" class="sermon-form">
-      <select id="audio-folder-select"><option value="General sermons">General sermons</option></select>
+      <select id="audio-folder-select"><option value="General Sermons">General Sermons</option></select>
       <input type="text" id="audio-title" placeholder="Sermon title">
       <input type="text" id="audio-link" placeholder=".mp3 or audio link">
       <button class="btn btn-gold" onclick="publishAudio(this)">Publish Audio Sermon</button>
     </div>
+    <!--
+      VIDEO CONTRACT (must match index.html buildCard video detection):
+        item.text  = description (plain text)
+        item.image = video URL (YouTube/MP4/Drive/Dropbox — index detects by URL pattern)
+    -->
     <div id="video-form" class="sermon-form">
-      <select id="video-folder-select"><option value="General sermons">General sermons</option></select>
+      <select id="video-folder-select"><option value="General Sermons">General Sermons</option></select>
       <textarea id="post-text" placeholder="Sermon description..." rows="3"></textarea>
-      <input type="text" id="post-img" placeholder="Video URL">
+      <input type="text" id="post-img" placeholder="Video URL (YouTube, MP4, Drive, Dropbox)">
       <button class="btn btn-gold" onclick="publishVideo(this)">Publish Video Sermon</button>
     </div>
   </div>
@@ -354,75 +368,73 @@ select{cursor:pointer}
 
 <script>
 window.addEventListener('fb-ready', function() {
-  var _fb = window._fb;
-  var initializeApp = _fb.initializeApp, getDatabase = _fb.getDatabase,
-      _ref = _fb.ref, onValue = _fb.onValue, off = _fb.off,
-      push = _fb.push, set = _fb.set, update = _fb.update, remove = _fb.remove,
-      query = _fb.query, limitToLast = _fb.limitToLast,
-      endBefore = _fb.endBefore, orderByKey = _fb.orderByKey, get = _fb.get;
+  var fb=window._fb;
+  var initApp=fb.initializeApp, getDB=fb.getDatabase,
+      _ref=fb.ref, onValue=fb.onValue, off=fb.off,
+      push=fb.push, set=fb.set, update=fb.update, remove=fb.remove,
+      query=fb.query, limitToLast=fb.limitToLast,
+      endBefore=fb.endBefore, orderByKey=fb.orderByKey, get=fb.get;
 
-  var _app = initializeApp({
-    apiKey:'AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo',
-    authDomain:'unioninchristapp.firebaseapp.com',
-    databaseURL:'https://unioninchristapp-default-rtdb.firebaseio.com',
-    projectId:'unioninchristapp',
-    storageBucket:'unioninchristapp.firebasestorage.app',
-    appId:'1:68198927662:web:1ffa7ec16b35d4be88bebf'
+  var app=initApp({
+    apiKey:        'AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo',
+    authDomain:    'unioninchristapp.firebaseapp.com',
+    databaseURL:   'https://unioninchristapp-default-rtdb.firebaseio.com',
+    projectId:     'unioninchristapp',
+    storageBucket: 'unioninchristapp.firebasestorage.app',
+    appId:         '1:68198927662:web:1ffa7ec16b35d4be88bebf'
   });
-  var db = getDatabase(_app);
-  var r = function(path) { return _ref(db, path); };
+  var db=getDB(app);
+  var r=function(path){ return _ref(db,path); };
 
-  /* LISTENER REGISTRY — track every onValue so detachAll() on logout
-     prevents ghost listeners firing in new sessions. */
-  var _L = [];
-  function listen(path, cb) { var ref = r(path); onValue(ref, cb); _L.push({ref:ref,cb:cb}); }
-  function detachAll() { _L.forEach(function(x){ off(x.ref,'value',x.cb); }); _L.length=0; }
+  /* LISTENER REGISTRY */
+  var _L=[];
+  function listen(path,cb){ var ref=r(path); onValue(ref,cb); _L.push({ref:ref,cb:cb}); }
+  function detachAll(){ _L.forEach(function(x){ off(x.ref,'value',x.cb); }); _L.length=0; }
 
   /* UTILITIES */
-  function san(s) {
-    if (typeof s !== 'string') return '';
+  function san(s){
+    if(typeof s!=='string')return'';
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
             .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
-  /* FIX: Parse date as LOCAL midnight — without T00:00:00 JS treats YYYY-MM-DD
-     as UTC, causing posts in GMT+2 to publish a full day early. */
-  function localMidnight(s) { return new Date(s+'T00:00:00').getTime(); }
-  function today() { return new Date().toLocaleDateString('en-GB'); }
-  function fmtDate(ts) { return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
-  function safeSet(id,val) { var el=document.getElementById(id); if(el) el.textContent=val; }
-  function setLoading(btn,on,orig) { if(!btn)return; btn.disabled=on; btn.textContent=on?'Working...':orig; }
+  /* LOCAL MIDNIGHT FIX: JS parses "YYYY-MM-DD" as UTC which causes posts in
+     timezones ahead of UTC (e.g. UTC+2 Malawi) to publish a day early.     */
+  function localMidnight(s){ return new Date(s+'T00:00:00').getTime(); }
+  function today(){ return new Date().toLocaleDateString('en-GB'); }
+  function fmtDate(ts){ return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+  function safeSet(id,val){ var el=document.getElementById(id); if(el) el.textContent=val; }
+  function setLoading(btn,on,orig){ if(!btn)return; btn.disabled=on; btn.textContent=on?'Working...':orig; }
 
-  function toast(msg,type) {
-    type = type||'success';
+  function toast(msg,type){
+    type=type||'success';
     var t=document.createElement('div'); t.className='toast '+type;
-    t.textContent=(type==='success'?'+ ':'x ')+msg;
+    t.textContent=(type==='success'?'✓  ':'✕  ')+msg;
     document.getElementById('toast-ct').appendChild(t);
     setTimeout(function(){ t.classList.add('out'); setTimeout(function(){ t.remove(); },350); },3200);
   }
 
-  /* MODAL CONFIRM — replaces browser confirm() */
-  var _mRes = null;
-  function showConfirm(title, msg) {
-    document.getElementById('modal-title').textContent = title;
-    document.getElementById('modal-msg').textContent   = msg;
+  /* MODAL — replaces native confirm() which blocks the main thread */
+  var _mRes=null;
+  function showConfirm(title,msg){
+    document.getElementById('modal-title').textContent=title;
+    document.getElementById('modal-msg').textContent=msg;
     document.getElementById('modal-ov').classList.add('open');
     return new Promise(function(res){ _mRes=res; });
   }
-  window.closeModal = function(yes) {
+  window.closeModal=function(yes){
     document.getElementById('modal-ov').classList.remove('open');
     if(_mRes){ _mRes(yes); _mRes=null; }
   };
-  document.getElementById('modal-ov').addEventListener('click', function(e){
+  document.getElementById('modal-ov').addEventListener('click',function(e){
     if(e.target===e.currentTarget) closeModal(false);
   });
 
-  /* AUTH — uses sessionStorage (clears on tab close, unlike localStorage).
-     For production: replace with Firebase Auth or a Cloud Function check. */
-  window.checkAdmin = function() {
+  /* AUTH */
+  window.checkAdmin=function(){
     var inp=document.getElementById('admin-key');
     var err=document.getElementById('login-error');
     err.textContent='';
-    if(inp.value==='church111') {
+    if(inp.value==='church111'){
       sessionStorage.setItem('uic_admin','1');
       inp.value=''; showDashboard();
     } else {
@@ -431,8 +443,8 @@ window.addEventListener('fb-ready', function() {
     }
   };
 
-  var sliderInterval = null;
-  window.logOut = function() {
+  var sliderInterval=null;
+  window.logOut=function(){
     if(sliderInterval) clearInterval(sliderInterval);
     detachAll();
     sessionStorage.removeItem('uic_admin');
@@ -441,7 +453,7 @@ window.addEventListener('fb-ready', function() {
 
   if(sessionStorage.getItem('uic_admin')==='1') showDashboard();
 
-  function showDashboard() {
+  function showDashboard(){
     document.getElementById('login-screen').style.display='none';
     document.getElementById('dashboard').style.display='block';
     loadSettings();
@@ -452,13 +464,13 @@ window.addEventListener('fb-ready', function() {
   }
 
   /* SETTINGS */
-  function loadSettings() {
-    listen('settings/devotional', function(s){
+  function loadSettings(){
+    listen('settings/devotional',function(s){
       var d=s.val(); if(!d)return;
       document.getElementById('devo-v-in').value=d.verse||'';
       document.getElementById('devo-t-in').value=d.text||'';
     });
-    listen('settings/slider', function(s){
+    listen('settings/slider',function(s){
       var d=s.val(); if(!d)return;
       document.getElementById('p-img1').src=d.img1||'';
       document.getElementById('p-img2').src=d.img2||'';
@@ -467,7 +479,7 @@ window.addEventListener('fb-ready', function() {
     });
   }
 
-  window.updateSlider = function(btn) {
+  window.updateSlider=function(btn){
     var img1=document.getElementById('slide1').value.trim();
     var img2=document.getElementById('slide2').value.trim();
     var orig=btn.textContent; setLoading(btn,true,orig);
@@ -477,13 +489,13 @@ window.addEventListener('fb-ready', function() {
       .finally(function(){ setLoading(btn,false,orig); });
   };
 
-  window.updateDevo = function(btn) {
+  window.updateDevo=function(btn){
     var v=document.getElementById('devo-v-in').value.trim();
     var t=document.getElementById('devo-t-in').value.trim();
     var d=document.getElementById('devo-schedule-date').value;
     if(!v||!t){ toast('Please fill in scripture and message.','error'); return; }
     var orig=btn.textContent; setLoading(btn,true,orig);
-    var op = d
+    var op=d
       ? push(r('scheduled_devotionals'),{verse:v,text:t,timestamp:localMidnight(d)})
       : set(r('settings/devotional'),{verse:v,text:t});
     op.then(function(){
@@ -495,7 +507,7 @@ window.addEventListener('fb-ready', function() {
   };
 
   /* UPDATES */
-  window.publishUpdate = function(btn) {
+  window.publishUpdate=function(btn){
     var txt=document.getElementById('update-text').value.trim();
     var img=document.getElementById('update-img').value.trim();
     var d=document.getElementById('schedule-date').value;
@@ -512,19 +524,20 @@ window.addEventListener('fb-ready', function() {
   };
 
   /* SERMONS */
-  window.showSermonType = function(type) {
+  window.showSermonType=function(type){
     ['video','audio'].forEach(function(t){
       document.getElementById(t+'-form').classList.toggle('visible',t===type);
       document.getElementById('btn-'+t).classList.toggle('active',t===type);
     });
   };
 
-  window.publishAudio = function(btn) {
+  window.publishAudio=function(btn){
     var title=document.getElementById('audio-title').value.trim();
     var link=document.getElementById('audio-link').value.trim();
     var cat=document.getElementById('audio-folder-select').value;
     if(!link){ toast('Please provide an audio link.','error'); return; }
     var orig=btn.textContent; setLoading(btn,true,orig);
+    /* CONTRACT: text=title only, image=mp3 URL — index detects audio by item.image.includes('.mp3') */
     push(r('sermons'),{text:title,image:link,category:cat,date:today(),timestamp:Date.now(),likes:0})
       .then(function(){
         toast('Audio published to '+cat);
@@ -534,12 +547,13 @@ window.addEventListener('fb-ready', function() {
       .finally(function(){ setLoading(btn,false,orig); });
   };
 
-  window.publishVideo = function(btn) {
+  window.publishVideo=function(btn){
     var txt=document.getElementById('post-text').value.trim();
     var vid=document.getElementById('post-img').value.trim();
     var cat=document.getElementById('video-folder-select').value;
     if(!vid){ toast('Please provide a video URL.','error'); return; }
     var orig=btn.textContent; setLoading(btn,true,orig);
+    /* CONTRACT: text=description, image=video URL — index detects type by URL pattern */
     push(r('sermons'),{text:txt,image:vid,category:cat,date:today(),timestamp:Date.now(),likes:0})
       .then(function(){
         toast('Video published to '+cat);
@@ -550,13 +564,13 @@ window.addEventListener('fb-ready', function() {
   };
 
   /* FOLDERS */
-  function loadFolders() {
-    listen('folders', function(s){
+  function loadFolders(){
+    listen('folders',function(s){
       var list=document.getElementById('folder-list-admin');
       var audSel=document.getElementById('audio-folder-select');
       var vidSel=document.getElementById('video-folder-select');
       var data=s.val();
-      var def='<option value="General sermons">General sermons</option>';
+      var def='<option value="General Sermons">General Sermons</option>';
       audSel.innerHTML=def; vidSel.innerHTML=def; list.innerHTML='';
       if(data){
         Object.keys(data).forEach(function(k){
@@ -568,8 +582,7 @@ window.addEventListener('fb-ready', function() {
       }
     });
   }
-
-  window.addFolder = function(btn) {
+  window.addFolder=function(btn){
     var inp=document.getElementById('new-folder-name');
     var name=inp.value.trim(); if(!name)return;
     var orig=btn.textContent; setLoading(btn,true,orig);
@@ -578,8 +591,7 @@ window.addEventListener('fb-ready', function() {
       .catch(function(){ toast('Failed.','error'); })
       .finally(function(){ setLoading(btn,false,orig); });
   };
-
-  window.renameFolder = function(id) {
+  window.renameFolder=function(id){
     var n=(document.getElementById('ef-'+id).value||'').trim(); if(!n)return;
     update(r('folders/'+id),{name:n})
       .then(function(){ toast('Renamed!'); })
@@ -587,7 +599,7 @@ window.addEventListener('fb-ready', function() {
   };
 
   /* SCHEDULED TASKS */
-  function processScheduled() {
+  function processScheduled(){
     var now=Date.now();
     get(r('scheduled_updates')).then(function(s){
       var d=s.val(); if(!d)return;
@@ -599,19 +611,18 @@ window.addEventListener('fb-ready', function() {
       var d=s.val(); if(!d)return;
       Object.keys(d).forEach(function(k){
         if(d[k].timestamp<=now){
-          var item=d[k];
-          set(r('settings/devotional'),{verse:item.verse,text:item.text}).then(function(){ remove(r('scheduled_devotionals/'+k)); });
+          var it=d[k];
+          set(r('settings/devotional'),{verse:it.verse,text:it.text}).then(function(){ remove(r('scheduled_devotionals/'+k)); });
         }
       });
     });
   }
 
-  /* PENDING — FIX: was doing a full DB snapshot read. Now uses two
-     scoped listeners, each reading only their own collection. */
-  function loadPending() {
+  /* PENDING — scoped listeners, no full DB snapshot */
+  function loadPending(){
     var listDiv=document.getElementById('pending-list');
     var badge=document.getElementById('pending-badge');
-    var _u={}, _d={};
+    var _u={},_d={};
     function render(){
       listDiv.innerHTML=''; var total=0;
       Object.keys(_u).forEach(function(k){
@@ -629,38 +640,24 @@ window.addEventListener('fb-ready', function() {
     listen('scheduled_devotionals', function(s){ _d=s.val()||{}; render(); });
   }
 
-  /* RENDER LISTS — PAGINATED [Gemini Fix #1]
-     
-     Original: onValue() on full collection = downloads ALL 500 sermons at once.
-     
-     New approach:
-       1. limitToLast(20) — only the 20 most recent items on load
-       2. "Load more" uses endBefore(cursor) — fetches prev 20, no duplicates
-       3. Badge count uses one-time get() — no live listener on entire collection
-       4. Live listener on limitToLast(1) watches for truly new posts only
-  */
+  /* PAGINATED LISTS */
   var PAGE=20;
-
-  function renderList(type, containerId, badgeId) {
-    get(r(type)).then(function(s){
-      var d=s.val();
-      safeSet(badgeId, d ? Object.keys(d).length : '0');
-    });
-
+  function renderList(type,containerId,badgeId){
+    get(r(type)).then(function(s){ var d=s.val(); safeSet(badgeId,d?Object.keys(d).length:'0'); });
     var div=document.getElementById(containerId);
     div.innerHTML='';
-    var oldestKey=null, exhausted=false;
+    var oldestKey=null,exhausted=false;
 
-    function buildCard(type, k, item) {
+    function buildCard(type,k,item){
       var el=document.createElement('div');
       el.className='admin-item'; el.id='post-'+k;
       el.innerHTML=
-        (type==='sermons'&&item.category?'<span class="folder-tag">Folder: '+san(item.category)+'</span>':'')+
-        (item.image?'<img src="'+san(item.image)+'" alt="media" loading="lazy">':'')+
+        (type==='sermons'&&item.category?'<span class="folder-tag">&#128193; '+san(item.category)+'</span>':'')+
+        (item.image?'<img src="'+san(item.image)+'" alt="" loading="lazy">':'')+
         '<textarea id="edit-'+k+'" rows="2">'+san(item.text||'')+'</textarea>'+
         '<div class="item-meta">'+
-          '<span class="likes">Likes: '+(item.likes||0)+'</span>'+
-          '<button class="ctoggle" onclick="toggleComments(\''+k+'\')">Comments <span id="cc-'+k+'">0</span></button>'+
+          '<span class="likes">&#10084; '+(item.likes||0)+'</span>'+
+          '<button class="ctoggle" onclick="toggleComments(\''+k+'\')">&#128172; <span id="cc-'+k+'">0</span></button>'+
         '</div>'+
         '<div id="comm-'+k+'" class="comment-box"></div>'+
         '<div class="item-actions">'+
@@ -670,13 +667,11 @@ window.addEventListener('fb-ready', function() {
       return el;
     }
 
-    function fetchPage() {
-      var q = oldestKey
-        ? query(r(type), orderByKey(), endBefore(oldestKey), limitToLast(PAGE))
-        : query(r(type), orderByKey(), limitToLast(PAGE));
-
+    function fetchPage(){
+      var q=oldestKey
+        ? query(r(type),orderByKey(),endBefore(oldestKey),limitToLast(PAGE))
+        : query(r(type),orderByKey(),limitToLast(PAGE));
       var old=document.getElementById('lm-'+type); if(old) old.remove();
-
       return get(q).then(function(snap){
         var data=snap.val();
         if(!data){
@@ -688,11 +683,11 @@ window.addEventListener('fb-ready', function() {
         var keys=Object.keys(data);
         if(keys.length<PAGE) exhausted=true;
         oldestKey=keys[0];
-        var reversed=keys.slice().reverse();
-        reversed.forEach(function(k){
+        keys.slice().reverse().forEach(function(k){
           if(document.getElementById('post-'+k)) return;
           var el=buildCard(type,k,data[k]);
-          div.append(el);
+          var lm=document.getElementById('lm-'+type);
+          if(lm) div.insertBefore(el,lm); else div.append(el);
           loadComments(k);
         });
         if(!exhausted){
@@ -706,7 +701,7 @@ window.addEventListener('fb-ready', function() {
     }
 
     var firstFire=true;
-    listen(type, function(s){
+    listen(type,function(s){
       if(firstFire){ firstFire=false; return; }
       var d=s.val(); if(!d)return;
       var keys=Object.keys(d);
@@ -714,15 +709,14 @@ window.addEventListener('fb-ready', function() {
       if(!document.getElementById('post-'+newest)){
         var el=buildCard(type,newest,d[newest]);
         div.prepend(el); loadComments(newest);
-        safeSet(badgeId, keys.length);
+        safeSet(badgeId,keys.length);
       }
     });
-
     fetchPage();
   }
 
   /* SAVE / DELETE */
-  window.saveEdit = function(type,id,btn){
+  window.saveEdit=function(type,id,btn){
     var newText=(document.getElementById('edit-'+id).value||'').trim(); if(!newText)return;
     var orig=btn.textContent; setLoading(btn,true,orig);
     update(r(type+'/'+id),{text:newText})
@@ -731,8 +725,8 @@ window.addEventListener('fb-ready', function() {
       .finally(function(){ setLoading(btn,false,orig); });
   };
 
-  window.deleteItem = function(path, commentPath, btn){
-    showConfirm('Delete','This will permanently delete the item and all associated comments.').then(function(yes){
+  window.deleteItem=function(path,commentPath,btn){
+    showConfirm('Delete','Permanently delete this item and all its comments?').then(function(yes){
       if(!yes)return;
       var orig=btn.textContent; setLoading(btn,true,orig);
       var id=path.split('/').pop();
@@ -746,42 +740,48 @@ window.addEventListener('fb-ready', function() {
     });
   };
 
-  /* COMMENTS — BUG FIX: original used undefined variable `commentId`.
-     Correct variable is `ck` (the loop variable in forEach). */
-  window.toggleComments = function(postId){
+  /* COMMENTS
+     BUG FIX: original code used undefined `commentId` variable.
+     Correct variable is `ck` — the Object.keys forEach loop key.
+     adminReply written here is read by index.html loadComments().
+     replies sub-collection is written by index.html sendReply().   */
+  window.toggleComments=function(postId){
     document.getElementById('comm-'+postId).classList.toggle('open');
   };
 
-  function loadComments(postId) {
-    listen('comments/'+postId, function(s){
+  function loadComments(postId){
+    listen('comments/'+postId,function(s){
       var box=document.getElementById('comm-'+postId);
       var counter=document.getElementById('cc-'+postId);
       if(!box)return; box.innerHTML='';
       var data=s.val(); var total=0;
       if(data){
-        Object.keys(data).forEach(function(ck){ /* ck is correct — original bug used `commentId` */
+        Object.keys(data).forEach(function(ck){ /* ck = correct variable (was commentId = BUG) */
           total++; var c=data[ck];
-          var html='<div class="comment-entry" id="ce-'+ck+'">'+
-            '<div class="comment-user">'+
-              '<span>'+san(c.userName||'Member')+'</span>'+
-              '<button class="del-btn" onclick="moderateComment(\''+postId+'\',\''+ck+'\')">Delete</button>'+
-            '</div>'+
-            '<div>'+san(c.text||'')+'</div>';
+          var html=
+            '<div class="comment-entry" id="ce-'+ck+'">'+
+              '<div class="comment-user">'+
+                '<span>'+san(c.userName||'Member')+'</span>'+
+                '<button class="del-btn" onclick="moderateComment(\''+postId+'\',\''+ck+'\')">Delete</button>'+
+              '</div>'+
+              '<div>'+san(c.text||'')+'</div>';
           if(c.adminReply) html+='<div class="admin-reply">Admin: '+san(c.adminReply)+'</div>';
-          html+='<div class="reply-row">'+
-            '<input type="text" id="rpl-'+ck+'" placeholder="Write a reply...">'+
-            '<button class="btn btn-green btn-sm" onclick="sendReply(\''+postId+'\',\''+ck+'\')">Reply</button>'+
-          '</div>';
+          html+=
+            '<div class="reply-row">'+
+              '<input type="text" id="rpl-'+ck+'" placeholder="Write a reply...">'+
+              '<button class="btn btn-green btn-sm" onclick="sendReply(\''+postId+'\',\''+ck+'\')">Reply</button>'+
+            '</div>';
           if(c.replies){
             Object.keys(c.replies).forEach(function(rk){
               total++; var rep=c.replies[rk];
-              html+='<div class="thread-reply" id="tr-'+rk+'">'+
-                '<div style="display:flex;justify-content:space-between;align-items:center">'+
-                  '<span>Reply: '+san(rep.userName||'Member')+'</span>'+
-                  '<button class="del-btn" onclick="moderateComment(\''+postId+'\',\''+ck+'\',\''+rk+'\')">Delete</button>'+
-                '</div>'+
-                '<div style="margin-top:2px">'+san(rep.text||'')+'</div>'+
-              '</div>';
+              html+=
+                '<div class="thread-reply" id="tr-'+rk+'">'+
+                  '<div style="display:flex;justify-content:space-between;align-items:center">'+
+                    '<span>&#8618; '+san(rep.userName||'Member')+'</span>'+
+                    '<button class="del-btn" onclick="moderateComment(\''+postId+'\',\''+ck+'\',\''+rk+'\')">Delete</button>'+
+                  '</div>'+
+                  '<div style="margin-top:2px">'+san(rep.text||'')+'</div>'+
+                '</div>';
             });
           }
           html+='</div>';
@@ -793,15 +793,34 @@ window.addEventListener('fb-ready', function() {
     });
   }
 
-  window.sendReply = function(postId, commentId){
+  /* Admin reply — sets adminReply field read by index.html.
+     Also sends a notification to the commenter via notifications/{userNotifId}. */
+  window.sendReply=function(postId,commentId){
     var inp=document.getElementById('rpl-'+commentId);
     if(!inp||!inp.value.trim())return;
-    update(r('comments/'+postId+'/'+commentId),{adminReply:inp.value.trim()})
-      .then(function(){ toast('Reply sent!'); inp.value=''; })
-      .catch(function(){ toast('Failed.','error'); });
+    var replyText=inp.value.trim();
+    get(r('comments/'+postId+'/'+commentId)).then(function(snap){
+      var c=snap.val()||{};
+      update(r('comments/'+postId+'/'+commentId),{adminReply:replyText})
+        .then(function(){
+          toast('Reply sent!');
+          inp.value='';
+          /* Notify the member — matches notifications shape expected by index.html */
+          if(c.userNotifId){
+            push(r('notifications/'+c.userNotifId),{
+              from:  'Admin',
+              msg:   'replied to your comment',
+              postId: postId,
+              tab:   'home',   /* index.html routes this to the Home tab */
+              time:  Date.now()
+            });
+          }
+        })
+        .catch(function(){ toast('Failed.','error'); });
+    });
   };
 
-  window.moderateComment = function(postId, commentId, replyId){
+  window.moderateComment=function(postId,commentId,replyId){
     showConfirm('Moderate','Replace this message with a deletion notice?').then(function(yes){
       if(!yes)return;
       var path=replyId
@@ -814,8 +833,8 @@ window.addEventListener('fb-ready', function() {
   };
 
   /* PRAYERS */
-  function loadPrayers() {
-    listen('prayers', function(s){
+  function loadPrayers(){
+    listen('prayers',function(s){
       var div=document.getElementById('prayers-list');
       var badge=document.getElementById('prayers-badge');
       div.innerHTML=''; var data=s.val();
@@ -834,70 +853,41 @@ window.addEventListener('fb-ready', function() {
     });
   }
 
-  window.markPrayersRead = function(){
+  window.markPrayersRead=function(){
     get(r('prayers')).then(function(s){
       var data=s.val(); if(!data)return;
+      /* status:'unread' is written by index.html submitPrayer() */
       Object.keys(data).forEach(function(k){
         if(data[k].status==='unread') update(r('prayers/'+k),{status:'read'});
       });
     });
   };
 
-  /* ANALYTICS — Promise.all [Gemini Fix #4]
-     
-     Original: nested .once() calls — race condition. Sermons totals could
-     be calculated before updates finished loading (or vice versa).
-     
-     Fix: Promise.all() fetches all three simultaneously and only
-     calculates after ALL have resolved — always complete data.
-     
-     Also debounced 900ms to avoid hammering DB on every comment change. */
+  /* ANALYTICS — Promise.all avoids the race condition from nested callbacks */
   var _aTick=null;
   function refreshAnalytics(){ clearTimeout(_aTick); _aTick=setTimeout(doAnalytics,900); }
-
   function doAnalytics(){
-    Promise.all([
-      get(r('comments')),
-      get(r('updates')),
-      get(r('sermons'))
-    ]).then(function(results){
-      var commData=results[0].val()||{};
-      var updData=results[1].val()||{};
-      var serData=results[2].val()||{};
-
-      var commCount={}, totalComm=0;
-      Object.keys(commData).forEach(function(pid){
-        var c=Object.keys(commData[pid]).length;
-        commCount[pid]=c; totalComm+=c;
+    Promise.all([get(r('comments')),get(r('updates')),get(r('sermons'))]).then(function(res){
+      var commData=res[0].val()||{}, updData=res[1].val()||{}, serData=res[2].val()||{};
+      var commCount={},totalComm=0;
+      Object.keys(commData).forEach(function(pid){ var c=Object.keys(commData[pid]).length; commCount[pid]=c; totalComm+=c; });
+      var totalLikes=0, topLiked={text:'None',score:-1}, topComm={text:'None',score:-1};
+      Object.entries(updData).concat(Object.entries(serData)).forEach(function(e){
+        var k=e[0],it=e[1],l=it.likes||0; totalLikes+=l;
+        if(l>topLiked.score) topLiked={text:it.text,score:l};
+        var c=commCount[k]||0; if(c>topComm.score) topComm={text:it.text,score:c};
       });
-
-      var totalLikes=0;
-      var totalUpdates=Object.keys(updData).length;
-      var totalSermons=Object.keys(serData).length;
-      var topLiked={text:'None',score:-1};
-      var topComm={text:'None',score:-1};
-
-      var combined=Object.entries(updData).concat(Object.entries(serData));
-      combined.forEach(function(entry){
-        var k=entry[0], item=entry[1];
-        var likes=item.likes||0; totalLikes+=likes;
-        if(likes>topLiked.score) topLiked={text:item.text,score:likes};
-        var cc=commCount[k]||0;
-        if(cc>topComm.score) topComm={text:item.text,score:cc};
-      });
-
       safeSet('stat-likes',totalLikes);
       safeSet('stat-comm',totalComm);
-      safeSet('stat-updates',totalUpdates);
-      safeSet('stat-sermons',totalSermons);
+      safeSet('stat-updates',Object.keys(updData).length);
+      safeSet('stat-sermons',Object.keys(serData).length);
       safeSet('top-liked',(topLiked.text||'').substring(0,80)+'... ('+Math.max(0,topLiked.score)+' likes)');
       safeSet('top-commented',(topComm.text||'').substring(0,80)+'... ('+Math.max(0,topComm.score)+' comments)');
-    });
+    }).catch(function(){ toast('Analytics error.','error'); });
   }
-
-  listen('comments', refreshAnalytics);
-  listen('updates',  refreshAnalytics);
-  listen('sermons',  refreshAnalytics);
+  listen('comments',refreshAnalytics);
+  listen('updates', refreshAnalytics);
+  listen('sermons', refreshAnalytics);
 
   /* PREVIEW SLIDER */
   function startPreviewSlider(){
@@ -906,26 +896,42 @@ window.addEventListener('fb-ready', function() {
     sliderInterval=setInterval(function(){
       var slides=document.querySelectorAll('.mini-slide'); if(slides.length<2)return;
       slides[cur].classList.remove('active');
-      cur=(cur+1)%slides.length;
-      slides[cur].classList.add('active');
+      cur=(cur+1)%slides.length; slides[cur].classList.add('active');
     },7000);
   }
 
   /* NOTIFICATION BELL */
-  var bellCount=0, bellReady=false;
+  var bellCount=0,bellReady=false;
   function initBellWatcher(){
     updateBellUI();
-    listen('prayers', function(s){
+    listen('prayers',function(s){
       if(!bellReady)return;
       var data=s.val(); if(!data)return;
       var keys=Object.keys(data);
       var last=data[keys[keys.length-1]];
       if(last&&last.status==='unread')
-        addNotif('New Prayer Request',last.text,'sec-prayers','prayer-'+keys[keys.length-1]);
+        addNotif('New Prayer',last.text,'sec-prayers','prayer-'+keys[keys.length-1]);
+    });
+    /* Watch for new member comments */
+    listen('comments',function(s){
+      if(!bellReady)return;
+      var data=s.val(); if(!data)return;
+      Object.keys(data).forEach(function(pid){
+        var comments=data[pid]; if(!comments)return;
+        Object.keys(comments).forEach(function(ck){
+          var c=comments[ck];
+          if(c.userName&&c.userName!=='Moderated'){
+            var key='bseen_'+ck;
+            if(!sessionStorage.getItem(key)){
+              sessionStorage.setItem(key,'1');
+              addNotif(c.userName+' commented',c.text,'sec-updates','post-'+pid);
+            }
+          }
+        });
+      });
     });
     setTimeout(function(){ bellReady=true; },3500);
   }
-
   function addNotif(title,body,sectionId,elemId){
     bellCount++; updateBellUI();
     var list=document.getElementById('notif-list');
@@ -935,63 +941,21 @@ window.addEventListener('fb-ready', function() {
     item.onclick=function(){ goToSection(sectionId,elemId); document.getElementById('notif-dd').classList.remove('open'); };
     list.prepend(item);
   }
-
-  function updateBellUI(){
-    var b=document.getElementById('bell-badge');
-    b.textContent=bellCount;
-    b.classList.toggle('show',bellCount>0);
-  }
-
-  window.toggleNotif = function(){
-    var d=document.getElementById('notif-dd');
-    d.classList.toggle('open');
-    if(d.classList.contains('open')){ bellCount=0; updateBellUI(); }
-  };
-
-  window.clearNotifs = function(){
-    document.getElementById('notif-list').innerHTML='<div class="n-empty">No new activity</div>';
-    bellCount=0; updateBellUI();
-    document.getElementById('notif-dd').classList.remove('open');
-  };
-
+  function updateBellUI(){ var b=document.getElementById('bell-badge'); b.textContent=bellCount; b.classList.toggle('show',bellCount>0); }
+  window.toggleNotif=function(){ var d=document.getElementById('notif-dd'); d.classList.toggle('open'); if(d.classList.contains('open')){ bellCount=0; updateBellUI(); } };
+  window.clearNotifs=function(){ document.getElementById('notif-list').innerHTML='<div class="n-empty">No new activity</div>'; bellCount=0; updateBellUI(); document.getElementById('notif-dd').classList.remove('open'); };
   function goToSection(sectionId,elemId){
     var content=document.getElementById(sectionId);
-    if(content&&!content.classList.contains('open')){
-      content.classList.add('open');
-      var btn=content.previousElementSibling;
-      if(btn&&btn.classList.contains('sec-btn')) btn.classList.add('open');
-    }
-    setTimeout(function(){
-      var el=document.getElementById(elemId)||document.getElementById(sectionId);
-      if(el){
-        el.scrollIntoView({behavior:'smooth',block:'center'});
-        el.classList.add('flash');
-        setTimeout(function(){ el.classList.remove('flash'); },2000);
-      }
-    },250);
+    if(content&&!content.classList.contains('open')){ content.classList.add('open'); var btn=content.previousElementSibling; if(btn&&btn.classList.contains('sec-btn')) btn.classList.add('open'); }
+    setTimeout(function(){ var el=document.getElementById(elemId)||document.getElementById(sectionId); if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.classList.add('flash'); setTimeout(function(){ el.classList.remove('flash'); },2000); } },250);
   }
-
-  document.addEventListener('click',function(e){
-    var d=document.getElementById('notif-dd');
-    if(!d.classList.contains('open'))return;
-    if(!e.target.closest('#notif-dd')&&!e.target.closest('.bell-wrap')) d.classList.remove('open');
-  });
+  document.addEventListener('click',function(e){ var d=document.getElementById('notif-dd'); if(!d.classList.contains('open'))return; if(!e.target.closest('#notif-dd')&&!e.target.closest('.bell-wrap')) d.classList.remove('open'); });
 
 }); /* end fb-ready */
 
-/* GLOBAL UI HELPERS — must be on window for onclick= attributes */
-window.toggleSec = function(btn,contentId){
-  var c=document.getElementById(contentId);
-  var open=c.classList.toggle('open');
-  btn.classList.toggle('open',open);
-};
-
-window.filterList = function(input,containerId){
-  var q=input.value.toLowerCase();
-  document.querySelectorAll('#'+containerId+' .admin-item').forEach(function(el){
-    el.style.display=el.innerText.toLowerCase().includes(q)?'':'none';
-  });
-};
+/* GLOBAL UI HELPERS */
+window.toggleSec=function(btn,contentId){ var c=document.getElementById(contentId); var open=c.classList.toggle('open'); btn.classList.toggle('open',open); };
+window.filterList=function(input,containerId){ var q=input.value.toLowerCase(); document.querySelectorAll('#'+containerId+' .admin-item').forEach(function(el){ el.style.display=el.innerText.toLowerCase().includes(q)?'':'none'; }); };
 </script>
 </body>
 </html>
