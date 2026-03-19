@@ -1,722 +1,1614 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Union in Christ Church</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <style>
-        :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); }
-        
-        header { 
-            background: linear-gradient(135deg, #40A5E7, var(--navy)); 
-            color: var(--gold); 
-            padding: 30px 20px; 
-            text-align: center; 
-            border-bottom: 3px solid var(--gold); 
-            position: relative;
-        }
-        .bell-container {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            cursor: pointer;
-            z-index: 1100;
-        }
-        .bell-icon { font-size: 24px; }
-        .bell-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: red;
-            color: white;
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            display: none;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>UICC Admin Portal</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── DESIGN TOKENS ── */
+  :root {
+    --gold: #D4AF37;
+    --gold-dim: #a8892a;
+    --gold-glow: rgba(212,175,55,0.15);
+    --navy: #001a4d;
+    --navy-deep: #000c24;
+    --bg: #0d0d0d;
+    --surface: #161616;
+    --surface-2: #1f1f1f;
+    --surface-3: #272727;
+    --border: rgba(255,255,255,0.07);
+    --border-gold: rgba(212,175,55,0.35);
+    --text: #e8e8e8;
+    --text-muted: #7a7a7a;
+    --text-dim: #555;
+    --blue: #4A9EFF;
+    --green: #28a745;
+    --orange: #f39c12;
+    --red: #e74c3c;
+    --purple: #9b59b6;
+    --radius: 10px;
+    --radius-lg: 16px;
+    --transition: 0.2s ease;
+  }
 
-        .menu-container {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            cursor: pointer;
-            z-index: 1100;
-            font-size: 24px;
-            color: var(--gold);
-        }
+  /* ── BASE ── */
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
 
-        .side-menu {
-            position: fixed;
-            top: 0;
-            left: -250px;
-            width: 250px;
-            height: 100%;
-            background: var(--card-bg);
-            z-index: 1200;
-            transition: 0.3s;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.5);
-            border-right: 2px solid var(--gold);
-        }
-        .side-menu.open { left: 0; }
-        .menu-header {
-            padding: 20px;
-            background: var(--navy);
-            color: var(--gold);
-            font-weight: bold;
-            border-bottom: 1px solid var(--gold);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .menu-links { padding: 20px 0; }
-        .menu-link {
-            padding: 15px 25px;
-            color: var(--text-main);
-            text-decoration: none;
-            display: block;
-            font-size: 16px;
-            border-bottom: 1px solid #333;
-            cursor: pointer;
-        }
-        .menu-link:hover { background: #252525; color: var(--gold); }
-        .menu-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            display: none;
-            z-index: 1150;
-        }
-        
-        .notif-dropdown {
-            position: fixed;
-            top: 60px;
-            right: 10px;
-            width: 280px;
-            max-height: 400px;
-            background: var(--card-bg);
-            border: 1px solid var(--gold);
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            display: none;
-            z-index: 1001;
-            overflow-y: auto;
-        }
-        .notif-header {
-            padding: 10px;
-            border-bottom: 1px solid #333;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #252525;
-        }
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, var(--navy-deep) 0%, var(--navy) 100%);
+    border-bottom: 1px solid var(--border-gold);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.6);
+  }
+  header h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 2px;
+  }
+  .header-right { display: flex; align-items: center; gap: 12px; }
 
-        .logo-sub { color: #b0b0b0; font-size: 13px; margin-top: 5px; }
-        .slider-container { width: 100%; height: 220px; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
-        .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: cover; }
-        .active { opacity: 1; }
-        .nav-tabs { display: flex; background: #1a1a1a; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #333; overflow-x: auto; }
-        .tab { flex: 1; padding: 15px; text-align: center; color: #888; font-weight: bold; cursor: pointer; font-size: 11px; min-width: 80px; position: relative; }
-        .tab.active { color: var(--gold); border-bottom: 3px solid var(--gold); background: #252525; }
-        
-        .content-section { display: none; padding: 15px; animation: fadeIn 0.4s; }
-        .content-section.active { display: block; }
-        .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 20px; border-top: 3px solid var(--gold); position: relative; }
-        
-        .highlight-comment { animation: highlightGlow 2s ease-out; }
-        @keyframes highlightGlow { 0% { background: #444; } 100% { background: var(--card-bg); } }
+  /* ── NOTIFICATION BELL ── */
+  .bell-wrap { position: relative; cursor: pointer; padding: 6px; }
+  .bell-icon { font-size: 20px; color: var(--gold); transition: transform var(--transition); }
+  .bell-wrap:hover .bell-icon { transform: rotate(-15deg) scale(1.1); }
+  .bell-badge {
+    display: none;
+    position: absolute;
+    top: 0; right: 0;
+    background: var(--red);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 50%;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--navy-deep);
+  }
+  .bell-badge.visible { display: flex; }
+  #notif-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 10px;
+    width: 300px;
+    background: var(--surface-2);
+    border: 1px solid var(--border-gold);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    z-index: 2000;
+    max-height: 380px;
+    overflow-y: auto;
+  }
+  .notif-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gold);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .notif-clear { color: var(--text-muted); cursor: pointer; font-size: 11px; font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .notif-clear:hover { color: var(--text); }
+  .notif-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background var(--transition);
+    font-size: 13px;
+  }
+  .notif-item:hover { background: var(--surface-3); }
+  .notif-item:last-child { border-bottom: none; }
+  .notif-item strong { color: var(--gold); display: block; margin-bottom: 3px; font-size: 12px; }
+  .notif-item span { color: var(--text-muted); font-size: 11px; margin-top: 4px; display: block; }
+  .notif-empty { padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px; }
 
-        .card img, .card video { width: 100%; border-radius: 8px; margin-bottom: 12px; }
-        .time-txt { font-size: 10px; color: #777; display: block; margin-bottom: 5px; }
-        .interaction-bar { border-top: 1px solid #333; margin-top: 10px; padding-top: 10px; display: flex; gap: 25px; }
-        .comment-btn { background: none; border: none; color: var(--gold); cursor: pointer; display: flex; align-items: center; font-size: 16px; gap: 5px; padding: 0; }
-        .comment-section { display: none; margin-top: 15px; background: #181818; padding: 10px; border-radius: 8px; }
-        .comment-input-box { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
-        .comment-input-box input { background: #2d2d2d; border: 1px solid #444; color: white; padding: 8px; border-radius: 5px; }
-        .comment-input-box input:disabled { background: #1a1a1a; color: #555; cursor: not-allowed; }
-        .send-comment-btn { background: var(--gold); border: none; padding: 8px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        
-        .comment-item { border-bottom: 1px solid #222; padding: 10px 0; scroll-margin-top: 70px; }
-        .reply-thread { margin-left: 20px; border-left: 1px solid #444; padding-left: 10px; margin-top: 8px; }
-        .reply-item { font-size: 13px; margin-bottom: 5px; padding: 4px 0; }
-        .reply-trigger { background: none; border: none; color: #888; font-size: 11px; cursor: pointer; padding: 0; margin-top: 5px; font-weight: bold; }
-        .reply-trigger:hover { color: var(--gold); }
-        .nested-input-group { display: none; gap: 5px; margin-top: 8px; }
-        
-        .action-link { font-size: 10px; color: #777; margin-left: 10px; cursor: pointer; text-decoration: underline; }
-        .search-container { margin: 0 0 15px 0; display: flex; justify-content: flex-end; }
-        .search-box { background: #1a1a1a; border: 1px solid #333; border-radius: 20px; padding: 5px 12px; display: flex; align-items: center; width: 140px; transition: width 0.3s; }
-        .search-box:focus-within { width: 200px; border-color: var(--gold); }
-        .search-box input { background: transparent; border: none; color: white; font-size: 11px; outline: none; width: 100%; margin-left: 5px; }
-        .search-icon { font-size: 12px; color: var(--gold); }
+  /* ── LOGIN ── */
+  #login-screen {
+    max-width: 400px;
+    margin: 80px auto;
+    padding: 40px 30px;
+    background: var(--surface);
+    border: 1px solid var(--border-gold);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 0 60px var(--gold-glow);
+  }
+  .login-logo {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  .login-logo h2 {
+    font-family: 'Cinzel', serif;
+    color: var(--gold);
+    font-size: 22px;
+    letter-spacing: 3px;
+  }
+  .login-logo p { color: var(--text-muted); font-size: 13px; margin-top: 6px; }
+  .login-error {
+    display: none;
+    background: rgba(231,76,60,0.15);
+    border: 1px solid rgba(231,76,60,0.4);
+    color: #e74c3c;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
 
-        .notif-item { padding: 12px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; color: #eee; }
-        .notif-item:active { background: #252525; }
-        .notif-item small { color: #777; display: block; margin-top: 4px; }
+  /* ── MAIN LAYOUT ── */
+  #dashboard { display: none; padding: 16px; max-width: 720px; margin: 0 auto; }
 
-        .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; }
-        .devo-card { background: linear-gradient(rgba(212, 175, 55, 0.1), rgba(0,0,0,0)); border: 1px solid var(--gold); border-radius: 15px; padding: 15px; margin-bottom: 10px; text-align: center; position: relative; }
-        .devo-title { color: var(--gold); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: bold; }
-        .devo-close { position: absolute; right: 10px; top: 10px; color: #777; font-size: 18px; cursor: pointer; padding: 5px; }
-        .sermon-nav { display: flex; gap: 10px; margin-bottom: 15px; }
-        .s-btn { flex: 1; padding: 20px 10px; border-radius: 12px; border: 1px solid var(--gold); background: #1a1a1a; color: white; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; }
-        .s-btn.active { background: var(--gold); color: black; }
-        .audio-player-container { background: #111; padding: 15px; border-radius: 10px; border: 1px solid #333; margin-top: 10px; display: flex; align-items: center; gap: 15px; }
-        audio { height: 35px; flex: 1; filter: invert(80%) sepia(50%) saturate(1000%) hue-rotate(10deg); }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    transition: border-color var(--transition);
+  }
+  .card:hover { border-color: rgba(212,175,55,0.2); }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
-        .folder-header { 
-            background: #252525; 
-            padding: 12px 15px; 
-            margin-bottom: 10px; 
-            border-radius: 8px; 
-            border-left: 4px solid var(--gold); 
-            cursor: pointer; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            font-size: 14px;
-            font-weight: bold;
-            color: var(--gold);
-        }
-    </style>
+  /* ── INPUTS ── */
+  input[type="text"], input[type="password"], input[type="date"],
+  textarea, select {
+    width: 100%;
+    padding: 11px 14px;
+    margin-top: 8px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    transition: border-color var(--transition), box-shadow var(--transition);
+    outline: none;
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--border-gold);
+    box-shadow: 0 0 0 3px var(--gold-glow);
+  }
+  select option { background: var(--surface-2); }
+  label.field-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    display: block;
+    margin-top: 14px;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 20px;
+    border-radius: var(--radius);
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    margin-top: 12px;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-gold { background: var(--gold); color: #000; }
+  .btn-gold:hover:not(:disabled) { background: #e2c040; box-shadow: 0 4px 20px var(--gold-glow); }
+  .btn-blue { background: var(--blue); color: #fff; }
+  .btn-blue:hover:not(:disabled) { background: #5eaaff; box-shadow: 0 4px 20px rgba(74,158,255,0.3); }
+  .btn-green { background: var(--green); color: #fff; }
+  .btn-green:hover:not(:disabled) { background: #2dba4e; }
+  .btn-orange { background: var(--orange); color: #fff; }
+  .btn-orange:hover:not(:disabled) { background: #f5a623; }
+  .btn-purple { background: var(--purple); color: #fff; }
+  .btn-purple:hover:not(:disabled) { background: #a66bc7; }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    width: auto;
+    margin-top: 0;
+    padding: 7px 14px;
+    font-size: 13px;
+  }
+  .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+  .btn-danger-ghost {
+    background: none;
+    border: none;
+    color: var(--red);
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    padding: 4px 0;
+    transition: opacity var(--transition);
+  }
+  .btn-danger-ghost:hover { opacity: 0.7; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--surface-2);
+    border: 1px solid var(--border-gold);
+    color: var(--text);
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 9999;
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    white-space: nowrap;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+  #toast.success { border-color: rgba(40,167,69,0.5); color: #2dba4e; }
+  #toast.error { border-color: rgba(231,76,60,0.5); color: var(--red); }
+
+  /* ── MODAL CONFIRM ── */
+  #modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 5000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  #modal-overlay.open { display: flex; }
+  #modal-box {
+    background: var(--surface-2);
+    border: 1px solid var(--border-gold);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    max-width: 340px;
+    width: 90%;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.8);
+  }
+  #modal-box h3 { font-size: 16px; margin-bottom: 10px; }
+  #modal-box p { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; line-height: 1.5; }
+  .modal-btns { display: flex; gap: 10px; }
+  .modal-btns button { flex: 1; margin-top: 0; }
+
+  /* ── PREVIEW SLIDER ── */
+  .preview-wrapper {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    position: relative;
+  }
+  .preview-label {
+    position: absolute;
+    top: 10px; left: 10px;
+    background: rgba(0,0,0,0.7);
+    color: var(--gold);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 4px 10px;
+    border-radius: 50px;
+    z-index: 2;
+  }
+  .mini-slider { width: 100%; height: 200px; position: relative; background: #000; }
+  .mini-slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s ease; object-fit: contain; background: #000; }
+  .mini-slide.active { opacity: 1; }
+
+  /* ── COLLAPSIBLE SECTIONS ── */
+  .section-toggle {
+    width: 100%;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    transition: all var(--transition);
+    text-align: left;
+  }
+  .section-toggle:hover { border-color: var(--border-gold); color: var(--gold); }
+  .section-toggle.open { border-color: var(--border-gold); }
+  .section-toggle .toggle-right { display: flex; align-items: center; gap: 10px; }
+  .section-toggle .chevron { font-size: 12px; transition: transform var(--transition); color: var(--text-muted); }
+  .section-toggle.open .chevron { transform: rotate(180deg); }
+  .section-content { display: none; margin-bottom: 16px; }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--red);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 50px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+  }
+  .badge-neutral { background: var(--surface-3); color: var(--text-muted); }
+  .badge-gold { background: var(--gold-glow); color: var(--gold); border: 1px solid var(--border-gold); }
+  .badge-pending { background: rgba(243,156,18,0.15); color: var(--orange); border: 1px solid rgba(243,156,18,0.3); font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+
+  /* ── SERMON TYPE BUTTONS ── */
+  .sermon-type-row { display: flex; gap: 12px; }
+  .sermon-type-btn {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    transition: all var(--transition);
+  }
+  .sermon-type-btn:hover { border-color: var(--border-gold); color: var(--gold); }
+  .sermon-type-btn.active { border-color: var(--gold); background: var(--gold-glow); color: var(--gold); }
+  .sermon-type-btn span.icon { font-size: 24px; }
+  .sermon-form { display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+  /* ── ADMIN ITEMS (posts, prayers, etc.) ── */
+  .admin-item {
+    background: var(--surface-2);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+    border-left: 3px solid var(--gold);
+    transition: border-color var(--transition);
+    animation: fadeSlide 0.3s ease both;
+  }
+  @keyframes fadeSlide { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform:none; } }
+  .admin-item img { width: 100%; border-radius: 8px; margin-bottom: 12px; object-fit: cover; max-height: 200px; }
+  .admin-item textarea {
+    background: var(--surface-3);
+    border-color: var(--border);
+    font-size: 13px;
+    margin-top: 0;
+    resize: vertical;
+    min-height: 60px;
+  }
+  .item-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .item-meta-left { display: flex; gap: 16px; align-items: center; }
+  .like-count { color: #e05; font-size: 13px; display: flex; align-items: center; gap: 5px; }
+  .comment-toggle-btn {
+    background: none; border: none; color: var(--gold);
+    font-size: 13px; cursor: pointer; display: flex; align-items: center;
+    gap: 5px; font-family: 'DM Sans', sans-serif; font-weight: 500;
+    padding: 0; transition: opacity var(--transition);
+  }
+  .comment-toggle-btn:hover { opacity: 0.7; }
+  .item-actions { display: flex; gap: 10px; align-items: center; }
+  .btn-save {
+    background: none; border: none; color: var(--gold);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; padding: 0;
+    transition: opacity var(--transition);
+  }
+  .btn-save:hover { opacity: 0.7; }
+
+  /* ── FOLDER BADGE ── */
+  .folder-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(155,89,182,0.15);
+    border: 1px solid rgba(155,89,182,0.3);
+    color: #c084f0;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+
+  /* ── COMMENTS ── */
+  .comment-box {
+    display: none;
+    background: var(--surface-3);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 12px;
+  }
+  .comment-item {
+    border-bottom: 1px solid var(--border);
+    padding: 10px 0;
+    font-size: 13px;
+  }
+  .comment-item:last-child { border-bottom: none; }
+  .comment-author { color: var(--gold); font-weight: 600; font-size: 12px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+  .comment-text { color: var(--text); line-height: 1.5; }
+  .admin-reply-tag { color: var(--gold); font-size: 12px; margin-top: 6px; padding-left: 10px; border-left: 2px solid var(--gold); }
+  .reply-row { display: flex; gap: 8px; margin-top: 8px; }
+  .reply-row input { margin-top: 0; padding: 8px 12px; font-size: 13px; flex: 1; }
+  .reply-send-btn {
+    background: var(--green); color: #fff; border: none;
+    border-radius: var(--radius); padding: 0 16px;
+    cursor: pointer; font-weight: 600; white-space: nowrap;
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    transition: background var(--transition);
+  }
+  .reply-send-btn:hover { background: #2dba4e; }
+  .thread-reply { margin-left: 16px; padding-left: 10px; border-left: 1px solid var(--border); margin-top: 8px; font-size: 12px; }
+  .thread-reply-author { color: var(--text-muted); font-size: 11px; margin-bottom: 3px; display: flex; justify-content: space-between; }
+
+  /* ── ANALYTICS ── */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .stat-card {
+    background: var(--surface-2);
+    border-radius: var(--radius);
+    padding: 16px;
+    border: 1px solid var(--border);
+    text-align: center;
+    border-bottom: 3px solid var(--gold);
+  }
+  .stat-card h4 { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .stat-card p { font-size: 28px; font-weight: 600; color: var(--gold); font-family: 'Cinzel', serif; }
+  .top-item {
+    background: var(--surface-2);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    border-left: 3px solid var(--blue);
+    margin-bottom: 12px;
+  }
+  .top-item.green { border-left-color: var(--green); }
+
+  /* ── SEARCH ── */
+  .search-row {
+    display: flex;
+    align-items: center;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 8px 14px;
+    gap: 8px;
+    margin-bottom: 14px;
+    transition: border-color var(--transition);
+  }
+  .search-row:focus-within { border-color: var(--border-gold); }
+  .search-row span { color: var(--text-muted); font-size: 14px; }
+  .search-row input {
+    background: none; border: none; color: var(--text);
+    font-size: 13px; outline: none; width: 100%;
+    margin-top: 0; padding: 0;
+    box-shadow: none !important;
+  }
+
+  /* ── FOLDER MANAGER ── */
+  .folder-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .folder-row input { margin-top: 0; flex: 1; }
+  .folder-action-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 12px; font-family: 'DM Sans', sans-serif;
+    font-weight: 600; padding: 0 8px; white-space: nowrap;
+    transition: color var(--transition);
+  }
+
+  /* ── PENDING ITEMS ── */
+  .pending-item {
+    background: var(--surface-2);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 10px;
+    border-left: 3px solid var(--orange);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .pending-item.devo { border-left-color: var(--blue); }
+  .pending-item-text { font-size: 13px; color: var(--text-muted); flex: 1; }
+  .pending-item-text strong { display: block; color: var(--text); margin-bottom: 4px; font-size: 12px; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-dim); font-size: 13px; }
+  .empty-state .icon { font-size: 32px; margin-bottom: 10px; opacity: 0.4; }
+
+  /* ── LOGOUT ── */
+  .logout-btn {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: var(--radius);
+    padding: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 24px;
+    transition: all var(--transition);
+  }
+  .logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+  /* ── RESPONSIVE ── */
+  @media (min-width: 600px) {
+    .mini-slider { height: 320px; }
+    header h1 { font-size: 22px; }
+  }
+</style>
 </head>
 <body>
-    <header>
-        <div class="menu-container" onclick="toggleSideMenu()">
-            <span>☰</span>
-        </div>
-        <div class="bell-container" onclick="toggleNotifDropdown()">
-            <span class="bell-icon">🔔</span>
-            <span id="notif-count" class="bell-badge">0</span>
-        </div>
-        <h1>Union in Christ Church</h1>
-        <div class="logo-sub">Founder: Lady Bishop E. Chafulumira</div>
-    </header>
 
-    <div id="side-menu-overlay" class="menu-overlay" onclick="toggleSideMenu()"></div>
-    <div id="side-menu" class="side-menu">
-        <div class="menu-header">
-            <span>MENU</span>
-            <span onclick="toggleSideMenu()" style="cursor:pointer; font-size: 20px;">&times;</span>
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- CONFIRM MODAL -->
+<div id="modal-overlay">
+  <div id="modal-box">
+    <h3 id="modal-title">Confirm Action</h3>
+    <p id="modal-msg">Are you sure?</p>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn" id="modal-confirm-btn" style="margin-top:0;">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <h1>UICC Admin</h1>
+  <div class="header-right">
+    <div class="bell-wrap" onclick="toggleNotifDropdown(event)">
+      <span class="bell-icon">🔔</span>
+      <span id="bell-badge" class="bell-badge">0</span>
+    </div>
+  </div>
+  <div id="notif-dropdown">
+    <div class="notif-header">
+      Activity
+      <span class="notif-clear" onclick="clearNotifs()">Clear all</span>
+    </div>
+    <div id="notif-list">
+      <div class="notif-empty">No new activity</div>
+    </div>
+  </div>
+</header>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-logo">
+    <h2>UICC Portal</h2>
+    <p>Admin access only</p>
+  </div>
+  <div class="login-error" id="login-error">Incorrect password. Please try again.</div>
+  <input type="password" id="admin-key" placeholder="Enter password" onkeydown="if(event.key==='Enter')checkAdmin()">
+  <button class="btn btn-gold" onclick="checkAdmin()">Login</button>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+
+  <!-- LIVE PREVIEW -->
+  <div class="preview-wrapper">
+    <div class="preview-label">Live App Preview</div>
+    <div class="mini-slider">
+      <img id="p-img1" class="mini-slide active" src="" alt="">
+      <img id="p-img2" class="mini-slide" src="" alt="">
+    </div>
+  </div>
+
+  <!-- FOLDER MANAGER -->
+  <div class="card" style="border-color: rgba(155,89,182,0.3);">
+    <details>
+      <summary style="cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center;">
+        <div class="card-title" style="margin:0;"><span>📁</span> Sermon Folder Manager</div>
+        <span style="color:var(--text-muted); font-size:12px;">Tap to expand ▾</span>
+      </summary>
+      <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+        <div class="folder-row">
+          <input type="text" id="new-folder-name" placeholder="New folder name..." style="margin-top:0;">
+          <button class="btn btn-purple" onclick="addFolder()" style="margin-top:0; width:auto; padding:11px 18px;">Create</button>
         </div>
-        <div class="menu-links">
-            <div class="menu-link" onclick="handleMenuClick('home')">🏠 Home</div>
-            <div class="menu-link" onclick="handleMenuClick('sermons')">📖 Sermons</div>
-            <div class="menu-link" onclick="handleMenuClick('prayer')">🙏 Prayer</div>
-            <div class="menu-link" onclick="handleMenuClick('about')">ℹ️ About Us</div>
-            <div class="menu-link" style="opacity: 0.5;">💰 Give</div>
-        </div>
+        <div id="folder-list-admin"></div>
+      </div>
+    </details>
+  </div>
+
+  <!-- SLIDER SETTINGS -->
+  <div class="card">
+    <div class="card-title"><span>🖼️</span> Slider Images</div>
+    <label class="field-label">Image URL 1</label>
+    <input type="text" id="slide1" placeholder="https://...">
+    <label class="field-label">Image URL 2</label>
+    <input type="text" id="slide2" placeholder="https://...">
+    <button class="btn btn-green" onclick="updateSlider()">Apply to App</button>
+  </div>
+
+  <!-- DEVOTIONAL -->
+  <div class="card" style="border-color: rgba(74,158,255,0.2);">
+    <div class="card-title" style="color:var(--blue);"><span>📖</span> Daily Devotional</div>
+    <label class="field-label">Scripture Reference</label>
+    <input type="text" id="devo-v-in" placeholder="e.g. John 3:16">
+    <label class="field-label">Message</label>
+    <textarea id="devo-t-in" placeholder="Today's message..." rows="3"></textarea>
+    <label class="field-label">Schedule for later (optional)</label>
+    <input type="date" id="devo-schedule-date">
+    <button class="btn btn-blue" onclick="updateDevo()">Update Word for Today</button>
+  </div>
+
+  <!-- POST UPDATE -->
+  <div class="card" style="border-color: rgba(243,156,18,0.2);">
+    <div class="card-title" style="color:var(--orange);"><span>📢</span> Post New Update</div>
+    <label class="field-label">Message</label>
+    <textarea id="update-text" placeholder="Announcement or update..." rows="3"></textarea>
+    <label class="field-label">Image URL (optional)</label>
+    <input type="text" id="update-img" placeholder="https://...">
+    <label class="field-label">Schedule for later (optional)</label>
+    <input type="date" id="schedule-date">
+    <button class="btn btn-orange" onclick="publishUpdate()">Publish Update</button>
+  </div>
+
+  <!-- PENDING SCHEDULED -->
+  <button class="section-toggle" onclick="toggleSection('sec-pending', this)">
+    <span>📅 Scheduled Posts</span>
+    <div class="toggle-right">
+      <span id="pending-count" class="badge badge-neutral">0</span>
+      <span class="chevron">▾</span>
+    </div>
+  </button>
+  <div id="sec-pending" class="section-content">
+    <div id="pending-list-admin"></div>
+  </div>
+
+  <!-- SERMONS -->
+  <div class="card">
+    <div class="card-title"><span>🎙️</span> Manage Sermons</div>
+    <div class="sermon-type-row">
+      <button class="sermon-type-btn" id="btn-video" onclick="showSermonUpload('video')">
+        <span class="icon">🎥</span> Video
+      </button>
+      <button class="sermon-type-btn" id="btn-audio" onclick="showSermonUpload('audio')">
+        <span class="icon">🔊</span> Audio
+      </button>
     </div>
 
-    <div id="notif-dropdown" class="notif-dropdown">
-        <div class="notif-header">
-            <span style="color:var(--gold); font-weight:bold;">Notifications</span>
-            <button onclick="clearNotifs()" style="background:none; border:none; color:#777; font-size:11px; cursor:pointer;">Clear</button>
-        </div>
-        <div id="notif-list">
-            <p style="padding:20px; text-align:center; color:#555; font-size:12px;">No new alerts</p>
-        </div>
+    <div id="audio-form" class="sermon-form">
+      <label class="field-label">Folder</label>
+      <select id="audio-folder-select"><option value="General sermons">General sermons</option></select>
+      <label class="field-label">Sermon Title</label>
+      <input type="text" id="audio-title" placeholder="Title...">
+      <label class="field-label">MP3 Link</label>
+      <input type="text" id="audio-link" placeholder="https://...mp3">
+      <button class="btn btn-gold" onclick="publishAudio()">Publish Audio Sermon</button>
     </div>
 
-    <div class="slider-container"><img id="img1" class="slide active" src=""><img id="img2" class="slide" src=""></div>
-    
-    <div class="nav-tabs">
-        <div class="tab active" onclick="showTab('home', this)">HOME</div>
-        <div class="tab" onclick="showTab('sermons', this)">SERMONS</div>
-        <div class="tab" onclick="showTab('prayer', this)">PRAYER</div>
-        <div class="tab" onclick="showTab('about', this)">ABOUT</div>
+    <div id="video-form" class="sermon-form">
+      <label class="field-label">Folder</label>
+      <select id="video-folder-select"><option value="General sermons">General sermons</option></select>
+      <label class="field-label">Description</label>
+      <textarea id="post-text" placeholder="Sermon description..." rows="3"></textarea>
+      <label class="field-label">Video URL</label>
+      <input type="text" id="post-img" placeholder="https://...">
+      <button class="btn btn-gold" onclick="publishPost()">Publish Video Sermon</button>
     </div>
-    
-    <div id="home" class="content-section active">
-        <div id="devotional-display" class="devo-card" style="display:none;">
-            <div class="devo-close" onclick="closeDevo()">&times;</div>
-            <div class="devo-title">✨ Word For Today</div>
-            <h3 id="devo-verse" style="margin: 5px 0; color: white;"></h3>
-            <p id="devo-text" style="font-style: italic; color: #ccc; margin-top: 10px;"></p>
-        </div>
-        <div class="search-container"><div class="search-box"><span class="search-icon">🔍</span><input type="text" id="homeSearch" placeholder="Search home..." onkeyup="filterPosts('homeSearch', 'updates-list')"></div></div>
-        <div id="updates-list"></div>
+  </div>
+
+  <!-- UPDATES LIST -->
+  <button class="section-toggle" onclick="toggleSection('sec-posts', this)">
+    <span>📋 Updates</span>
+    <div class="toggle-right">
+      <span id="count-btn-updates" class="badge badge-neutral">0</span>
+      <span class="chevron">▾</span>
     </div>
-
-    <div id="sermons" class="content-section">
-        <div class="sermon-nav">
-            <button class="s-btn active" id="btn-vid" onclick="filterSermons('video')"><span>🎥</span>VIDEO</button>
-            <button class="s-btn" id="btn-aud" onclick="filterSermons('audio')"><span>🔊</span>AUDIO</button>
-        </div>
-        <div class="search-container"><div class="search-box"><span class="search-icon">🔍</span><input type="text" id="sermonSearch" placeholder="Search sermons..." onkeyup="filterPosts('sermonSearch', 'sermons-list')"></div></div>
-        <div id="sermons-list"></div>
+  </button>
+  <div id="sec-posts" class="section-content">
+    <div class="search-row">
+      <span>🔍</span>
+      <input type="text" id="search-updates" placeholder="Search updates..." onkeyup="filterList('search-updates','updates-list-admin')">
     </div>
+    <div id="updates-list-admin"></div>
+  </div>
 
-    <div id="prayer" class="content-section">
-        <div class="card"><h3>How can we pray for you?</h3><textarea id="prayer-text" style="width:100%; background:#2d2d2d; color:white; border-radius:8px; padding:10px; box-sizing:border-box; border:1px solid #444;" rows="4" placeholder="Remember to include your name..."></textarea>
-        <button class="btn" style="margin-top:10px;" onclick="submitPrayer()">Submit Request</button></div>
+  <!-- SERMONS LIST -->
+  <button class="section-toggle" onclick="toggleSection('sec-sermons', this)">
+    <span>🎙️ Sermons</span>
+    <div class="toggle-right">
+      <span id="count-btn-sermons" class="badge badge-neutral">0</span>
+      <span class="chevron">▾</span>
     </div>
-
-    <div id="about" class="content-section">
-        <div class="card">
-            <h2 style="color: var(--gold); margin-top: 0;">Our Vision</h2>
-            <p>Seeing people getting saved and uniting the body of Christ in Love through the Holy Spirit.</p>
-            <h2 style="color: var(--gold);">Contact Us</h2>
-            <p>+265 998 352 637</p>
-            <h2 style="color: var(--gold);">Address</h2>
-            <p>Ndirande main market, next to Ndirande post office, Blantyre.</p>
-        </div>
+  </button>
+  <div id="sec-sermons" class="section-content">
+    <div class="search-row">
+      <span>🔍</span>
+      <input type="text" id="search-sermons" placeholder="Search sermons..." onkeyup="filterList('search-sermons','sermons-list-admin')">
     </div>
+    <div id="sermons-list-admin"></div>
+  </div>
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo",
-            authDomain: "unioninchristapp.firebaseapp.com",
-            databaseURL: "https://unioninchristapp-default-rtdb.firebaseio.com",
-            projectId: "unioninchristapp",
-            storageBucket: "unioninchristapp.firebasestorage.app",
-            appId: "1:68198927662:web:1ffa7ec16b35d4be88bebf"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+  <!-- PRAYERS -->
+  <button class="section-toggle" onclick="toggleSection('sec-prayers', this); markPrayersRead()">
+    <span>🙏 Prayers</span>
+    <div class="toggle-right">
+      <span id="unread-prayers-badge" class="badge" style="display:none;">0</span>
+      <span id="prayer-count-neutral" class="badge badge-neutral">0</span>
+      <span class="chevron">▾</span>
+    </div>
+  </button>
+  <div id="sec-prayers" class="section-content">
+    <div class="search-row">
+      <span>🔍</span>
+      <input type="text" id="search-prayers" placeholder="Search prayers..." onkeyup="filterList('search-prayers','prayers-list-admin')">
+    </div>
+    <div id="prayers-list-admin"></div>
+  </div>
 
-        let currentSermonFilter = 'video';
-        let userNotifId = localStorage.getItem('userNotifId') || 'user_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('userNotifId', userNotifId);
+  <!-- ANALYTICS -->
+  <div class="card" style="border-color: rgba(74,158,255,0.2); margin-top: 32px;">
+    <div class="card-title" style="color:var(--blue);"><span>📊</span> Insights Dashboard</div>
+    <div class="stats-grid">
+      <div class="stat-card"><h4>Total Likes</h4><p id="stat-likes">—</p></div>
+      <div class="stat-card"><h4>Comments</h4><p id="stat-comm">—</p></div>
+      <div class="stat-card"><h4>Sermons</h4><p id="stat-sermons">—</p></div>
+      <div class="stat-card"><h4>Updates</h4><p id="stat-updates">—</p></div>
+    </div>
+    <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; font-weight:600;">🔥 Most Liked</div>
+    <div id="top-post-display" class="top-item">Calculating...</div>
+    <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; font-weight:600;">💬 Most Discussed</div>
+    <div id="top-comm-display" class="top-item green">Calculating...</div>
+  </div>
 
-        function toggleSideMenu() {
-            const menu = document.getElementById('side-menu');
-            const overlay = document.getElementById('side-menu-overlay');
-            if(menu.classList.contains('open')) {
-                menu.classList.remove('open');
-                overlay.style.display = 'none';
-            } else {
-                menu.classList.add('open');
-                overlay.style.display = 'block';
-            }
+  <button class="logout-btn" onclick="logOut()">⟵ Logout</button>
+</div>
+
+<script>
+/* ════════════════════════════════
+   FIREBASE INIT
+════════════════════════════════ */
+const firebaseConfig = {
+  apiKey: "AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo",
+  authDomain: "unioninchristapp.firebaseapp.com",
+  databaseURL: "https://unioninchristapp-default-rtdb.firebaseio.com",
+  projectId: "unioninchristapp",
+  storageBucket: "unioninchristapp.firebasestorage.app",
+  appId: "1:68198927662:web:1ffa7ec16b35d4be88bebf"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+/* ════════════════════════════════
+   ACTIVE LISTENERS — track to detach on logout
+════════════════════════════════ */
+let activeListeners = [];
+function onDB(ref, cb) {
+  ref.on('value', cb);
+  activeListeners.push({ ref, cb });
+}
+function detachAll() {
+  activeListeners.forEach(({ ref, cb }) => ref.off('value', cb));
+  activeListeners = [];
+}
+
+/* ════════════════════════════════
+   UTILITY
+════════════════════════════════ */
+function sanitize(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = type ? `show ${type}` : 'show';
+  setTimeout(() => { t.className = ''; }, 3000);
+}
+
+// FIX: parse date strings in local timezone to avoid off-by-one day error
+function parseDateLocal(dateStr) {
+  return new Date(dateStr + 'T00:00:00').getTime();
+}
+
+/* ════════════════════════════════
+   MODAL CONFIRM (replaces alert/confirm)
+════════════════════════════════ */
+let modalResolve = null;
+function showModal(title, msg, btnLabel = 'Delete', btnClass = 'btn-gold') {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-msg').textContent = msg;
+  const btn = document.getElementById('modal-confirm-btn');
+  btn.textContent = btnLabel;
+  btn.className = `btn ${btnClass}`;
+  btn.style.marginTop = '0';
+  document.getElementById('modal-overlay').classList.add('open');
+  return new Promise(res => { modalResolve = res; });
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  if (modalResolve) { modalResolve(false); modalResolve = null; }
+}
+document.getElementById('modal-confirm-btn').onclick = () => {
+  document.getElementById('modal-overlay').classList.remove('open');
+  if (modalResolve) { modalResolve(true); modalResolve = null; }
+};
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+/* ════════════════════════════════
+   AUTH — NOTE: localStorage is convenience only.
+   For real security, move auth to Firebase Auth or
+   a server-side function. Never put the password in client JS.
+════════════════════════════════ */
+function checkAdmin() {
+  const key = document.getElementById('admin-key').value;
+  const err = document.getElementById('login-error');
+  if (key === 'church111') {
+    err.style.display = 'none';
+    sessionStorage.setItem('uic_admin', '1'); // sessionStorage clears on tab close
+    showDashboard();
+  } else {
+    err.style.display = 'block';
+    document.getElementById('admin-key').value = '';
+  }
+}
+
+function showDashboard() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  loadAdminData();
+  startPreviewSlider();
+  initBellWatcher();
+  refreshAnalytics();
+  processScheduledTasks();
+  loadPendingList();
+  loadFolderData();
+}
+
+function logOut() {
+  sessionStorage.removeItem('uic_admin');
+  detachAll();
+  location.reload();
+}
+
+window.onload = () => {
+  if (sessionStorage.getItem('uic_admin') === '1') showDashboard();
+};
+
+/* ════════════════════════════════
+   PREVIEW SLIDER
+════════════════════════════════ */
+let previewTimer = null;
+function startPreviewSlider() {
+  let cur = 0;
+  previewTimer = setInterval(() => {
+    const slides = document.querySelectorAll('.mini-slide');
+    if (slides.length < 2) return;
+    slides[cur].classList.remove('active');
+    cur = (cur + 1) % slides.length;
+    slides[cur].classList.add('active');
+  }, 8000);
+}
+
+/* ════════════════════════════════
+   SECTION TOGGLE
+════════════════════════════════ */
+function toggleSection(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const isOpen = el.style.display === 'block';
+  el.style.display = isOpen ? 'none' : 'block';
+  if (btn) btn.classList.toggle('open', !isOpen);
+}
+
+/* ════════════════════════════════
+   FOLDER MANAGEMENT
+════════════════════════════════ */
+function loadFolderData() {
+  const listEl = document.getElementById('folder-list-admin');
+  const audSel = document.getElementById('audio-folder-select');
+  const vidSel = document.getElementById('video-folder-select');
+
+  onDB(db.ref('folders'), snap => {
+    const data = snap.val();
+    listEl.innerHTML = '';
+    const defaultOpt = '<option value="General sermons">General sermons</option>';
+    audSel.innerHTML = defaultOpt;
+    vidSel.innerHTML = defaultOpt;
+
+    if (data) {
+      Object.keys(data).forEach(k => {
+        const name = sanitize(data[k].name);
+        listEl.innerHTML += `
+          <div class="folder-row">
+            <input type="text" id="edit-folder-${k}" value="${name}" style="margin-top:0;">
+            <button class="folder-action-btn" style="color:var(--gold);" onclick="updateFolderName('${k}')">Rename</button>
+            <button class="folder-action-btn" style="color:var(--red);" onclick="confirmDeleteItem('folders/${k}')">Del</button>
+          </div>`;
+        const opt = `<option value="${name}">${name}</option>`;
+        audSel.innerHTML += opt;
+        vidSel.innerHTML += opt;
+      });
+    }
+    if (!listEl.innerHTML) listEl.innerHTML = '<p style="color:var(--text-dim); font-size:13px; margin-top:8px;">No custom folders yet.</p>';
+  });
+}
+
+function addFolder() {
+  const input = document.getElementById('new-folder-name');
+  const name = input.value.trim();
+  if (!name) return;
+  db.ref('folders').push({ name })
+    .then(() => { input.value = ''; showToast('Folder created', 'success'); })
+    .catch(() => showToast('Failed to create folder', 'error'));
+}
+
+function updateFolderName(id) {
+  const newName = document.getElementById('edit-folder-' + id).value.trim();
+  if (!newName) return;
+  db.ref('folders/' + id).update({ name: newName })
+    .then(() => showToast('Folder renamed', 'success'))
+    .catch(() => showToast('Failed to rename', 'error'));
+}
+
+/* ════════════════════════════════
+   SCHEDULED TASKS
+════════════════════════════════ */
+function processScheduledTasks() {
+  const now = Date.now();
+  db.ref('scheduled_updates').once('value', snap => {
+    const data = snap.val();
+    if (!data) return;
+    Object.keys(data).forEach(k => {
+      if (data[k].timestamp <= now) {
+        db.ref('updates').push(data[k]).then(() => db.ref('scheduled_updates/' + k).remove());
+      }
+    });
+  });
+  db.ref('scheduled_devotionals').once('value', snap => {
+    const data = snap.val();
+    if (!data) return;
+    Object.keys(data).forEach(k => {
+      if (data[k].timestamp <= now) {
+        const { verse, text } = data[k];
+        db.ref('settings/devotional').set({ verse, text })
+          .then(() => db.ref('scheduled_devotionals/' + k).remove());
+      }
+    });
+  });
+}
+
+function loadPendingList() {
+  const listDiv = document.getElementById('pending-list-admin');
+  const countBadge = document.getElementById('pending-count');
+
+  // Scoped listeners — NOT full DB snapshot
+  const updatesPending = {};
+  const devosPending = {};
+
+  function renderPending() {
+    listDiv.innerHTML = '';
+    let total = 0;
+
+    Object.keys(updatesPending).forEach(k => {
+      total++;
+      const item = updatesPending[k];
+      listDiv.innerHTML += `
+        <div class="pending-item">
+          <div class="pending-item-text">
+            <strong><span class="badge-pending">UPDATE · ${new Date(item.timestamp).toLocaleDateString()}</span></strong>
+            ${sanitize(item.text.substring(0, 60))}...
+          </div>
+          <button class="btn-danger-ghost" onclick="confirmDeleteItem('scheduled_updates/${k}')">Cancel</button>
+        </div>`;
+    });
+
+    Object.keys(devosPending).forEach(k => {
+      total++;
+      const item = devosPending[k];
+      listDiv.innerHTML += `
+        <div class="pending-item devo">
+          <div class="pending-item-text">
+            <strong><span class="badge-pending" style="background:rgba(74,158,255,0.15); color:var(--blue); border-color:rgba(74,158,255,0.3);">DEVO · ${new Date(item.timestamp).toLocaleDateString()}</span></strong>
+            <b>${sanitize(item.verse)}:</b> ${sanitize(item.text.substring(0, 50))}...
+          </div>
+          <button class="btn-danger-ghost" onclick="confirmDeleteItem('scheduled_devotionals/${k}')">Cancel</button>
+        </div>`;
+    });
+
+    countBadge.textContent = total;
+    if (!total) listDiv.innerHTML = '<div class="empty-state"><div class="icon">📅</div>No scheduled posts pending.</div>';
+  }
+
+  onDB(db.ref('scheduled_updates'), snap => {
+    Object.keys(updatesPending).forEach(k => delete updatesPending[k]);
+    const data = snap.val();
+    if (data) Object.assign(updatesPending, data);
+    renderPending();
+  });
+
+  onDB(db.ref('scheduled_devotionals'), snap => {
+    Object.keys(devosPending).forEach(k => delete devosPending[k]);
+    const data = snap.val();
+    if (data) Object.assign(devosPending, data);
+    renderPending();
+  });
+}
+
+/* ════════════════════════════════
+   DEVOTIONAL
+════════════════════════════════ */
+function updateDevo() {
+  const v = document.getElementById('devo-v-in').value.trim();
+  const t = document.getElementById('devo-t-in').value.trim();
+  const schedDate = document.getElementById('devo-schedule-date').value;
+  if (!v || !t) { showToast('Please enter both scripture and message.', 'error'); return; }
+
+  if (schedDate) {
+    const timestamp = parseDateLocal(schedDate);
+    db.ref('scheduled_devotionals').push({ verse: v, text: t, timestamp })
+      .then(() => {
+        showToast(`Devotional scheduled for ${schedDate}`, 'success');
+        document.getElementById('devo-v-in').value = '';
+        document.getElementById('devo-t-in').value = '';
+        document.getElementById('devo-schedule-date').value = '';
+      })
+      .catch(() => showToast('Failed to schedule', 'error'));
+  } else {
+    db.ref('settings/devotional').set({ verse: v, text: t })
+      .then(() => showToast('Devotional updated live!', 'success'))
+      .catch(() => showToast('Failed to update', 'error'));
+  }
+}
+
+/* ════════════════════════════════
+   SLIDER
+════════════════════════════════ */
+function updateSlider() {
+  const img1 = document.getElementById('slide1').value.trim();
+  const img2 = document.getElementById('slide2').value.trim();
+  db.ref('settings/slider').set({ img1, img2 })
+    .then(() => showToast('Slider updated!', 'success'))
+    .catch(() => showToast('Failed to update slider', 'error'));
+}
+
+/* ════════════════════════════════
+   PUBLISH UPDATE
+════════════════════════════════ */
+function publishUpdate() {
+  const txt = document.getElementById('update-text').value.trim();
+  const img = document.getElementById('update-img').value.trim();
+  const schedDate = document.getElementById('schedule-date').value;
+  if (!txt) { showToast('Please enter update text.', 'error'); return; }
+
+  const timestamp = schedDate ? parseDateLocal(schedDate) : Date.now();
+  const postData = {
+    text: txt,
+    image: img,
+    date: schedDate || new Date().toLocaleDateString(),
+    timestamp,
+    likes: 0
+  };
+  const path = schedDate ? 'scheduled_updates' : 'updates';
+
+  db.ref(path).push(postData)
+    .then(() => {
+      showToast(schedDate ? `Scheduled for ${schedDate}` : 'Published live!', 'success');
+      document.getElementById('update-text').value = '';
+      document.getElementById('update-img').value = '';
+      document.getElementById('schedule-date').value = '';
+    })
+    .catch(() => showToast('Failed to publish', 'error'));
+}
+
+/* ════════════════════════════════
+   SERMON FORMS
+════════════════════════════════ */
+function showSermonUpload(type) {
+  document.getElementById('audio-form').style.display = type === 'audio' ? 'block' : 'none';
+  document.getElementById('video-form').style.display = type === 'video' ? 'block' : 'none';
+  document.getElementById('btn-audio').classList.toggle('active', type === 'audio');
+  document.getElementById('btn-video').classList.toggle('active', type === 'video');
+}
+
+function publishAudio() {
+  const title = document.getElementById('audio-title').value.trim();
+  const link = document.getElementById('audio-link').value.trim();
+  const cat = document.getElementById('audio-folder-select').value;
+  if (!link) { showToast('Please provide a link.', 'error'); return; }
+
+  db.ref('sermons').push({
+    text: title + ' ' + link,
+    image: link,
+    category: cat,
+    date: new Date().toLocaleDateString(),
+    timestamp: Date.now(),
+    likes: 0
+  })
+  .then(() => {
+    showToast('Audio sermon posted to ' + cat, 'success');
+    document.getElementById('audio-title').value = '';
+    document.getElementById('audio-link').value = '';
+  })
+  .catch(() => showToast('Failed to publish audio', 'error'));
+}
+
+function publishPost() {
+  const txt = document.getElementById('post-text').value.trim();
+  const vid = document.getElementById('post-img').value.trim();
+  const cat = document.getElementById('video-folder-select').value;
+  if (!vid) { showToast('Please provide a video link.', 'error'); return; }
+
+  db.ref('sermons').push({
+    text: txt,
+    image: vid,
+    category: cat,
+    date: new Date().toLocaleDateString(),
+    timestamp: Date.now(),
+    likes: 0
+  })
+  .then(() => {
+    showToast('Video sermon posted to ' + cat, 'success');
+    document.getElementById('post-text').value = '';
+    document.getElementById('post-img').value = '';
+  })
+  .catch(() => showToast('Failed to publish video', 'error'));
+}
+
+/* ════════════════════════════════
+   DELETE HELPERS
+════════════════════════════════ */
+async function confirmDeleteItem(path) {
+  const confirmed = await showModal('Delete', 'This will permanently remove the item and all associated data.', 'Delete', 'btn-gold');
+  if (!confirmed) return;
+  const id = path.split('/').pop();
+  db.ref(path).remove()
+    .then(() => {
+      // Remove associated comments if deleting a post or sermon
+      if (path.startsWith('updates/') || path.startsWith('sermons/')) {
+        db.ref('comments/' + id).remove();
+      }
+      showToast('Deleted successfully', 'success');
+    })
+    .catch(() => showToast('Failed to delete', 'error'));
+}
+
+async function confirmDeleteComment(postId, commentId, replyId = null) {
+  const confirmed = await showModal('Moderate', 'This message will be replaced with a moderation notice.', 'Moderate', 'btn-gold');
+  if (!confirmed) return;
+  let path = `comments/${postId}/${commentId}`;
+  if (replyId) path += `/replies/${replyId}`;
+  db.ref(path).update({ text: '⚠️ This message was removed by admin.', userName: 'Moderated' })
+    .catch(() => showToast('Failed to moderate', 'error'));
+}
+
+/* ════════════════════════════════
+   LOAD ADMIN DATA
+════════════════════════════════ */
+function loadAdminData() {
+  onDB(db.ref('settings/devotional'), snap => {
+    const d = snap.val();
+    if (d) {
+      document.getElementById('devo-v-in').value = d.verse || '';
+      document.getElementById('devo-t-in').value = d.text || '';
+    }
+  });
+
+  onDB(db.ref('settings/slider'), snap => {
+    const d = snap.val();
+    if (d) {
+      document.getElementById('p-img1').src = d.img1 || '';
+      document.getElementById('p-img2').src = d.img2 || '';
+      document.getElementById('slide1').value = d.img1 || '';
+      document.getElementById('slide2').value = d.img2 || '';
+    }
+  });
+
+  renderList('updates', 'updates-list-admin', 'count-btn-updates');
+  renderList('sermons', 'sermons-list-admin', 'count-btn-sermons');
+
+  onDB(db.ref('prayers'), snap => {
+    const div = document.getElementById('prayers-list-admin');
+    const unreadBadge = document.getElementById('unread-prayers-badge');
+    const neutralBadge = document.getElementById('prayer-count-neutral');
+    const d = snap.val();
+    div.innerHTML = '';
+    if (d) {
+      const keys = Object.keys(d);
+      const unread = keys.filter(k => d[k].status === 'unread').length;
+      unreadBadge.textContent = unread;
+      unreadBadge.style.display = unread > 0 ? 'inline-flex' : 'none';
+      neutralBadge.textContent = keys.length;
+      [...keys].reverse().forEach(k => {
+        div.innerHTML += `
+          <div class="admin-item" id="prayer-${k}" style="border-left-color: ${d[k].status === 'unread' ? 'var(--blue)' : 'var(--border)'}">
+            <p style="font-size:14px; line-height:1.6;">${sanitize(d[k].text)}</p>
+            <div style="margin-top:10px;">
+              <button class="btn-danger-ghost" onclick="confirmDeleteItem('prayers/${k}')">Delete</button>
+            </div>
+          </div>`;
+      });
+    } else {
+      div.innerHTML = '<div class="empty-state"><div class="icon">🙏</div>No prayers submitted yet.</div>';
+      unreadBadge.style.display = 'none';
+      neutralBadge.textContent = '0';
+    }
+  });
+}
+
+function markPrayersRead() {
+  db.ref('prayers').once('value', snap => {
+    const data = snap.val();
+    if (!data) return;
+    Object.keys(data).forEach(k => {
+      if (data[k].status === 'unread') db.ref(`prayers/${k}`).update({ status: 'read' });
+    });
+  });
+}
+
+/* ════════════════════════════════
+   RENDER LISTS (updates / sermons)
+════════════════════════════════ */
+function renderList(type, containerId, countBtnId) {
+  onDB(db.ref(type), snap => {
+    const div = document.getElementById(containerId);
+    const badge = document.getElementById(countBtnId);
+    div.innerHTML = '';
+    const data = snap.val();
+    if (data) {
+      const keys = Object.keys(data);
+      badge.textContent = keys.length;
+      [...keys].reverse().forEach(k => {
+        const item = data[k];
+        const el = document.createElement('div');
+        el.className = 'admin-item';
+        el.id = 'post-' + k;
+        const folderTag = (type === 'sermons' && item.category)
+          ? `<div class="folder-tag">📁 ${sanitize(item.category)}</div>` : '';
+        const imgTag = item.image
+          ? `<img src="${sanitize(item.image)}" alt="" loading="lazy">` : '';
+        el.innerHTML = `
+          ${folderTag}
+          ${imgTag}
+          <textarea id="edit-${k}" rows="2">${sanitize(item.text)}</textarea>
+          <div class="item-meta">
+            <div class="item-meta-left">
+              <span class="like-count">❤️ ${item.likes || 0}</span>
+              <button class="comment-toggle-btn" onclick="toggleCommentBox('comm-box-${k}')">💬 <span id="c-count-${k}">0</span></button>
+            </div>
+            <div class="item-actions">
+              <button class="btn-save" onclick="saveEdit('${type}','${k}')">Save</button>
+              <button class="btn-danger-ghost" onclick="confirmDeleteItem('${type}/${k}')">Delete</button>
+            </div>
+          </div>
+          <div id="comm-box-${k}" class="comment-box"></div>`;
+        div.appendChild(el);
+        loadComments(k);
+      });
+    } else {
+      badge.textContent = '0';
+      div.innerHTML = `<div class="empty-state"><div class="icon">📭</div>No ${type} yet.</div>`;
+    }
+  });
+}
+
+function toggleCommentBox(id) {
+  const box = document.getElementById(id);
+  if (box) box.style.display = box.style.display === 'block' ? 'none' : 'block';
+}
+
+/* ════════════════════════════════
+   COMMENTS — BUG FIX: commentId was undefined in original
+════════════════════════════════ */
+function loadComments(postId) {
+  onDB(db.ref(`comments/${postId}`), snap => {
+    const box = document.getElementById(`comm-box-${postId}`);
+    const countEl = document.getElementById(`c-count-${postId}`);
+    const data = snap.val();
+    if (!box) return;
+    box.innerHTML = '';
+    let total = 0;
+
+    if (data) {
+      Object.keys(data).forEach(ck => { // ck is the comment key — fixed from original bug
+        total++;
+        const c = data[ck];
+        let html = `
+          <div class="comment-item" id="comm-item-${ck}">
+            <div class="comment-author">
+              ${sanitize(c.userName || 'Member')}
+              <button class="btn-danger-ghost" onclick="confirmDeleteComment('${postId}','${ck}')">Remove</button>
+            </div>
+            <div class="comment-text">${sanitize(c.text)}</div>`;
+
+        if (c.adminReply) {
+          html += `<div class="admin-reply-tag"><strong>Admin:</strong> ${sanitize(c.adminReply)}</div>`;
         }
 
-        function handleMenuClick(tabId) {
-            const tabElement = document.querySelector(`.tab[onclick*="'${tabId}'"]`);
-            showTab(tabId, tabElement);
-            toggleSideMenu();
-        }
+        html += `
+            <div class="reply-row">
+              <input type="text" id="reply-to-${ck}" placeholder="Write a reply...">
+              <button class="reply-send-btn" onclick="sendAdminReply('${postId}','${ck}')">Reply</button>
+            </div>`;
 
-        function toggleNotifDropdown() {
-            const dd = document.getElementById('notif-dropdown');
-            dd.style.display = (dd.style.display === 'block') ? 'none' : 'block';
-        }
-
-        window.addEventListener('click', function(e) {
-            if (!document.querySelector('.bell-container').contains(e.target) && !document.getElementById('notif-dropdown').contains(e.target) && !document.querySelector('.menu-container').contains(e.target)){
-                document.getElementById('notif-dropdown').style.display = 'none';
-            }
-        });
-
-        function filterPosts(inputId, listId) {
-            const query = document.getElementById(inputId).value.toLowerCase();
-            const cards = document.querySelectorAll(`#${listId} .card`);
-            cards.forEach(card => {
-                const text = card.innerText.toLowerCase();
-                card.style.display = text.includes(query) ? "block" : "none";
-            });
-        }
-
-        function linkify(text) {
-            const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
-            if(text.includes('.mp3') || text.includes('archive.org/download')) return text; 
-            return text.replace(urlPattern, '<a href="$1" target="_blank" style="color: var(--gold); text-decoration: underline;">$1</a>');
-        }
-
-        function filterSermons(type) {
-            currentSermonFilter = type;
-            document.getElementById('btn-vid').classList.toggle('active', type === 'video');
-            document.getElementById('btn-aud').classList.toggle('active', type === 'audio');
-            document.getElementById('sermonSearch').value = "";
-            render('sermons', 'sermons-list');
-        }
-
-        function showTab(t, e) {
-            document.querySelectorAll('.content-section, .tab').forEach(x => x.classList.remove('active'));
-            document.getElementById(t).classList.add('active'); e.classList.add('active');
-        }
-
-        function closeDevo() {
-            const verse = document.getElementById('devo-verse').innerText;
-            localStorage.setItem('hidden_verse', verse);
-            document.getElementById('devotional-display').style.display = 'none';
-        }
-
-        function loadData() {
-            db.ref('settings/slider').on('value', s => { const d = s.val(); if(d){ document.getElementById('img1').src=d.img1; document.getElementById('img2').src=d.img2; } });
-            db.ref('settings/devotional').on('value', s => {
-                const d = s.val();
-                const box = document.getElementById('devotional-display');
-                const lastHidden = localStorage.getItem('hidden_verse');
-                if(d && d.verse && d.verse !== lastHidden) {
-                    box.style.display = 'block';
-                    document.getElementById('devo-verse').innerText = d.verse;
-                    document.getElementById('devo-text').innerText = d.text;
-                } else { box.style.display = 'none'; }
-            });
-            render('updates', 'updates-list');
-            render('sermons', 'sermons-list');
-            listenNotifs();
-        }
-
-        function listenNotifs() {
-            db.ref(`notifications/${userNotifId}`).on('value', s => {
-                const list = document.getElementById('notif-list');
-                const badge = document.getElementById('notif-count');
-                const data = s.val();
-                if(!data) { 
-                    list.innerHTML = '<p style="padding:20px; text-align:center; color:#555; font-size:12px;">No new alerts</p>'; 
-                    badge.style.display='none'; 
-                    return; 
-                }
-                
-                list.innerHTML = "";
-                const keys = Object.keys(data).reverse();
-                badge.innerText = keys.length;
-                badge.style.display = 'block';
-
-                keys.forEach(k => {
-                    const n = data[k];
-                    const div = document.createElement('div');
-                    div.className = 'notif-item';
-                    div.onclick = () => {
-                        // Mark as seen in LocalStorage so it never comes back
-                        localStorage.setItem('seen_' + n.postId, 'true');
-                        
-                        showTab(n.tab, document.querySelector(`.tab[onclick*="${n.tab}"]`));
-                        document.getElementById('notif-dropdown').style.display = 'none';
-                        setTimeout(() => {
-                            const target = document.getElementById('post-' + n.postId);
-                            if(target) {
-                                target.scrollIntoView({behavior: 'smooth'});
-                                target.classList.add('highlight-comment');
-                                setTimeout(() => target.classList.remove('highlight-comment'), 2000);
-                            }
-                        }, 500);
-                        db.ref(`notifications/${userNotifId}/${k}`).remove();
-                    };
-                    div.innerHTML = `<strong>${n.from}</strong> ${n.msg || 'replied'} <small>${new Date(n.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small>`;
-                    list.appendChild(div);
-                });
-            });
-        }
-
-        function clearNotifs() { 
-            db.ref(`notifications/${userNotifId}`).once('value', snap => {
-                const data = snap.val();
-                if(data) {
-                    Object.values(data).forEach(n => {
-                        localStorage.setItem('seen_' + n.postId, 'true');
-                    });
-                }
-                db.ref(`notifications/${userNotifId}`).remove();
-            });
-        }
-
-        function toggleFolder(id) {
-            const el = document.getElementById(id);
-            const icon = document.getElementById('icon-' + id);
-            if (el.style.display === 'none' || el.style.display === '') {
-                el.style.display = 'block';
-                icon.innerText = '▼';
-            } else {
-                el.style.display = 'none';
-                icon.innerText = '▶';
-            }
-        }
-
-        function render(path, divId) {
-            db.ref(path).on('value', s => {
-                const list = document.getElementById(divId); 
-                list.innerHTML = "";
-                const data = s.val(); if(!data) return;
-                const likedPosts = JSON.parse(localStorage.getItem('likedPosts')) || [];
-                const savedName = localStorage.getItem('userName') || '';
-
-                if (path === 'sermons') {
-                    let folders = {};
-                    Object.keys(data).forEach(k => {
-                        const item = data[k];
-                        const isAudio = item.text.includes('.mp3') || (item.image && item.image.includes('.mp3')) || item.text.includes('archive.org');
-                        if(currentSermonFilter === 'audio' && !isAudio) return;
-                        if(currentSermonFilter === 'video' && isAudio) return;
-
-                        let folderName = item.category || "General Sermons";
-                        if (!folders[folderName]) folders[folderName] = [];
-                        folders[folderName].push({ key: k, ...item });
-                    });
-
-                    Object.keys(folders).forEach(folderName => {
-                        const folderId = 'folder-' + folderName.replace(/\s+/g, '-');
-                        const folderWrapper = document.createElement('div');
-                        folderWrapper.innerHTML = `
-                            <div class="folder-header" onclick="toggleFolder('${folderId}')">
-                                <span>📁 ${folderName}</span>
-                                <span id="icon-${folderId}">▶</span>
-                            </div>
-                            <div id="${folderId}" style="display: none;"></div>
-                        `;
-                        list.appendChild(folderWrapper);
-                        const folderContainer = document.getElementById(folderId);
-
-                        folders[folderName].reverse().forEach(item => {
-                            const card = createCard(item.key, item, path, likedPosts, savedName);
-                            folderContainer.appendChild(card);
-                        });
-                    });
-                } else {
-                    Object.keys(data).reverse().forEach(k => {
-                        const card = createCard(k, data[k], path, likedPosts, savedName);
-                        list.appendChild(card);
-                    });
-                }
-            });
-        }
-
-        function createCard(k, item, path, likedPosts, savedName) {
-            const isAudio = item.text.includes('.mp3') || (item.image && item.image.includes('.mp3')) || item.text.includes('archive.org');
-            const isLiked = likedPosts.includes(k);
-            const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
-            const card = document.createElement('div'); 
-            card.className = 'card';
-            card.id = 'post-' + k;
-            
-            let contentHtml = "";
-            if (isAudio) {
-                const audioSrc = item.image || (item.text.match(/(https?:\/\/[^\s]+)/g) ? item.text.match(/(https?:\/\/[^\s]+)/g)[0] : "");
-                contentHtml = `
-                    <h4 style="margin:0 0 10px 0; color:var(--gold);">🔊 ${item.text.replace(/(https?:\/\/[^\s]+)/g, '') || 'Audio Sermon'}</h4>
-                    <div class="audio-player-container"><audio controls><source src="${audioSrc}" type="audio/mpeg"></audio></div>
-                `;
-            } else {
-                const isVideo = item.image && (
-                    item.image.includes('dropbox.com') || 
-                    item.image.includes('drive.google') || 
-                    item.image.includes('.mp4') ||
-                    item.image.includes('youtube.com') || 
-                    item.image.includes('youtu.be')
-                );
-
-                if (isVideo) {
-                    if (item.image.includes('youtube.com') || item.image.includes('youtu.be')) {
-                        let ytId = "";
-                        if(item.image.includes('v=')) {
-                            ytId = item.image.split('v=')[1].split('&')[0];
-                        } else {
-                            ytId = item.image.split('/').pop().split('?')[0];
-                        }
-                        contentHtml = `<iframe width="100%" height="220" src="https://www.youtube.com/embed/${ytId}" frameborder="0" allowfullscreen style="border-radius:8px; margin-bottom:12px;"></iframe><p>${linkify(item.text)}</p>`;
-                    } else {
-                        contentHtml = `<video controls style="width:100%; border-radius:8px; margin-bottom:12px;"><source src="${item.image}" type="video/mp4">Your browser does not support the video tag.</video><p>${linkify(item.text)}</p>`;
-                    }
-                } else {
-                    contentHtml = `${item.image ? `<img src="${item.image}" style="width:100%; border-radius:8px; margin-bottom:12px;">` : ''}<p>${linkify(item.text)}</p>`;
-                }
-            }
-
-            card.innerHTML = `
-                <span class="time-txt">${item.date} at ${timeStr}</span>
-                ${contentHtml}
-                <div class="interaction-bar">
-                    <button class="comment-btn" onclick="toggleComments('${k}')">💬 <span id="count-${k}">(0)</span></button>
-                    <button class="comment-btn" id="likebtn-${k}" style="color: ${isLiked ? '#ff4d4d' : 'var(--gold)'}" onclick="likePost('${path}','${k}')">❤️ <span id="likes-${k}">${item.likes || 0}</span></button>
+        if (c.replies) {
+          Object.keys(c.replies).forEach(rk => {
+            total++;
+            const r = c.replies[rk];
+            html += `
+              <div class="thread-reply" id="thread-reply-${rk}">
+                <div class="thread-reply-author">
+                  ↳ ${sanitize(r.userName)}
+                  <button class="btn-danger-ghost" onclick="confirmDeleteComment('${postId}','${ck}','${rk}')">Remove</button>
                 </div>
-                <div id="section-${k}" class="comment-section">
-                    <div id="display-${k}"></div>
-                    <div class="comment-input-box">
-                        <input type="text" id="name-${k}" placeholder="Your Name" value="${savedName}" oninput="validateName('${k}')">
-                        <div style="display:flex; gap:5px;">
-                            <input type="text" id="in-${k}" placeholder="Comment..." ${!savedName ? 'disabled' : ''} style="flex:1;">
-                            <button class="send-comment-btn" onclick="addComment('${k}', '${path === 'updates' ? 'home' : 'sermons'}')">Send</button>
-                        </div>
-                    </div>
-                </div>`;
-            loadComments(k, path === 'updates' ? 'home' : 'sermons');
-            return card;
+                <div class="comment-text">${sanitize(r.text)}</div>
+              </div>`;
+          });
         }
+        html += '</div>';
+        box.innerHTML += html;
+      });
+    }
 
-        function validateName(id) {
-            const nameVal = document.getElementById('name-' + id).value.trim();
-            document.querySelectorAll(`[id^='in-']`).forEach(el => el.disabled = (nameVal === ""));
-            localStorage.setItem('userName', nameVal);
+    if (!total) box.innerHTML = '<div style="color:var(--text-dim); font-size:13px; text-align:center; padding:12px 0;">No comments yet.</div>';
+    if (countEl) countEl.textContent = total;
+  });
+}
+
+function sendAdminReply(postId, commentId) {
+  const input = document.getElementById(`reply-to-${commentId}`);
+  if (!input || !input.value.trim()) return;
+  db.ref(`comments/${postId}/${commentId}`).update({ adminReply: input.value.trim() })
+    .then(() => { input.value = ''; showToast('Reply sent', 'success'); })
+    .catch(() => showToast('Failed to send reply', 'error'));
+}
+
+/* ════════════════════════════════
+   SAVE EDIT
+════════════════════════════════ */
+function saveEdit(type, id) {
+  const newText = document.getElementById('edit-' + id).value.trim();
+  db.ref(`${type}/${id}`).update({ text: newText })
+    .then(() => showToast('Saved!', 'success'))
+    .catch(() => showToast('Failed to save', 'error'));
+}
+
+/* ════════════════════════════════
+   SEARCH FILTER
+════════════════════════════════ */
+function filterList(inputId, containerId) {
+  const q = document.getElementById(inputId).value.toLowerCase();
+  document.querySelectorAll(`#${containerId} .admin-item`).forEach(el => {
+    el.style.display = el.innerText.toLowerCase().includes(q) ? 'block' : 'none';
+  });
+}
+
+/* ════════════════════════════════
+   ANALYTICS — debounced to avoid hammering on every comment update
+════════════════════════════════ */
+let analyticsTimer = null;
+function refreshAnalytics() {
+  let commentCounts = {};
+
+  onDB(db.ref('comments'), snap => {
+    commentCounts = {};
+    const data = snap.val();
+    if (data) {
+      Object.keys(data).forEach(pid => {
+        commentCounts[pid] = Object.keys(data[pid]).length;
+      });
+    }
+    clearTimeout(analyticsTimer);
+    analyticsTimer = setTimeout(() => computeAnalytics(commentCounts), 600); // debounce
+  });
+}
+
+function computeAnalytics(commentCounts) {
+  let totalLikes = 0, totalComm = 0, totalSermons = 0, totalUpdates = 0;
+  let bestLiked = { text: 'None', score: -1 };
+  let bestCommented = { text: 'None', score: -1 };
+
+  Object.values(commentCounts).forEach(c => totalComm += c);
+
+  db.ref('updates').once('value', snap => {
+    const data = snap.val();
+    if (data) {
+      totalUpdates = Object.keys(data).length;
+      Object.keys(data).forEach(k => {
+        const likes = data[k].likes || 0;
+        totalLikes += likes;
+        if (likes > bestLiked.score) bestLiked = { text: data[k].text, score: likes };
+        const cc = commentCounts[k] || 0;
+        if (cc > bestCommented.score) bestCommented = { text: data[k].text, score: cc };
+      });
+    }
+
+    db.ref('sermons').once('value', snap2 => {
+      const data2 = snap2.val();
+      if (data2) {
+        totalSermons = Object.keys(data2).length;
+        Object.keys(data2).forEach(k => {
+          const likes = data2[k].likes || 0;
+          totalLikes += likes;
+          if (likes > bestLiked.score) bestLiked = { text: data2[k].text, score: likes };
+          const cc = commentCounts[k] || 0;
+          if (cc > bestCommented.score) bestCommented = { text: data2[k].text, score: cc };
+        });
+      }
+
+      document.getElementById('stat-likes').textContent = totalLikes;
+      document.getElementById('stat-comm').textContent = totalComm;
+      document.getElementById('stat-sermons').textContent = totalSermons;
+      document.getElementById('stat-updates').textContent = totalUpdates;
+      document.getElementById('top-post-display').textContent =
+        (bestLiked.text || '').substring(0, 80) + `… (${Math.max(0, bestLiked.score)} likes)`;
+      document.getElementById('top-comm-display').textContent =
+        (bestCommented.text || '').substring(0, 80) + `… (${Math.max(0, bestCommented.score)} comments)`;
+    });
+  });
+}
+
+/* ════════════════════════════════
+   NOTIFICATION BELL
+════════════════════════════════ */
+let bellCount = 0;
+let initialLoadDone = false;
+
+function toggleNotifDropdown(e) {
+  e.stopPropagation();
+  const d = document.getElementById('notif-dropdown');
+  const isOpen = d.style.display === 'block';
+  d.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) resetBell();
+}
+
+document.addEventListener('click', () => {
+  document.getElementById('notif-dropdown').style.display = 'none';
+});
+
+function initBellWatcher() {
+  db.ref('comments').on('child_added', postSnap => {
+    const postId = postSnap.key;
+    db.ref(`comments/${postId}`).on('child_added', commSnap => {
+      const c = commSnap.val();
+      if (initialLoadDone && c.userName !== 'Admin') {
+        addNotif(sanitize(c.userName) + ' commented', sanitize(c.text), postId, 'comm-item-' + commSnap.key);
+      }
+      db.ref(`comments/${postId}/${commSnap.key}/replies`).on('child_added', replySnap => {
+        const r = replySnap.val();
+        if (initialLoadDone && r.userName !== 'Admin') {
+          addNotif(sanitize(r.userName) + ' replied', sanitize(r.text), postId, 'thread-reply-' + replySnap.key);
         }
+      });
+    });
+  });
 
-        function likePost(p, id) {
-            let likedPosts = JSON.parse(localStorage.getItem('likedPosts')) || [];
-            if (likedPosts.includes(id)) {
-                db.ref(`${p}/${id}/likes`).transaction(c => (c || 1) - 1);
-                likedPosts = likedPosts.filter(i => i !== id);
-            } else {
-                db.ref(`${p}/${id}/likes`).transaction(c => (c || 0) + 1);
-                likedPosts.push(id);
-            }
-            localStorage.setItem('likedPosts', JSON.stringify(likedPosts));
-        }
+  db.ref('prayers').on('child_added', snap => {
+    if (initialLoadDone) addNotif('New Prayer', sanitize(snap.val().text), 'sec-prayers', 'prayer-' + snap.key);
+  });
 
-        function toggleComments(id) { const el = document.getElementById('section-' + id); el.style.display = el.style.display === 'block' ? 'none' : 'block'; }
-        
-        function addComment(id, tab) {
-            const name = document.getElementById('name-' + id).value;
-            const text = document.getElementById('in-' + id).value;
-            if(!name || !text) return;
-            db.ref(`comments/${id}`).push({ userName: name, text: text, userNotifId: userNotifId, timestamp: new Date().getTime() })
-              .then(() => document.getElementById('in-' + id).value = "");
-        }
+  db.ref('settings').once('value', () => {
+    setTimeout(() => { initialLoadDone = true; }, 3000);
+  });
+}
 
-        function loadComments(postId, tabName) {
-            db.ref(`comments/${postId}`).on('value', s => {
-                const box = document.getElementById('display-' + postId);
-                const countBadge = document.getElementById('count-' + postId);
-                const data = s.val(); if(!box) return; box.innerHTML = "";
-                const myName = localStorage.getItem('userName') || '';
-                let totalInteractions = 0;
+function addNotif(header, text, targetId, elemId) {
+  bellCount++;
+  updateBellUI();
+  const list = document.getElementById('notif-list');
+  const empty = list.querySelector('.notif-empty');
+  if (empty) empty.remove();
 
-                if(data) {
-                    Object.keys(data).forEach(ck => { 
-                        totalInteractions++;
-                        const c = data[ck]; 
-                        let threadHTML = "";
+  const item = document.createElement('div');
+  item.className = 'notif-item';
+  item.innerHTML = `<strong>${header}</strong>${text.substring(0, 50)}…<span>Tap to view</span>`;
+  item.onclick = () => {
+    goToPost(targetId, elemId);
+    document.getElementById('notif-dropdown').style.display = 'none';
+  };
+  list.prepend(item);
+}
 
-                        if(c.adminReply) {
-                            totalInteractions++;
-                            threadHTML += `<div class="reply-item"><strong style="color:var(--gold)">Admin:</strong> ${c.adminReply}</div>`;
-                        }
+function updateBellUI() {
+  const b = document.getElementById('bell-badge');
+  if (bellCount > 0) {
+    b.textContent = bellCount > 99 ? '99+' : bellCount;
+    b.classList.add('visible');
+  } else {
+    b.classList.remove('visible');
+  }
+}
 
-                        if(c.replies) {
-                            Object.keys(c.replies).forEach(rk => {
-                                totalInteractions++;
-                                const r = c.replies[rk];
-                                threadHTML += `<div class="reply-item"><strong style="color:var(--gold)">${r.userName}:</strong> ${r.text}
-                                ${r.userName === myName ? `<span class="action-link" style="color:red" onclick="deleteItem('comments/${postId}/${ck}/replies/${rk}')">del</span>` : ''}</div>`;
-                            });
-                        }
+function resetBell() {
+  bellCount = 0;
+  updateBellUI();
+}
 
-                        box.innerHTML += `
-                        <div class="comment-item" id="cmt-${ck}">
-                            <strong style="color:var(--gold); font-size:12px;">${c.userName}</strong>
-                            <div>${c.text}</div>
-                            ${c.userName === myName ? `<span class="action-link" style="color:red" onclick="deleteItem('comments/${postId}/${ck}')">del</span>` : ''}
-                            <div class="reply-thread">${threadHTML}</div>
-                            <button class="reply-trigger" onclick="toggleReplyField('${ck}')">Reply</button>
-                            <div id="nested-box-${ck}" class="nested-input-group">
-                                <input type="text" id="nest-in-${ck}" placeholder="Reply..." style="flex:1; background:#333; color:white; border:1px solid #444; padding:5px; border-radius:4px;">
-                                <button onclick="sendNestedReply('${postId}','${ck}','${c.userNotifId}','${tabName}')" style="background:var(--gold); border:none; padding:0 10px; border-radius:4px;">Send</button>
-                            </div>
-                        </div>`; 
-                    });
-                }
-                countBadge.innerText = `(${totalInteractions})`;
-            });
-        }
+function clearNotifs() {
+  document.getElementById('notif-list').innerHTML = '<div class="notif-empty">No new activity</div>';
+  resetBell();
+}
 
-        function toggleReplyField(id) {
-            const box = document.getElementById('nested-box-' + id);
-            box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
-        }
-
-        function sendNestedReply(postId, commentId, targetUserNotifId, tab) {
-            const input = document.getElementById('nest-in-' + commentId);
-            const text = input.value;
-            const name = localStorage.getItem('userName') || "Member";
-            if(!text) return;
-
-            db.ref(`comments/${postId}/${commentId}/replies`).push({
-                userName: name, text: text, userNotifId: userNotifId, timestamp: new Date().getTime()
-            }).then(() => {
-                if(targetUserNotifId && targetUserNotifId !== userNotifId) {
-                    db.ref(`notifications/${targetUserNotifId}`).push({
-                        from: name, msg: "replied to your comment", postId: postId, tab: tab, time: new Date().getTime()
-                    });
-                }
-                input.value = "";
-                toggleReplyField(commentId);
-            });
-        }
-
-        function deleteItem(path) { if(confirm("Delete this?")) db.ref(path).remove(); }
-
-        function submitPrayer() {
-            const text = document.getElementById('prayer-text').value; if(!text) return;
-            db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), status: "unread" }).then(() => { alert("Sent successfully"); document.getElementById('prayer-text').value=""; });
-        }
-        
-        let cur = 0; setInterval(() => {
-            const s = document.querySelectorAll('.slide'); if(s.length<2) return;
-            s[cur].classList.remove('active'); cur = (cur+1)%s.length; s[cur].classList.add('active');
-        }, 8000);
-
-        function setupNewPostListeners() {
-            ['updates', 'sermons'].forEach(path => {
-                db.ref(path).orderByChild('timestamp').limitToLast(1).on('child_added', (snap) => {
-                    const post = snap.val();
-                    const postId = snap.key;
-                    
-                    // CHECK: Is it new? (Last 2 mins) AND have we NOT seen it before?
-                    if (post.timestamp > (Date.now() - 120000) && !localStorage.getItem('seen_' + postId)) {
-                        const tab = (path === 'updates') ? 'home' : 'sermons';
-                        const msg = (path === 'sermons') ? "posted a new sermon" : "posted a new update";
-                        
-                        // Only add if not already in the current notification list
-                        db.ref(`notifications/${userNotifId}`).once('value', nSnap => {
-                            let exists = false;
-                            const existing = nSnap.val();
-                            if(existing) {
-                                Object.values(existing).forEach(v => { if(v.postId === postId) exists = true; });
-                            }
-                            if(!exists) {
-                                db.ref(`notifications/${userNotifId}`).push({
-                                    from: "Admin", msg: msg, postId: postId, tab: tab, time: Date.now()
-                                });
-                            }
-                        });
-                    }
-                });
-            });
-        }
-
-        function setupAdminReplyListener() {
-            db.ref('comments').on('child_changed', (snap) => {
-                const postId = snap.key;
-                const comments = snap.val();
-                Object.keys(comments).forEach(cId => {
-                    const c = comments[cId];
-                    if (c.adminReply && c.userNotifId === userNotifId) {
-                        const notifiedKey = 'notified_' + cId;
-                        if (!localStorage.getItem(notifiedKey)) {
-                            db.ref(`notifications/${userNotifId}`).push({
-                                from: "Admin", msg: "replied to your post", postId: postId, tab: 'home', time: Date.now()
-                            });
-                            localStorage.setItem(notifiedKey, 'true');
-                        }
-                    }
-                });
-            });
-        }
-
-        function finalLoadData() {
-            loadData();
-            setupNewPostListeners();
-            setupAdminReplyListener();
-        };
-
-        window.onload = finalLoadData;
-    </script>
-    <style>
-        .slide {
-            object-fit: contain !important;
-            background-color: #000;
-        }
-        @media (min-width: 1024px) {
-            .slider-container {
-                height: 450px !important;
-            }
-        }
-    </style>
+function goToPost(id, elemId) {
+  const el = document.getElementById('post-' + id) || document.getElementById(id);
+  if (!el) return;
+  const section = el.closest('.section-content');
+  if (section && section.style.display !== 'block') {
+    section.style.display = 'block';
+    const toggle = section.previousElementSibling;
+    if (toggle && toggle.classList.contains('section-toggle')) toggle.classList.add('open');
+  }
+  const commBox = document.getElementById('comm-box-' + id);
+  if (commBox) commBox.style.display = 'block';
+  const target = document.getElementById(elemId) || el;
+  setTimeout(() => {
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.style.outline = '2px solid var(--gold)';
+    setTimeout(() => { target.style.outline = ''; }, 3000);
+  }, 100);
+}
+</script>
 </body>
 </html>
