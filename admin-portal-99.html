@@ -6,44 +6,6 @@
 <title>UICC Admin Portal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
-
-<!--
-  Firebase Modular SDK v10 — identical version to index.html.
-  Both files use the same DB paths and data shapes:
-
-  DB PATH               WRITTEN BY        READ BY
-  settings/slider       admin             index (slider images)
-  settings/devotional   admin             index (Word for Today)
-  updates/{id}          admin             index (home feed)
-  sermons/{id}          admin             index (sermons feed)
-  folders/{id}          admin             index (sermon folders grouping)
-  comments/{pid}/{cid}  index (members)   admin (moderation)
-  prayers/{id}          index (members)   admin (view/delete)
-  notifications/{uid}   admin + index     index (bell)
-  scheduled_*           admin             admin (processScheduled)
-
-  DATA SHAPES
-    updates/sermons : { text, image, category?, date, timestamp, likes }
-    comments        : { userName, text, userNotifId, timestamp, adminReply?, replies? }
-    notifications   : { from, msg, postId, tab, time }
-    prayer          : { text, date, timestamp, status:'unread'|'read' }
--->
-<script type="module">
-  import { initializeApp }
-    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import {
-    getDatabase, ref, onValue, off,
-    push, set, update, remove,
-    query, limitToLast, endBefore, orderByKey, get
-  } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
-  window._fb = {
-    initializeApp, getDatabase, ref, onValue, off,
-    push, set, update, remove,
-    query, limitToLast, endBefore, orderByKey, get
-  };
-  window.dispatchEvent(new Event('fb-ready'));
-</script>
-
 <style>
 :root{
   --gold:#D4AF37;--gold-dim:#9A7D1A;--gold-glow:rgba(212,175,55,.14);
@@ -233,12 +195,11 @@ select{cursor:pointer}
 </div>
 
 <div id="dashboard">
-
   <div class="preview-wrap">
     <div class="preview-label">Live Member View &#8212; Slider Preview</div>
     <div class="mini-slider">
-      <img id="p-img1" class="mini-slide active" src="" alt="Slide 1">
-      <img id="p-img2" class="mini-slide" src="" alt="Slide 2">
+      <img id="p-img1" class="mini-slide active" src="" alt="">
+      <img id="p-img2" class="mini-slide" src="" alt="">
     </div>
   </div>
 
@@ -279,22 +240,12 @@ select{cursor:pointer}
       <button class="stype-btn" id="btn-video" onclick="showSermonType('video')"><span>&#127909;</span>Video</button>
       <button class="stype-btn" id="btn-audio" onclick="showSermonType('audio')"><span>&#128266;</span>Audio</button>
     </div>
-    <!--
-      AUDIO CONTRACT (must match index.html isAudioItem):
-        item.text  = title only (no URL — index strips URLs for display)
-        item.image = .mp3 URL   (index detects audio via item.image.includes('.mp3'))
-    -->
     <div id="audio-form" class="sermon-form">
       <select id="audio-folder-select"><option value="General Sermons">General Sermons</option></select>
       <input type="text" id="audio-title" placeholder="Sermon title">
       <input type="text" id="audio-link" placeholder=".mp3 or audio link">
       <button class="btn btn-gold" onclick="publishAudio(this)">Publish Audio Sermon</button>
     </div>
-    <!--
-      VIDEO CONTRACT (must match index.html buildCard video detection):
-        item.text  = description (plain text)
-        item.image = video URL (YouTube/MP4/Drive/Dropbox — index detects by URL pattern)
-    -->
     <div id="video-form" class="sermon-form">
       <select id="video-folder-select"><option value="General Sermons">General Sermons</option></select>
       <textarea id="post-text" placeholder="Sermon description..." rows="3"></textarea>
@@ -366,596 +317,714 @@ select{cursor:pointer}
   <button class="btn btn-ghost" onclick="logOut()" style="margin-top:10px">Sign Out</button>
 </div>
 
+<!--
+  FIX #1 — THE RACE CONDITION (the main bug causing "posts don't persist on refresh")
+
+  The <script type="module"> always runs AFTER the page's classic scripts have already
+  executed. If we dispatch 'fb-ready' inside the module and listen for it in a classic
+  script at the bottom of <body>, the listener is registered TOO LATE — the event has
+  already fired and is gone. Nothing runs. No Firebase. No data persists.
+
+  The fix: load Firebase as a plain classic <script> using the compat CDN build.
+  This guarantees synchronous availability — no modules, no race, no event needed.
+  The compat build is slightly larger but 100% reliable for a single-file app like this.
+  Both admin and index now use the same compat SDK v9, which is fine — they talk to
+  the same database and the API surface we use is identical.
+-->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
 <script>
-window.addEventListener('fb-ready', function() {
-  var fb=window._fb;
-  var initApp=fb.initializeApp, getDB=fb.getDatabase,
-      _ref=fb.ref, onValue=fb.onValue, off=fb.off,
-      push=fb.push, set=fb.set, update=fb.update, remove=fb.remove,
-      query=fb.query, limitToLast=fb.limitToLast,
-      endBefore=fb.endBefore, orderByKey=fb.orderByKey, get=fb.get;
+/* ── FIREBASE INIT ─────────────────────────────────── */
+firebase.initializeApp({
+  apiKey:        'AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo',
+  authDomain:    'unioninchristapp.firebaseapp.com',
+  databaseURL:   'https://unioninchristapp-default-rtdb.firebaseio.com',
+  projectId:     'unioninchristapp',
+  storageBucket: 'unioninchristapp.firebasestorage.app',
+  appId:         '1:68198927662:web:1ffa7ec16b35d4be88bebf'
+});
+var db = firebase.database();
+var r  = function(path){ return db.ref(path); };
 
-  var app=initApp({
-    apiKey:        'AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo',
-    authDomain:    'unioninchristapp.firebaseapp.com',
-    databaseURL:   'https://unioninchristapp-default-rtdb.firebaseio.com',
-    projectId:     'unioninchristapp',
-    storageBucket: 'unioninchristapp.firebasestorage.app',
-    appId:         '1:68198927662:web:1ffa7ec16b35d4be88bebf'
+/* ── LISTENER REGISTRY ─────────────────────────────── */
+var _L = [];
+function listen(path, cb){
+  var ref = r(path);
+  ref.on('value', cb);
+  _L.push({ ref: ref, cb: cb });
+}
+function detachAll(){
+  _L.forEach(function(x){ x.ref.off('value', x.cb); });
+  _L.length = 0;
+}
+
+/* ── UTILITIES ─────────────────────────────────────── */
+function san(s){
+  if(typeof s !== 'string') return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+          .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+/* Parse "YYYY-MM-DD" as local midnight — without T00:00:00, JS treats
+   the string as UTC, making posts in UTC+2 (Malawi) publish a day early. */
+function localMidnight(s){ return new Date(s + 'T00:00:00').getTime(); }
+function today(){ return new Date().toLocaleDateString('en-GB'); }
+function fmtDate(ts){ return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+function safeSet(id,val){ var el=document.getElementById(id); if(el) el.textContent=val; }
+function setLoading(btn,on,orig){ if(!btn)return; btn.disabled=on; btn.textContent=on?'Working...':orig; }
+
+function toast(msg,type){
+  type = type||'success';
+  var t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = (type==='success' ? '✓  ' : '✕  ') + msg;
+  document.getElementById('toast-ct').appendChild(t);
+  setTimeout(function(){ t.classList.add('out'); setTimeout(function(){ t.remove(); }, 350); }, 3200);
+}
+
+/* ── MODAL ─────────────────────────────────────────── */
+var _mRes = null;
+function showConfirm(title, msg){
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-msg').textContent   = msg;
+  document.getElementById('modal-ov').classList.add('open');
+  return new Promise(function(res){ _mRes = res; });
+}
+window.closeModal = function(yes){
+  document.getElementById('modal-ov').classList.remove('open');
+  if(_mRes){ _mRes(yes); _mRes = null; }
+};
+document.getElementById('modal-ov').addEventListener('click', function(e){
+  if(e.target === e.currentTarget) closeModal(false);
+});
+
+/* ── AUTH ───────────────────────────────────────────
+   FIX #2: Use localStorage instead of sessionStorage.
+   sessionStorage is cleared when the tab/browser closes
+   AND on page refresh in some mobile browsers, which is
+   why the dashboard vanished on every refresh.          */
+window.checkAdmin = function(){
+  var inp = document.getElementById('admin-key');
+  var err = document.getElementById('login-error');
+  err.textContent = '';
+  if(inp.value === 'church111'){
+    localStorage.setItem('uic_admin', '1');
+    inp.value = '';
+    showDashboard();
+  } else {
+    err.textContent = 'Incorrect password. Please try again.';
+    inp.value = ''; inp.focus();
+  }
+};
+
+var sliderInterval = null;
+window.logOut = function(){
+  if(sliderInterval) clearInterval(sliderInterval);
+  detachAll();
+  localStorage.removeItem('uic_admin');
+  location.reload();
+};
+
+/* Auto-login on refresh if credentials saved */
+if(localStorage.getItem('uic_admin') === '1') showDashboard();
+
+/* ── DASHBOARD INIT ────────────────────────────────── */
+function showDashboard(){
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display    = 'block';
+  loadSettings();
+  renderList('updates', 'updates-list', 'badge-updates');
+  renderList('sermons', 'sermons-list', 'badge-sermons');
+  loadPrayers();
+  loadFolders();
+  loadPending();
+  refreshAnalytics();
+  startPreviewSlider();
+  initBellWatcher();
+  processScheduled();
+}
+
+/* ── SETTINGS ──────────────────────────────────────── */
+function loadSettings(){
+  listen('settings/devotional', function(s){
+    var d = s.val(); if(!d) return;
+    document.getElementById('devo-v-in').value = d.verse || '';
+    document.getElementById('devo-t-in').value = d.text  || '';
   });
-  var db=getDB(app);
-  var r=function(path){ return _ref(db,path); };
-
-  /* LISTENER REGISTRY */
-  var _L=[];
-  function listen(path,cb){ var ref=r(path); onValue(ref,cb); _L.push({ref:ref,cb:cb}); }
-  function detachAll(){ _L.forEach(function(x){ off(x.ref,'value',x.cb); }); _L.length=0; }
-
-  /* UTILITIES */
-  function san(s){
-    if(typeof s!=='string')return'';
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-            .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-  }
-  /* LOCAL MIDNIGHT FIX: JS parses "YYYY-MM-DD" as UTC which causes posts in
-     timezones ahead of UTC (e.g. UTC+2 Malawi) to publish a day early.     */
-  function localMidnight(s){ return new Date(s+'T00:00:00').getTime(); }
-  function today(){ return new Date().toLocaleDateString('en-GB'); }
-  function fmtDate(ts){ return new Date(ts).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
-  function safeSet(id,val){ var el=document.getElementById(id); if(el) el.textContent=val; }
-  function setLoading(btn,on,orig){ if(!btn)return; btn.disabled=on; btn.textContent=on?'Working...':orig; }
-
-  function toast(msg,type){
-    type=type||'success';
-    var t=document.createElement('div'); t.className='toast '+type;
-    t.textContent=(type==='success'?'✓  ':'✕  ')+msg;
-    document.getElementById('toast-ct').appendChild(t);
-    setTimeout(function(){ t.classList.add('out'); setTimeout(function(){ t.remove(); },350); },3200);
-  }
-
-  /* MODAL — replaces native confirm() which blocks the main thread */
-  var _mRes=null;
-  function showConfirm(title,msg){
-    document.getElementById('modal-title').textContent=title;
-    document.getElementById('modal-msg').textContent=msg;
-    document.getElementById('modal-ov').classList.add('open');
-    return new Promise(function(res){ _mRes=res; });
-  }
-  window.closeModal=function(yes){
-    document.getElementById('modal-ov').classList.remove('open');
-    if(_mRes){ _mRes(yes); _mRes=null; }
-  };
-  document.getElementById('modal-ov').addEventListener('click',function(e){
-    if(e.target===e.currentTarget) closeModal(false);
+  listen('settings/slider', function(s){
+    var d = s.val(); if(!d) return;
+    document.getElementById('p-img1').src = d.img1 || '';
+    document.getElementById('p-img2').src = d.img2 || '';
+    document.getElementById('slide1').value = d.img1 || '';
+    document.getElementById('slide2').value = d.img2 || '';
   });
+}
 
-  /* AUTH */
-  window.checkAdmin=function(){
-    var inp=document.getElementById('admin-key');
-    var err=document.getElementById('login-error');
-    err.textContent='';
-    if(inp.value==='church111'){
-      sessionStorage.setItem('uic_admin','1');
-      inp.value=''; showDashboard();
-    } else {
-      err.textContent='Incorrect password. Please try again.';
-      inp.value=''; inp.focus();
-    }
-  };
+window.updateSlider = function(btn){
+  var img1 = document.getElementById('slide1').value.trim();
+  var img2 = document.getElementById('slide2').value.trim();
+  var orig = btn.textContent; setLoading(btn, true, orig);
+  r('settings/slider').set({ img1: img1, img2: img2 })
+    .then(function(){ toast('Slider updated!'); })
+    .catch(function(){ toast('Failed to update slider.', 'error'); })
+    .finally(function(){ setLoading(btn, false, orig); });
+};
 
-  var sliderInterval=null;
-  window.logOut=function(){
-    if(sliderInterval) clearInterval(sliderInterval);
-    detachAll();
-    sessionStorage.removeItem('uic_admin');
-    location.reload();
-  };
+window.updateDevo = function(btn){
+  var v = document.getElementById('devo-v-in').value.trim();
+  var t = document.getElementById('devo-t-in').value.trim();
+  var d = document.getElementById('devo-schedule-date').value;
+  if(!v || !t){ toast('Please fill in scripture and message.', 'error'); return; }
+  var orig = btn.textContent; setLoading(btn, true, orig);
+  var op = d
+    ? r('scheduled_devotionals').push({ verse: v, text: t, timestamp: localMidnight(d) })
+    : r('settings/devotional').set({ verse: v, text: t });
+  op.then(function(){
+      toast(d ? 'Devotional scheduled for ' + d : 'Devotional updated live!');
+      document.getElementById('devo-schedule-date').value = '';
+    })
+    .catch(function(){ toast('Failed to save.', 'error'); })
+    .finally(function(){ setLoading(btn, false, orig); });
+};
 
-  if(sessionStorage.getItem('uic_admin')==='1') showDashboard();
+/* ── UPDATES ───────────────────────────────────────── */
+window.publishUpdate = function(btn){
+  var txt = document.getElementById('update-text').value.trim();
+  var img = document.getElementById('update-img').value.trim();
+  var d   = document.getElementById('schedule-date').value;
+  if(!txt){ toast('Please enter update text.', 'error'); return; }
+  var data = { text: txt, image: img, date: d || today(), timestamp: d ? localMidnight(d) : Date.now(), likes: 0 };
+  var orig = btn.textContent; setLoading(btn, true, orig);
+  r(d ? 'scheduled_updates' : 'updates').push(data)
+    .then(function(){
+      toast(d ? 'Scheduled for ' + d : 'Update published!');
+      ['update-text','update-img','schedule-date'].forEach(function(id){ document.getElementById(id).value = ''; });
+    })
+    .catch(function(){ toast('Failed to publish.', 'error'); })
+    .finally(function(){ setLoading(btn, false, orig); });
+};
 
-  function showDashboard(){
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('dashboard').style.display='block';
-    loadSettings();
-    renderList('updates','updates-list','badge-updates');
-    renderList('sermons','sermons-list','badge-sermons');
-    loadPrayers(); loadFolders(); loadPending();
-    refreshAnalytics(); startPreviewSlider(); initBellWatcher(); processScheduled();
-  }
+/* ── SERMONS ───────────────────────────────────────── */
+window.showSermonType = function(type){
+  ['video','audio'].forEach(function(t){
+    document.getElementById(t + '-form').classList.toggle('visible', t === type);
+    document.getElementById('btn-' + t).classList.toggle('active', t === type);
+  });
+};
 
-  /* SETTINGS */
-  function loadSettings(){
-    listen('settings/devotional',function(s){
-      var d=s.val(); if(!d)return;
-      document.getElementById('devo-v-in').value=d.verse||'';
-      document.getElementById('devo-t-in').value=d.text||'';
-    });
-    listen('settings/slider',function(s){
-      var d=s.val(); if(!d)return;
-      document.getElementById('p-img1').src=d.img1||'';
-      document.getElementById('p-img2').src=d.img2||'';
-      document.getElementById('slide1').value=d.img1||'';
-      document.getElementById('slide2').value=d.img2||'';
-    });
-  }
+/* AUDIO CONTRACT: text=title, image=mp3 URL
+   index.html detects audio via: item.image.includes('.mp3') */
+window.publishAudio = function(btn){
+  var title = document.getElementById('audio-title').value.trim();
+  var link  = document.getElementById('audio-link').value.trim();
+  var cat   = document.getElementById('audio-folder-select').value;
+  if(!link){ toast('Please provide an audio link.', 'error'); return; }
+  var orig = btn.textContent; setLoading(btn, true, orig);
+  r('sermons').push({ text: title, image: link, category: cat, date: today(), timestamp: Date.now(), likes: 0 })
+    .then(function(){
+      toast('Audio published to ' + cat);
+      ['audio-title','audio-link'].forEach(function(id){ document.getElementById(id).value = ''; });
+    })
+    .catch(function(){ toast('Failed to publish.', 'error'); })
+    .finally(function(){ setLoading(btn, false, orig); });
+};
 
-  window.updateSlider=function(btn){
-    var img1=document.getElementById('slide1').value.trim();
-    var img2=document.getElementById('slide2').value.trim();
-    var orig=btn.textContent; setLoading(btn,true,orig);
-    set(r('settings/slider'),{img1:img1,img2:img2})
-      .then(function(){ toast('Slider updated!'); })
-      .catch(function(){ toast('Failed to update slider.','error'); })
-      .finally(function(){ setLoading(btn,false,orig); });
-  };
+/* VIDEO CONTRACT: text=description, image=video URL
+   index.html detects YouTube/MP4/Drive/Dropbox by URL pattern in item.image */
+window.publishVideo = function(btn){
+  var txt = document.getElementById('post-text').value.trim();
+  var vid = document.getElementById('post-img').value.trim();
+  var cat = document.getElementById('video-folder-select').value;
+  if(!vid){ toast('Please provide a video URL.', 'error'); return; }
+  var orig = btn.textContent; setLoading(btn, true, orig);
+  r('sermons').push({ text: txt, image: vid, category: cat, date: today(), timestamp: Date.now(), likes: 0 })
+    .then(function(){
+      toast('Video published to ' + cat);
+      ['post-text','post-img'].forEach(function(id){ document.getElementById(id).value = ''; });
+    })
+    .catch(function(){ toast('Failed to publish.', 'error'); })
+    .finally(function(){ setLoading(btn, false, orig); });
+};
 
-  window.updateDevo=function(btn){
-    var v=document.getElementById('devo-v-in').value.trim();
-    var t=document.getElementById('devo-t-in').value.trim();
-    var d=document.getElementById('devo-schedule-date').value;
-    if(!v||!t){ toast('Please fill in scripture and message.','error'); return; }
-    var orig=btn.textContent; setLoading(btn,true,orig);
-    var op=d
-      ? push(r('scheduled_devotionals'),{verse:v,text:t,timestamp:localMidnight(d)})
-      : set(r('settings/devotional'),{verse:v,text:t});
-    op.then(function(){
-        toast(d?'Devotional scheduled for '+d:'Devotional updated live!');
-        document.getElementById('devo-schedule-date').value='';
-      })
-      .catch(function(){ toast('Failed to save.','error'); })
-      .finally(function(){ setLoading(btn,false,orig); });
-  };
-
-  /* UPDATES */
-  window.publishUpdate=function(btn){
-    var txt=document.getElementById('update-text').value.trim();
-    var img=document.getElementById('update-img').value.trim();
-    var d=document.getElementById('schedule-date').value;
-    if(!txt){ toast('Please enter update text.','error'); return; }
-    var data={text:txt,image:img,date:d||today(),timestamp:d?localMidnight(d):Date.now(),likes:0};
-    var orig=btn.textContent; setLoading(btn,true,orig);
-    push(r(d?'scheduled_updates':'updates'),data)
-      .then(function(){
-        toast(d?'Scheduled for '+d:'Update published!');
-        ['update-text','update-img','schedule-date'].forEach(function(id){ document.getElementById(id).value=''; });
-      })
-      .catch(function(){ toast('Failed to publish.','error'); })
-      .finally(function(){ setLoading(btn,false,orig); });
-  };
-
-  /* SERMONS */
-  window.showSermonType=function(type){
-    ['video','audio'].forEach(function(t){
-      document.getElementById(t+'-form').classList.toggle('visible',t===type);
-      document.getElementById('btn-'+t).classList.toggle('active',t===type);
-    });
-  };
-
-  window.publishAudio=function(btn){
-    var title=document.getElementById('audio-title').value.trim();
-    var link=document.getElementById('audio-link').value.trim();
-    var cat=document.getElementById('audio-folder-select').value;
-    if(!link){ toast('Please provide an audio link.','error'); return; }
-    var orig=btn.textContent; setLoading(btn,true,orig);
-    /* CONTRACT: text=title only, image=mp3 URL — index detects audio by item.image.includes('.mp3') */
-    push(r('sermons'),{text:title,image:link,category:cat,date:today(),timestamp:Date.now(),likes:0})
-      .then(function(){
-        toast('Audio published to '+cat);
-        ['audio-title','audio-link'].forEach(function(id){ document.getElementById(id).value=''; });
-      })
-      .catch(function(){ toast('Failed to publish.','error'); })
-      .finally(function(){ setLoading(btn,false,orig); });
-  };
-
-  window.publishVideo=function(btn){
-    var txt=document.getElementById('post-text').value.trim();
-    var vid=document.getElementById('post-img').value.trim();
-    var cat=document.getElementById('video-folder-select').value;
-    if(!vid){ toast('Please provide a video URL.','error'); return; }
-    var orig=btn.textContent; setLoading(btn,true,orig);
-    /* CONTRACT: text=description, image=video URL — index detects type by URL pattern */
-    push(r('sermons'),{text:txt,image:vid,category:cat,date:today(),timestamp:Date.now(),likes:0})
-      .then(function(){
-        toast('Video published to '+cat);
-        ['post-text','post-img'].forEach(function(id){ document.getElementById(id).value=''; });
-      })
-      .catch(function(){ toast('Failed to publish.','error'); })
-      .finally(function(){ setLoading(btn,false,orig); });
-  };
-
-  /* FOLDERS */
-  function loadFolders(){
-    listen('folders',function(s){
-      var list=document.getElementById('folder-list-admin');
-      var audSel=document.getElementById('audio-folder-select');
-      var vidSel=document.getElementById('video-folder-select');
-      var data=s.val();
-      var def='<option value="General Sermons">General Sermons</option>';
-      audSel.innerHTML=def; vidSel.innerHTML=def; list.innerHTML='';
-      if(data){
-        Object.keys(data).forEach(function(k){
-          var name=san(data[k].name||'');
-          list.innerHTML+='<div class="folder-row"><input type="text" id="ef-'+k+'" value="'+name+'" style="margin-top:0"><button class="btn btn-ghost btn-sm" onclick="renameFolder(\''+k+'\')">Rename</button><button class="btn btn-danger btn-sm" onclick="deleteItem(\'folders/'+k+'\',null,this)">Del</button></div>';
-          audSel.innerHTML+='<option value="'+name+'">'+name+'</option>';
-          vidSel.innerHTML+='<option value="'+name+'">'+name+'</option>';
-        });
-      }
-    });
-  }
-  window.addFolder=function(btn){
-    var inp=document.getElementById('new-folder-name');
-    var name=inp.value.trim(); if(!name)return;
-    var orig=btn.textContent; setLoading(btn,true,orig);
-    push(r('folders'),{name:name})
-      .then(function(){ inp.value=''; toast('Folder created!'); })
-      .catch(function(){ toast('Failed.','error'); })
-      .finally(function(){ setLoading(btn,false,orig); });
-  };
-  window.renameFolder=function(id){
-    var n=(document.getElementById('ef-'+id).value||'').trim(); if(!n)return;
-    update(r('folders/'+id),{name:n})
-      .then(function(){ toast('Renamed!'); })
-      .catch(function(){ toast('Failed.','error'); });
-  };
-
-  /* SCHEDULED TASKS */
-  function processScheduled(){
-    var now=Date.now();
-    get(r('scheduled_updates')).then(function(s){
-      var d=s.val(); if(!d)return;
-      Object.keys(d).forEach(function(k){
-        if(d[k].timestamp<=now) push(r('updates'),d[k]).then(function(){ remove(r('scheduled_updates/'+k)); });
-      });
-    });
-    get(r('scheduled_devotionals')).then(function(s){
-      var d=s.val(); if(!d)return;
-      Object.keys(d).forEach(function(k){
-        if(d[k].timestamp<=now){
-          var it=d[k];
-          set(r('settings/devotional'),{verse:it.verse,text:it.text}).then(function(){ remove(r('scheduled_devotionals/'+k)); });
-        }
-      });
-    });
-  }
-
-  /* PENDING — scoped listeners, no full DB snapshot */
-  function loadPending(){
-    var listDiv=document.getElementById('pending-list');
-    var badge=document.getElementById('pending-badge');
-    var _u={},_d={};
-    function render(){
-      listDiv.innerHTML=''; var total=0;
-      Object.keys(_u).forEach(function(k){
-        total++; var it=_u[k];
-        listDiv.innerHTML+='<div class="pending-item"><span class="ptag ptag-u">UPDATE - '+fmtDate(it.timestamp)+'</span><p style="font-size:13px;margin-top:4px">'+san((it.text||'').substring(0,70))+'...</p><button class="btn btn-danger btn-sm" style="margin-top:8px" onclick="deleteItem(\'scheduled_updates/'+k+'\',null,this)">Cancel</button></div>';
-      });
-      Object.keys(_d).forEach(function(k){
-        total++; var it=_d[k];
-        listDiv.innerHTML+='<div class="pending-item"><span class="ptag ptag-d">DEVO - '+fmtDate(it.timestamp)+'</span><p style="font-size:13px;margin-top:4px"><strong>'+san(it.verse)+'</strong>: '+san((it.text||'').substring(0,60))+'...</p><button class="btn btn-danger btn-sm" style="margin-top:8px" onclick="deleteItem(\'scheduled_devotionals/'+k+'\',null,this)">Cancel</button></div>';
-      });
-      badge.textContent=total;
-      if(!total) listDiv.innerHTML='<p style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">No scheduled posts.</p>';
-    }
-    listen('scheduled_updates',     function(s){ _u=s.val()||{}; render(); });
-    listen('scheduled_devotionals', function(s){ _d=s.val()||{}; render(); });
-  }
-
-  /* PAGINATED LISTS */
-  var PAGE=20;
-  function renderList(type,containerId,badgeId){
-    get(r(type)).then(function(s){ var d=s.val(); safeSet(badgeId,d?Object.keys(d).length:'0'); });
-    var div=document.getElementById(containerId);
-    div.innerHTML='';
-    var oldestKey=null,exhausted=false;
-
-    function buildCard(type,k,item){
-      var el=document.createElement('div');
-      el.className='admin-item'; el.id='post-'+k;
-      el.innerHTML=
-        (type==='sermons'&&item.category?'<span class="folder-tag">&#128193; '+san(item.category)+'</span>':'')+
-        (item.image?'<img src="'+san(item.image)+'" alt="" loading="lazy">':'')+
-        '<textarea id="edit-'+k+'" rows="2">'+san(item.text||'')+'</textarea>'+
-        '<div class="item-meta">'+
-          '<span class="likes">&#10084; '+(item.likes||0)+'</span>'+
-          '<button class="ctoggle" onclick="toggleComments(\''+k+'\')">&#128172; <span id="cc-'+k+'">0</span></button>'+
-        '</div>'+
-        '<div id="comm-'+k+'" class="comment-box"></div>'+
-        '<div class="item-actions">'+
-          '<button class="btn btn-ghost btn-sm" onclick="saveEdit(\''+type+'\',\''+k+'\',this)">Save</button>'+
-          '<button class="btn btn-danger btn-sm" onclick="deleteItem(\''+type+'/'+k+'\',\''+k+'\',this)">Delete</button>'+
-        '</div>';
-      return el;
-    }
-
-    function fetchPage(){
-      var q=oldestKey
-        ? query(r(type),orderByKey(),endBefore(oldestKey),limitToLast(PAGE))
-        : query(r(type),orderByKey(),limitToLast(PAGE));
-      var old=document.getElementById('lm-'+type); if(old) old.remove();
-      return get(q).then(function(snap){
-        var data=snap.val();
-        if(!data){
-          exhausted=true;
-          if(!div.querySelector('.admin-item'))
-            div.innerHTML='<p style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Nothing here yet.</p>';
-          return;
-        }
-        var keys=Object.keys(data);
-        if(keys.length<PAGE) exhausted=true;
-        oldestKey=keys[0];
-        keys.slice().reverse().forEach(function(k){
-          if(document.getElementById('post-'+k)) return;
-          var el=buildCard(type,k,data[k]);
-          var lm=document.getElementById('lm-'+type);
-          if(lm) div.insertBefore(el,lm); else div.append(el);
-          loadComments(k);
-        });
-        if(!exhausted){
-          var btn=document.createElement('button');
-          btn.id='lm-'+type; btn.className='load-more';
-          btn.textContent='Load more...';
-          btn.onclick=function(){ btn.disabled=true; btn.textContent='Loading...'; fetchPage(); };
-          div.appendChild(btn);
-        }
-      });
-    }
-
-    var firstFire=true;
-    listen(type,function(s){
-      if(firstFire){ firstFire=false; return; }
-      var d=s.val(); if(!d)return;
-      var keys=Object.keys(d);
-      var newest=keys[keys.length-1];
-      if(!document.getElementById('post-'+newest)){
-        var el=buildCard(type,newest,d[newest]);
-        div.prepend(el); loadComments(newest);
-        safeSet(badgeId,keys.length);
-      }
-    });
-    fetchPage();
-  }
-
-  /* SAVE / DELETE */
-  window.saveEdit=function(type,id,btn){
-    var newText=(document.getElementById('edit-'+id).value||'').trim(); if(!newText)return;
-    var orig=btn.textContent; setLoading(btn,true,orig);
-    update(r(type+'/'+id),{text:newText})
-      .then(function(){ toast('Saved!'); })
-      .catch(function(){ toast('Save failed.','error'); })
-      .finally(function(){ setLoading(btn,false,orig); });
-  };
-
-  window.deleteItem=function(path,commentPath,btn){
-    showConfirm('Delete','Permanently delete this item and all its comments?').then(function(yes){
-      if(!yes)return;
-      var orig=btn.textContent; setLoading(btn,true,orig);
-      var id=path.split('/').pop();
-      var ops=[remove(r(path))];
-      if(commentPath) ops.push(remove(r('comments/'+commentPath)));
-      if(path.indexOf('updates/')===0||path.indexOf('sermons/')===0) ops.push(remove(r('comments/'+id)));
-      Promise.all(ops)
-        .then(function(){ toast('Deleted.'); })
-        .catch(function(){ toast('Delete failed.','error'); })
-        .finally(function(){ setLoading(btn,false,orig); });
-    });
-  };
-
-  /* COMMENTS
-     BUG FIX: original code used undefined `commentId` variable.
-     Correct variable is `ck` — the Object.keys forEach loop key.
-     adminReply written here is read by index.html loadComments().
-     replies sub-collection is written by index.html sendReply().   */
-  window.toggleComments=function(postId){
-    document.getElementById('comm-'+postId).classList.toggle('open');
-  };
-
-  function loadComments(postId){
-    listen('comments/'+postId,function(s){
-      var box=document.getElementById('comm-'+postId);
-      var counter=document.getElementById('cc-'+postId);
-      if(!box)return; box.innerHTML='';
-      var data=s.val(); var total=0;
-      if(data){
-        Object.keys(data).forEach(function(ck){ /* ck = correct variable (was commentId = BUG) */
-          total++; var c=data[ck];
-          var html=
-            '<div class="comment-entry" id="ce-'+ck+'">'+
-              '<div class="comment-user">'+
-                '<span>'+san(c.userName||'Member')+'</span>'+
-                '<button class="del-btn" onclick="moderateComment(\''+postId+'\',\''+ck+'\')">Delete</button>'+
-              '</div>'+
-              '<div>'+san(c.text||'')+'</div>';
-          if(c.adminReply) html+='<div class="admin-reply">Admin: '+san(c.adminReply)+'</div>';
-          html+=
-            '<div class="reply-row">'+
-              '<input type="text" id="rpl-'+ck+'" placeholder="Write a reply...">'+
-              '<button class="btn btn-green btn-sm" onclick="sendReply(\''+postId+'\',\''+ck+'\')">Reply</button>'+
-            '</div>';
-          if(c.replies){
-            Object.keys(c.replies).forEach(function(rk){
-              total++; var rep=c.replies[rk];
-              html+=
-                '<div class="thread-reply" id="tr-'+rk+'">'+
-                  '<div style="display:flex;justify-content:space-between;align-items:center">'+
-                    '<span>&#8618; '+san(rep.userName||'Member')+'</span>'+
-                    '<button class="del-btn" onclick="moderateComment(\''+postId+'\',\''+ck+'\',\''+rk+'\')">Delete</button>'+
-                  '</div>'+
-                  '<div style="margin-top:2px">'+san(rep.text||'')+'</div>'+
-                '</div>';
-            });
-          }
-          html+='</div>';
-          box.innerHTML+=html;
-        });
-      }
-      if(counter) counter.textContent=total;
-      if(!total) box.innerHTML='<p style="text-align:center;font-size:12px;color:var(--muted);padding:12px 0">No comments yet.</p>';
-    });
-  }
-
-  /* Admin reply — sets adminReply field read by index.html.
-     Also sends a notification to the commenter via notifications/{userNotifId}. */
-  window.sendReply=function(postId,commentId){
-    var inp=document.getElementById('rpl-'+commentId);
-    if(!inp||!inp.value.trim())return;
-    var replyText=inp.value.trim();
-    get(r('comments/'+postId+'/'+commentId)).then(function(snap){
-      var c=snap.val()||{};
-      update(r('comments/'+postId+'/'+commentId),{adminReply:replyText})
-        .then(function(){
-          toast('Reply sent!');
-          inp.value='';
-          /* Notify the member — matches notifications shape expected by index.html */
-          if(c.userNotifId){
-            push(r('notifications/'+c.userNotifId),{
-              from:  'Admin',
-              msg:   'replied to your comment',
-              postId: postId,
-              tab:   'home',   /* index.html routes this to the Home tab */
-              time:  Date.now()
-            });
-          }
-        })
-        .catch(function(){ toast('Failed.','error'); });
-    });
-  };
-
-  window.moderateComment=function(postId,commentId,replyId){
-    showConfirm('Moderate','Replace this message with a deletion notice?').then(function(yes){
-      if(!yes)return;
-      var path=replyId
-        ?'comments/'+postId+'/'+commentId+'/replies/'+replyId
-        :'comments/'+postId+'/'+commentId;
-      update(r(path),{text:'This message was removed by admin.',userName:'Moderated'})
-        .then(function(){ toast('Moderated.'); })
-        .catch(function(){ toast('Failed.','error'); });
-    });
-  };
-
-  /* PRAYERS */
-  function loadPrayers(){
-    listen('prayers',function(s){
-      var div=document.getElementById('prayers-list');
-      var badge=document.getElementById('prayers-badge');
-      div.innerHTML=''; var data=s.val();
-      if(data){
-        var keys=Object.keys(data);
-        var unread=keys.filter(function(k){ return data[k].status==='unread'; }).length;
-        badge.textContent=unread>0?unread:keys.length;
-        badge.className=unread>0?'badge badge-red':'badge';
-        keys.slice().reverse().forEach(function(k){
-          div.innerHTML+='<div class="admin-item" id="prayer-'+k+'" style="border-left-color:var(--purple)"><p style="font-size:13px">'+san(data[k].text||'')+'</p><div class="item-actions" style="margin-top:8px"><button class="btn btn-danger btn-sm" onclick="deleteItem(\'prayers/'+k+'\',null,this)">Delete</button></div></div>';
-        });
-      } else {
-        badge.textContent='0';
-        div.innerHTML='<p style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">No prayers yet.</p>';
-      }
-    });
-  }
-
-  window.markPrayersRead=function(){
-    get(r('prayers')).then(function(s){
-      var data=s.val(); if(!data)return;
-      /* status:'unread' is written by index.html submitPrayer() */
+/* ── FOLDERS ───────────────────────────────────────── */
+function loadFolders(){
+  listen('folders', function(s){
+    var list   = document.getElementById('folder-list-admin');
+    var audSel = document.getElementById('audio-folder-select');
+    var vidSel = document.getElementById('video-folder-select');
+    var data   = s.val();
+    var def    = '<option value="General Sermons">General Sermons</option>';
+    audSel.innerHTML = def; vidSel.innerHTML = def; list.innerHTML = '';
+    if(data){
       Object.keys(data).forEach(function(k){
-        if(data[k].status==='unread') update(r('prayers/'+k),{status:'read'});
+        var name = san(data[k].name || '');
+        list.innerHTML +=
+          '<div class="folder-row">' +
+            '<input type="text" id="ef-' + k + '" value="' + name + '" style="margin-top:0">' +
+            '<button class="btn btn-ghost btn-sm" onclick="renameFolder(\'' + k + '\')">Rename</button>' +
+            '<button class="btn btn-danger btn-sm" onclick="deleteItem(\'folders/' + k + '\',null,this)">Del</button>' +
+          '</div>';
+        audSel.innerHTML += '<option value="' + name + '">' + name + '</option>';
+        vidSel.innerHTML += '<option value="' + name + '">' + name + '</option>';
       });
-    });
-  };
+    }
+  });
+}
+window.addFolder = function(btn){
+  var inp  = document.getElementById('new-folder-name');
+  var name = inp.value.trim(); if(!name) return;
+  var orig = btn.textContent; setLoading(btn, true, orig);
+  r('folders').push({ name: name })
+    .then(function(){ inp.value = ''; toast('Folder created!'); })
+    .catch(function(){ toast('Failed.', 'error'); })
+    .finally(function(){ setLoading(btn, false, orig); });
+};
+window.renameFolder = function(id){
+  var n = (document.getElementById('ef-' + id).value || '').trim(); if(!n) return;
+  r('folders/' + id).update({ name: n })
+    .then(function(){ toast('Renamed!'); })
+    .catch(function(){ toast('Failed.', 'error'); });
+};
 
-  /* ANALYTICS — Promise.all avoids the race condition from nested callbacks */
-  var _aTick=null;
-  function refreshAnalytics(){ clearTimeout(_aTick); _aTick=setTimeout(doAnalytics,900); }
-  function doAnalytics(){
-    Promise.all([get(r('comments')),get(r('updates')),get(r('sermons'))]).then(function(res){
-      var commData=res[0].val()||{}, updData=res[1].val()||{}, serData=res[2].val()||{};
-      var commCount={},totalComm=0;
-      Object.keys(commData).forEach(function(pid){ var c=Object.keys(commData[pid]).length; commCount[pid]=c; totalComm+=c; });
-      var totalLikes=0, topLiked={text:'None',score:-1}, topComm={text:'None',score:-1};
-      Object.entries(updData).concat(Object.entries(serData)).forEach(function(e){
-        var k=e[0],it=e[1],l=it.likes||0; totalLikes+=l;
-        if(l>topLiked.score) topLiked={text:it.text,score:l};
-        var c=commCount[k]||0; if(c>topComm.score) topComm={text:it.text,score:c};
+/* ── SCHEDULED TASKS ───────────────────────────────── */
+function processScheduled(){
+  var now = Date.now();
+  r('scheduled_updates').once('value', function(s){
+    var d = s.val(); if(!d) return;
+    Object.keys(d).forEach(function(k){
+      if(d[k].timestamp <= now)
+        r('updates').push(d[k]).then(function(){ r('scheduled_updates/' + k).remove(); });
+    });
+  });
+  r('scheduled_devotionals').once('value', function(s){
+    var d = s.val(); if(!d) return;
+    Object.keys(d).forEach(function(k){
+      if(d[k].timestamp <= now){
+        var it = d[k];
+        r('settings/devotional').set({ verse: it.verse, text: it.text })
+          .then(function(){ r('scheduled_devotionals/' + k).remove(); });
+      }
+    });
+  });
+}
+
+/* ── PENDING — scoped listeners ────────────────────── */
+function loadPending(){
+  var listDiv = document.getElementById('pending-list');
+  var badge   = document.getElementById('pending-badge');
+  var _u = {}, _d = {};
+  function render(){
+    listDiv.innerHTML = ''; var total = 0;
+    Object.keys(_u).forEach(function(k){
+      total++; var it = _u[k];
+      listDiv.innerHTML +=
+        '<div class="pending-item"><span class="ptag ptag-u">UPDATE - ' + fmtDate(it.timestamp) + '</span>' +
+        '<p style="font-size:13px;margin-top:4px">' + san((it.text||'').substring(0,70)) + '...</p>' +
+        '<button class="btn btn-danger btn-sm" style="margin-top:8px" onclick="deleteItem(\'scheduled_updates/' + k + '\',null,this)">Cancel</button></div>';
+    });
+    Object.keys(_d).forEach(function(k){
+      total++; var it = _d[k];
+      listDiv.innerHTML +=
+        '<div class="pending-item"><span class="ptag ptag-d">DEVO - ' + fmtDate(it.timestamp) + '</span>' +
+        '<p style="font-size:13px;margin-top:4px"><strong>' + san(it.verse) + '</strong>: ' + san((it.text||'').substring(0,60)) + '...</p>' +
+        '<button class="btn btn-danger btn-sm" style="margin-top:8px" onclick="deleteItem(\'scheduled_devotionals/' + k + '\',null,this)">Cancel</button></div>';
+    });
+    badge.textContent = total;
+    if(!total) listDiv.innerHTML = '<p style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">No scheduled posts.</p>';
+  }
+  listen('scheduled_updates',     function(s){ _u = s.val() || {}; render(); });
+  listen('scheduled_devotionals', function(s){ _d = s.val() || {}; render(); });
+}
+
+/* ── PAGINATED LISTS ────────────────────────────────
+   FIX #3: The previous live-watcher called listen(type, ...) which downloaded
+   the ENTIRE collection on every change. Now it uses limitToLast(1) so only
+   the single newest record is downloaded when something is added.            */
+var PAGE = 20;
+
+function renderList(type, containerId, badgeId){
+  /* One-time count for the badge — no live listener on full collection */
+  r(type).once('value', function(s){
+    var d = s.val();
+    safeSet(badgeId, d ? Object.keys(d).length : '0');
+  });
+
+  var div        = document.getElementById(containerId);
+  var oldestKey  = null;
+  var exhausted  = false;
+  div.innerHTML  = '';
+
+  /* Build a card DOM element without touching Firebase */
+  function buildCard(k, item){
+    var el = document.createElement('div');
+    el.className = 'admin-item'; el.id = 'post-' + k;
+    el.innerHTML =
+      (type === 'sermons' && item.category ? '<span class="folder-tag">&#128193; ' + san(item.category) + '</span>' : '') +
+      (item.image ? '<img src="' + san(item.image) + '" alt="" loading="lazy">' : '') +
+      '<textarea id="edit-' + k + '" rows="2">' + san(item.text || '') + '</textarea>' +
+      '<div class="item-meta">' +
+        '<span class="likes">&#10084; ' + (item.likes || 0) + '</span>' +
+        '<button class="ctoggle" onclick="toggleComments(\'' + k + '\')">&#128172; <span id="cc-' + k + '">0</span></button>' +
+      '</div>' +
+      '<div id="comm-' + k + '" class="comment-box"></div>' +
+      '<div class="item-actions">' +
+        '<button class="btn btn-ghost btn-sm" onclick="saveEdit(\'' + type + '\',\'' + k + '\',this)">Save</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="deleteItem(\'' + type + '/' + k + '\',\'' + k + '\',this)">Delete</button>' +
+      '</div>';
+    return el;
+  }
+
+  /* Fetch one page of data walking backwards from oldestKey */
+  function fetchPage(){
+    var q = oldestKey
+      ? r(type).orderByKey().endBefore(oldestKey).limitToLast(PAGE)
+      : r(type).orderByKey().limitToLast(PAGE);
+
+    var lm = document.getElementById('lm-' + type);
+    if(lm) lm.remove();
+
+    q.once('value', function(snap){
+      var data = snap.val();
+      if(!data){
+        exhausted = true;
+        if(!div.querySelector('.admin-item'))
+          div.innerHTML = '<p style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">Nothing here yet.</p>';
+        return;
+      }
+      var keys = Object.keys(data);
+      if(keys.length < PAGE) exhausted = true;
+      oldestKey = keys[0]; /* oldest key in this page = cursor for next page */
+
+      /* Render newest first (reverse of the oldest-first Firebase key order) */
+      keys.slice().reverse().forEach(function(k){
+        if(document.getElementById('post-' + k)) return; /* skip duplicates */
+        var el = buildCard(k, data[k]);
+        var lmBtn = document.getElementById('lm-' + type);
+        if(lmBtn) div.insertBefore(el, lmBtn); else div.appendChild(el);
+        loadComments(k);
       });
-      safeSet('stat-likes',totalLikes);
-      safeSet('stat-comm',totalComm);
-      safeSet('stat-updates',Object.keys(updData).length);
-      safeSet('stat-sermons',Object.keys(serData).length);
-      safeSet('top-liked',(topLiked.text||'').substring(0,80)+'... ('+Math.max(0,topLiked.score)+' likes)');
-      safeSet('top-commented',(topComm.text||'').substring(0,80)+'... ('+Math.max(0,topComm.score)+' comments)');
-    }).catch(function(){ toast('Analytics error.','error'); });
-  }
-  listen('comments',refreshAnalytics);
-  listen('updates', refreshAnalytics);
-  listen('sermons', refreshAnalytics);
 
-  /* PREVIEW SLIDER */
-  function startPreviewSlider(){
-    if(sliderInterval) clearInterval(sliderInterval);
-    var cur=0;
-    sliderInterval=setInterval(function(){
-      var slides=document.querySelectorAll('.mini-slide'); if(slides.length<2)return;
-      slides[cur].classList.remove('active');
-      cur=(cur+1)%slides.length; slides[cur].classList.add('active');
-    },7000);
-  }
-
-  /* NOTIFICATION BELL */
-  var bellCount=0,bellReady=false;
-  function initBellWatcher(){
-    updateBellUI();
-    listen('prayers',function(s){
-      if(!bellReady)return;
-      var data=s.val(); if(!data)return;
-      var keys=Object.keys(data);
-      var last=data[keys[keys.length-1]];
-      if(last&&last.status==='unread')
-        addNotif('New Prayer',last.text,'sec-prayers','prayer-'+keys[keys.length-1]);
+      if(!exhausted){
+        var btn = document.createElement('button');
+        btn.id = 'lm-' + type; btn.className = 'load-more';
+        btn.textContent = 'Load more...';
+        btn.onclick = function(){ btn.disabled = true; btn.textContent = 'Loading...'; fetchPage(); };
+        div.appendChild(btn);
+      }
     });
-    /* Watch for new member comments */
-    listen('comments',function(s){
-      if(!bellReady)return;
-      var data=s.val(); if(!data)return;
-      Object.keys(data).forEach(function(pid){
-        var comments=data[pid]; if(!comments)return;
-        Object.keys(comments).forEach(function(ck){
-          var c=comments[ck];
-          if(c.userName&&c.userName!=='Moderated'){
-            var key='bseen_'+ck;
-            if(!sessionStorage.getItem(key)){
-              sessionStorage.setItem(key,'1');
-              addNotif(c.userName+' commented',c.text,'sec-updates','post-'+pid);
-            }
+  }
+
+  /* Live watcher — limitToLast(1) only downloads the single newest item.
+     Skips on first fire (that's handled by fetchPage above).             */
+  var liveFirst = true;
+  r(type).orderByKey().limitToLast(1).on('value', function(s){
+    if(liveFirst){ liveFirst = false; return; }
+    var d = s.val(); if(!d) return;
+    var k = Object.keys(d)[0];
+    if(document.getElementById('post-' + k)) return; /* already showing */
+    var el = buildCard(k, d[k]);
+    div.prepend(el);
+    loadComments(k);
+    /* Refresh badge count */
+    r(type).once('value', function(s2){
+      var data2 = s2.val();
+      safeSet(badgeId, data2 ? Object.keys(data2).length : '0');
+    });
+  });
+
+  fetchPage();
+}
+
+/* ── SAVE / DELETE ─────────────────────────────────── */
+window.saveEdit = function(type, id, btn){
+  var newText = (document.getElementById('edit-' + id).value || '').trim();
+  if(!newText) return;
+  var orig = btn.textContent; setLoading(btn, true, orig);
+  r(type + '/' + id).update({ text: newText })
+    .then(function(){ toast('Saved!'); })
+    .catch(function(){ toast('Save failed.', 'error'); })
+    .finally(function(){ setLoading(btn, false, orig); });
+};
+
+window.deleteItem = function(path, commentPath, btn){
+  showConfirm('Delete', 'Permanently delete this item and all its comments?').then(function(yes){
+    if(!yes) return;
+    var orig = btn.textContent; setLoading(btn, true, orig);
+    var id   = path.split('/').pop();
+    var ops  = [r(path).remove()];
+    if(commentPath) ops.push(r('comments/' + commentPath).remove());
+    if(path.indexOf('updates/') === 0 || path.indexOf('sermons/') === 0)
+      ops.push(r('comments/' + id).remove());
+    Promise.all(ops)
+      .then(function(){ toast('Deleted.'); })
+      .catch(function(){ toast('Delete failed.', 'error'); })
+      .finally(function(){ setLoading(btn, false, orig); });
+  });
+};
+
+/* ── COMMENTS ──────────────────────────────────────── */
+window.toggleComments = function(postId){
+  document.getElementById('comm-' + postId).classList.toggle('open');
+};
+
+var _commentListeners = {}; /* guard against duplicate listeners */
+function loadComments(postId){
+  if(_commentListeners[postId]) return;
+  _commentListeners[postId] = true;
+  r('comments/' + postId).on('value', function(s){
+    var box     = document.getElementById('comm-' + postId);
+    var counter = document.getElementById('cc-' + postId);
+    if(!box) return;
+    box.innerHTML = '';
+    var data = s.val(); var total = 0;
+    if(data){
+      Object.keys(data).forEach(function(ck){
+        total++; var c = data[ck];
+        var html =
+          '<div class="comment-entry" id="ce-' + ck + '">' +
+            '<div class="comment-user">' +
+              '<span>' + san(c.userName || 'Member') + '</span>' +
+              '<button class="del-btn" onclick="moderateComment(\'' + postId + '\',\'' + ck + '\')">Delete</button>' +
+            '</div>' +
+            '<div>' + san(c.text || '') + '</div>';
+        if(c.adminReply) html += '<div class="admin-reply">Admin: ' + san(c.adminReply) + '</div>';
+        html +=
+          '<div class="reply-row">' +
+            '<input type="text" id="rpl-' + ck + '" placeholder="Write a reply...">' +
+            '<button class="btn btn-green btn-sm" onclick="sendReply(\'' + postId + '\',\'' + ck + '\')">Reply</button>' +
+          '</div>';
+        if(c.replies){
+          Object.keys(c.replies).forEach(function(rk){
+            total++; var rep = c.replies[rk];
+            html +=
+              '<div class="thread-reply" id="tr-' + rk + '">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center">' +
+                  '<span>&#8618; ' + san(rep.userName || 'Member') + '</span>' +
+                  '<button class="del-btn" onclick="moderateComment(\'' + postId + '\',\'' + ck + '\',\'' + rk + '\')">Delete</button>' +
+                '</div>' +
+                '<div style="margin-top:2px">' + san(rep.text || '') + '</div>' +
+              '</div>';
+          });
+        }
+        html += '</div>';
+        box.innerHTML += html;
+      });
+    }
+    if(counter) counter.textContent = total;
+    if(!total) box.innerHTML = '<p style="text-align:center;font-size:12px;color:var(--muted);padding:12px 0">No comments yet.</p>';
+  });
+}
+
+/* Admin reply — writes adminReply field read by index.html.
+   Also sends a push notification to the commenter.          */
+window.sendReply = function(postId, commentId){
+  var inp = document.getElementById('rpl-' + commentId);
+  if(!inp || !inp.value.trim()) return;
+  var replyText = inp.value.trim();
+  r('comments/' + postId + '/' + commentId).once('value', function(snap){
+    var c = snap.val() || {};
+    r('comments/' + postId + '/' + commentId).update({ adminReply: replyText })
+      .then(function(){
+        toast('Reply sent!');
+        inp.value = '';
+        if(c.userNotifId){
+          r('notifications/' + c.userNotifId).push({
+            from: 'Admin', msg: 'replied to your comment',
+            postId: postId, tab: 'home', time: Date.now()
+          });
+        }
+      })
+      .catch(function(){ toast('Failed.', 'error'); });
+  });
+};
+
+window.moderateComment = function(postId, commentId, replyId){
+  showConfirm('Moderate', 'Replace this message with a deletion notice?').then(function(yes){
+    if(!yes) return;
+    var path = replyId
+      ? 'comments/' + postId + '/' + commentId + '/replies/' + replyId
+      : 'comments/' + postId + '/' + commentId;
+    r(path).update({ text: 'This message was removed by admin.', userName: 'Moderated' })
+      .then(function(){ toast('Moderated.'); })
+      .catch(function(){ toast('Failed.', 'error'); });
+  });
+};
+
+/* ── PRAYERS ───────────────────────────────────────── */
+function loadPrayers(){
+  listen('prayers', function(s){
+    var div   = document.getElementById('prayers-list');
+    var badge = document.getElementById('prayers-badge');
+    div.innerHTML = ''; var data = s.val();
+    if(data){
+      var keys   = Object.keys(data);
+      var unread = keys.filter(function(k){ return data[k].status === 'unread'; }).length;
+      badge.textContent = unread > 0 ? unread : keys.length;
+      badge.className   = unread > 0 ? 'badge badge-red' : 'badge';
+      keys.slice().reverse().forEach(function(k){
+        div.innerHTML +=
+          '<div class="admin-item" id="prayer-' + k + '" style="border-left-color:var(--purple)">' +
+            '<p style="font-size:13px">' + san(data[k].text || '') + '</p>' +
+            '<div class="item-actions" style="margin-top:8px">' +
+              '<button class="btn btn-danger btn-sm" onclick="deleteItem(\'prayers/' + k + '\',null,this)">Delete</button>' +
+            '</div>' +
+          '</div>';
+      });
+    } else {
+      badge.textContent = '0';
+      div.innerHTML = '<p style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">No prayers yet.</p>';
+    }
+  });
+}
+window.markPrayersRead = function(){
+  r('prayers').once('value', function(s){
+    var data = s.val(); if(!data) return;
+    Object.keys(data).forEach(function(k){
+      if(data[k].status === 'unread') r('prayers/' + k).update({ status: 'read' });
+    });
+  });
+};
+
+/* ── ANALYTICS — Promise.all so all three fetches complete before calculation */
+var _aTick = null;
+function refreshAnalytics(){ clearTimeout(_aTick); _aTick = setTimeout(doAnalytics, 900); }
+function doAnalytics(){
+  Promise.all([
+    r('comments').once('value'),
+    r('updates').once('value'),
+    r('sermons').once('value')
+  ]).then(function(results){
+    var commData = results[0].val() || {};
+    var updData  = results[1].val() || {};
+    var serData  = results[2].val() || {};
+    var commCount = {}, totalComm = 0;
+    Object.keys(commData).forEach(function(pid){
+      var c = Object.keys(commData[pid]).length;
+      commCount[pid] = c; totalComm += c;
+    });
+    var totalLikes = 0;
+    var topLiked   = { text: 'None', score: -1 };
+    var topComm    = { text: 'None', score: -1 };
+    Object.entries(updData).concat(Object.entries(serData)).forEach(function(e){
+      var k = e[0], it = e[1], l = it.likes || 0;
+      totalLikes += l;
+      if(l > topLiked.score) topLiked = { text: it.text, score: l };
+      var c = commCount[k] || 0;
+      if(c > topComm.score)  topComm  = { text: it.text, score: c };
+    });
+    safeSet('stat-likes',   totalLikes);
+    safeSet('stat-comm',    totalComm);
+    safeSet('stat-updates', Object.keys(updData).length);
+    safeSet('stat-sermons', Object.keys(serData).length);
+    safeSet('top-liked',    (topLiked.text||'').substring(0,80) + '... (' + Math.max(0,topLiked.score) + ' likes)');
+    safeSet('top-commented',(topComm.text||'').substring(0,80)  + '... (' + Math.max(0,topComm.score)  + ' comments)');
+  }).catch(function(){ toast('Analytics error.', 'error'); });
+}
+listen('comments', refreshAnalytics);
+listen('updates',  refreshAnalytics);
+listen('sermons',  refreshAnalytics);
+
+/* ── PREVIEW SLIDER ────────────────────────────────── */
+function startPreviewSlider(){
+  if(sliderInterval) clearInterval(sliderInterval);
+  var cur = 0;
+  sliderInterval = setInterval(function(){
+    var slides = document.querySelectorAll('.mini-slide'); if(slides.length < 2) return;
+    slides[cur].classList.remove('active');
+    cur = (cur + 1) % slides.length;
+    slides[cur].classList.add('active');
+  }, 7000);
+}
+
+/* ── NOTIFICATION BELL ─────────────────────────────── */
+var bellCount = 0, bellReady = false;
+function initBellWatcher(){
+  updateBellUI();
+  listen('prayers', function(s){
+    if(!bellReady) return;
+    var data = s.val(); if(!data) return;
+    var keys = Object.keys(data);
+    var last = data[keys[keys.length - 1]];
+    if(last && last.status === 'unread')
+      addNotif('New Prayer', last.text, 'sec-prayers', 'prayer-' + keys[keys.length - 1]);
+  });
+  listen('comments', function(s){
+    if(!bellReady) return;
+    var data = s.val(); if(!data) return;
+    Object.keys(data).forEach(function(pid){
+      var comments = data[pid]; if(!comments) return;
+      Object.keys(comments).forEach(function(ck){
+        var c = comments[ck];
+        if(c.userName && c.userName !== 'Moderated'){
+          var key = 'bseen_' + ck;
+          if(!sessionStorage.getItem(key)){
+            sessionStorage.setItem(key, '1');
+            addNotif(c.userName + ' commented', c.text, 'sec-updates', 'post-' + pid);
           }
-        });
+        }
       });
     });
-    setTimeout(function(){ bellReady=true; },3500);
+  });
+  setTimeout(function(){ bellReady = true; }, 3500);
+}
+function addNotif(title, body, sectionId, elemId){
+  bellCount++; updateBellUI();
+  var list = document.getElementById('notif-list');
+  if(list.querySelector('.n-empty')) list.innerHTML = '';
+  var item = document.createElement('div'); item.className = 'n-item';
+  item.innerHTML = '<b>' + san(title) + '</b><p>' + san((body||'').substring(0,60)) + '</p>';
+  item.onclick = function(){ goToSection(sectionId, elemId); document.getElementById('notif-dd').classList.remove('open'); };
+  list.prepend(item);
+}
+function updateBellUI(){
+  var b = document.getElementById('bell-badge');
+  b.textContent = bellCount;
+  b.classList.toggle('show', bellCount > 0);
+}
+window.toggleNotif = function(){
+  var d = document.getElementById('notif-dd');
+  d.classList.toggle('open');
+  if(d.classList.contains('open')){ bellCount = 0; updateBellUI(); }
+};
+window.clearNotifs = function(){
+  document.getElementById('notif-list').innerHTML = '<div class="n-empty">No new activity</div>';
+  bellCount = 0; updateBellUI();
+  document.getElementById('notif-dd').classList.remove('open');
+};
+function goToSection(sectionId, elemId){
+  var content = document.getElementById(sectionId);
+  if(content && !content.classList.contains('open')){
+    content.classList.add('open');
+    var btn = content.previousElementSibling;
+    if(btn && btn.classList.contains('sec-btn')) btn.classList.add('open');
   }
-  function addNotif(title,body,sectionId,elemId){
-    bellCount++; updateBellUI();
-    var list=document.getElementById('notif-list');
-    if(list.querySelector('.n-empty')) list.innerHTML='';
-    var item=document.createElement('div'); item.className='n-item';
-    item.innerHTML='<b>'+san(title)+'</b><p>'+san((body||'').substring(0,60))+'</p>';
-    item.onclick=function(){ goToSection(sectionId,elemId); document.getElementById('notif-dd').classList.remove('open'); };
-    list.prepend(item);
-  }
-  function updateBellUI(){ var b=document.getElementById('bell-badge'); b.textContent=bellCount; b.classList.toggle('show',bellCount>0); }
-  window.toggleNotif=function(){ var d=document.getElementById('notif-dd'); d.classList.toggle('open'); if(d.classList.contains('open')){ bellCount=0; updateBellUI(); } };
-  window.clearNotifs=function(){ document.getElementById('notif-list').innerHTML='<div class="n-empty">No new activity</div>'; bellCount=0; updateBellUI(); document.getElementById('notif-dd').classList.remove('open'); };
-  function goToSection(sectionId,elemId){
-    var content=document.getElementById(sectionId);
-    if(content&&!content.classList.contains('open')){ content.classList.add('open'); var btn=content.previousElementSibling; if(btn&&btn.classList.contains('sec-btn')) btn.classList.add('open'); }
-    setTimeout(function(){ var el=document.getElementById(elemId)||document.getElementById(sectionId); if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.classList.add('flash'); setTimeout(function(){ el.classList.remove('flash'); },2000); } },250);
-  }
-  document.addEventListener('click',function(e){ var d=document.getElementById('notif-dd'); if(!d.classList.contains('open'))return; if(!e.target.closest('#notif-dd')&&!e.target.closest('.bell-wrap')) d.classList.remove('open'); });
+  setTimeout(function(){
+    var el = document.getElementById(elemId) || document.getElementById(sectionId);
+    if(el){
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('flash');
+      setTimeout(function(){ el.classList.remove('flash'); }, 2000);
+    }
+  }, 250);
+}
+document.addEventListener('click', function(e){
+  var d = document.getElementById('notif-dd');
+  if(!d.classList.contains('open')) return;
+  if(!e.target.closest('#notif-dd') && !e.target.closest('.bell-wrap')) d.classList.remove('open');
+});
 
-}); /* end fb-ready */
-
-/* GLOBAL UI HELPERS */
-window.toggleSec=function(btn,contentId){ var c=document.getElementById(contentId); var open=c.classList.toggle('open'); btn.classList.toggle('open',open); };
-window.filterList=function(input,containerId){ var q=input.value.toLowerCase(); document.querySelectorAll('#'+containerId+' .admin-item').forEach(function(el){ el.style.display=el.innerText.toLowerCase().includes(q)?'':'none'; }); };
+/* ── GLOBAL UI HELPERS ─────────────────────────────── */
+window.toggleSec = function(btn, contentId){
+  var c = document.getElementById(contentId);
+  var open = c.classList.toggle('open');
+  btn.classList.toggle('open', open);
+};
+window.filterList = function(input, containerId){
+  var q = input.value.toLowerCase();
+  document.querySelectorAll('#' + containerId + ' .admin-item').forEach(function(el){
+    el.style.display = el.innerText.toLowerCase().includes(q) ? '' : 'none';
+  });
+};
 </script>
 </body>
 </html>
