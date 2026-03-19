@@ -421,27 +421,43 @@ window.addEventListener('fb-ready', function() {
   ══════════════════════════════════════════════════════ */
   var _sermonFilter = 'video';
 
+  /* Track the single live onValue ref per feed path so we can
+     detach and replace it cleanly without stacking listeners.  */
+  var _feedListeners = {}; /* { path: { ref, cb } } */
+
   function setSermonFilter(type) {
     _sermonFilter = type;
     document.getElementById('btn-vid').classList.toggle('active', type === 'video');
     document.getElementById('btn-aud').classList.toggle('active', type === 'audio');
-    document.getElementById('sermons-feed').innerHTML = '';
-    renderFeed('sermons', 'sermons-feed');
+    /* Re-render with the same existing listener — just re-draw the feed.
+       Do NOT call renderFeed again; that would stack a second onValue.   */
+    var feed = document.getElementById('sermons-feed');
+    feed.innerHTML = '';
+    /* Manually invoke the existing listener's last snapshot by detaching
+       and re-attaching the single listener for 'sermons'.                */
+    if (_feedListeners['sermons']) {
+      off(_feedListeners['sermons'].ref, 'value', _feedListeners['sermons'].cb);
+    }
+    attachFeedListener('sermons', 'sermons-feed');
   }
   window.setSermonFilter = setSermonFilter;
 
-  function renderFeed(path, feedId) {
-    listen(path, function(s) {
-      var feed  = document.getElementById(feedId);
-      var data  = s.val();
+  function attachFeedListener(path, feedId) {
+    var ref = r(path);
+    var cb = function(s) {
+      var feed = document.getElementById(feedId);
+      if (!feed) return;
+      var data = s.val();
       feed.innerHTML = '';
-      if (!data) return;
+      if (!data) {
+        feed.innerHTML = '<p style="text-align:center;color:var(--muted);padding:30px 0;font-size:14px">Nothing posted yet.</p>';
+        return;
+      }
 
       var likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '[]');
       var savedName  = localStorage.getItem('uic_name') || '';
 
       if (path === 'sermons') {
-        /* Group into folders — matches admin's category field */
         var folders = {};
         Object.keys(data).forEach(function(k) {
           var item = data[k];
@@ -452,6 +468,10 @@ window.addEventListener('fb-ready', function() {
           if (!folders[folder]) folders[folder] = [];
           folders[folder].push({ key: k, item: item });
         });
+        if (Object.keys(folders).length === 0) {
+          feed.innerHTML = '<p style="text-align:center;color:var(--muted);padding:30px 0;font-size:14px">No ' + _sermonFilter + ' sermons yet.</p>';
+          return;
+        }
         Object.keys(folders).forEach(function(folderName) {
           var fid = 'f-' + folderName.replace(/[^a-zA-Z0-9]/g, '-');
           var wrapper = document.createElement('div');
@@ -472,7 +492,17 @@ window.addEventListener('fb-ready', function() {
           feed.appendChild(buildCard(k, data[k], path, likedPosts, savedName));
         });
       }
-    });
+    };
+    onValue(ref, cb);
+    _feedListeners[path] = { ref: ref, cb: cb };
+  }
+
+  function renderFeed(path, feedId) {
+    /* Detach any previous listener for this path before attaching a new one */
+    if (_feedListeners[path]) {
+      off(_feedListeners[path].ref, 'value', _feedListeners[path].cb);
+    }
+    attachFeedListener(path, feedId);
   }
 
   function buildCard(k, item, path, likedPosts, savedName) {
@@ -617,8 +647,14 @@ window.addEventListener('fb-ready', function() {
     });
   };
 
+  /* Track which post IDs already have a comment listener so we never
+     double-register when the feed re-renders on a DB update.          */
+  var _commentListeners = {};
+
   function loadComments(postId, tabName) {
-    listen('comments/' + postId, function(s) {
+    if (_commentListeners[postId]) return; /* already listening */
+    var ref = r('comments/' + postId);
+    var cb = function(s) {
       var box     = document.getElementById('display-' + postId);
       var counter = document.getElementById('count-' + postId);
       if (!box) return;
@@ -676,7 +712,9 @@ window.addEventListener('fb-ready', function() {
 
       if (counter) counter.textContent = total;
       if (!total) box.innerHTML = '<p style="text-align:center;color:var(--muted);font-size:13px;padding:12px 0">No comments yet.</p>';
-    });
+    };
+    onValue(ref, cb);
+    _commentListeners[postId] = { ref: ref, cb: cb };
   }
 
   window.toggleReply = function(id) {
@@ -856,8 +894,9 @@ window.addEventListener('fb-ready', function() {
   }
 
   /* ── START ── */
-  renderFeed('updates',  'updates-feed');
-  renderFeed('sermons',  'sermons-feed');
+  /* Each path gets exactly one live onValue listener via renderFeed/attachFeedListener */
+  renderFeed('updates', 'updates-feed');
+  renderFeed('sermons', 'sermons-feed');
   setupNewPostListeners();
   setupAdminReplyListener();
 });
