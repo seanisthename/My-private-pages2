@@ -1,710 +1,909 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Union in Christ Church</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <style>
-        :root { --gold: #D4AF37; --navy: #001a4d; --dark-bg: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--dark-bg); color: var(--text-main); }
-        
-        header { 
-            background: linear-gradient(135deg, #40A5E7, var(--navy)); 
-            color: var(--gold); 
-            padding: 30px 20px; 
-            text-align: center; 
-            border-bottom: 3px solid var(--gold); 
-            position: relative;
-        }
-        .bell-container {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            cursor: pointer;
-            z-index: 1100;
-        }
-        .bell-icon { font-size: 24px; }
-        .bell-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: red;
-            color: white;
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            display: none;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Union in Christ Church</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
 
-        .menu-container {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            cursor: pointer;
-            z-index: 1100;
-            font-size: 24px;
-            color: var(--gold);
-        }
+<!--
+  Firebase Modular SDK v10 — matches the admin portal exactly.
+  Both apps share the same Firebase project and must agree on:
+    DB paths   : updates, sermons, comments, prayers, settings/slider,
+                 settings/devotional, notifications/{userId}, folders
+    Data shape : { text, image, category, date, timestamp, likes }
+    Comment    : { userName, text, userNotifId, timestamp, adminReply?, replies? }
+    Notif      : { from, msg, postId, tab, time }
+-->
+<script type="module">
+  import { initializeApp }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import {
+    getDatabase, ref, onValue, off,
+    push, update, remove,
+    query, limitToLast, get, orderByChild
+  } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+  window._fb = {
+    initializeApp, getDatabase, ref, onValue, off,
+    push, update, remove,
+    query, limitToLast, get, orderByChild
+  };
+  window.dispatchEvent(new Event('fb-ready'));
+</script>
 
-        .side-menu {
-            position: fixed;
-            top: 0;
-            left: -250px;
-            width: 250px;
-            height: 100%;
-            background: var(--card-bg);
-            z-index: 1200;
-            transition: 0.3s;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.5);
-            border-right: 2px solid var(--gold);
-        }
-        .side-menu.open { left: 0; }
-        .menu-header {
-            padding: 20px;
-            background: var(--navy);
-            color: var(--gold);
-            font-weight: bold;
-            border-bottom: 1px solid var(--gold);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .menu-links { padding: 20px 0; }
-        .menu-link {
-            padding: 15px 25px;
-            color: var(--text-main);
-            text-decoration: none;
-            display: block;
-            font-size: 16px;
-            border-bottom: 1px solid #333;
-            cursor: pointer;
-        }
-        .menu-link:hover { background: #252525; color: var(--gold); }
-        .menu-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            display: none;
-            z-index: 1150;
-        }
-        
-        .notif-dropdown {
-            position: fixed;
-            top: 60px;
-            right: 10px;
-            width: 280px;
-            max-height: 400px;
-            background: var(--card-bg);
-            border: 1px solid var(--gold);
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            display: none;
-            z-index: 1001;
-            overflow-y: auto;
-        }
-        .notif-header {
-            padding: 10px;
-            border-bottom: 1px solid #333;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #252525;
-        }
+<style>
+/* ── TOKENS ── */
+:root {
+  --gold:#D4AF37; --gold-dim:#9A7D1A; --gold-glow:rgba(212,175,55,.12);
+  --navy:#001a4d; --navy-deep:#000c24;
+  --bg:#121212; --card:#1e1e1e; --s2:#252525; --s3:#2d2d2d;
+  --text:#e0e0e0; --muted:#888; --border:rgba(212,175,55,.25);
+  --blue:#40A5E7; --green:#28a745; --red:#e74c3c;
+  --r:10px; --rl:14px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--gold-dim);border-radius:4px}
 
-        .logo-sub { color: #b0b0b0; font-size: 13px; margin-top: 5px; }
-        .slider-container { width: 100%; height: 220px; position: relative; overflow: hidden; background: #000; border-bottom: 2px solid var(--gold); }
-        .slide { width: 100%; height: 100%; position: absolute; opacity: 0; transition: opacity 1s; object-fit: cover; }
-        .active { opacity: 1; }
-        .nav-tabs { display: flex; background: #1a1a1a; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #333; overflow-x: auto; }
-        .tab { flex: 1; padding: 15px; text-align: center; color: #888; font-weight: bold; cursor: pointer; font-size: 11px; min-width: 80px; position: relative; }
-        .tab.active { color: var(--gold); border-bottom: 3px solid var(--gold); background: #252525; }
-        
-        .content-section { display: none; padding: 15px; animation: fadeIn 0.4s; }
-        .content-section.active { display: block; }
-        .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 20px; border-top: 3px solid var(--gold); position: relative; }
-        
-        .highlight-comment { animation: highlightGlow 2s ease-out; }
-        @keyframes highlightGlow { 0% { background: #444; } 100% { background: var(--card-bg); } }
+/* ── HEADER ── */
+header{background:linear-gradient(135deg,var(--navy-deep),var(--navy));color:var(--gold);padding:28px 20px 20px;text-align:center;border-bottom:3px solid var(--gold);position:relative}
+header h1{font-family:'Cinzel',serif;font-size:1.3rem;letter-spacing:.06em;margin-bottom:4px}
+.logo-sub{color:#aaa;font-size:12px}
 
-        .card img, .card video { width: 100%; border-radius: 8px; margin-bottom: 12px; }
-        .time-txt { font-size: 10px; color: #777; display: block; margin-bottom: 5px; }
-        .interaction-bar { border-top: 1px solid #333; margin-top: 10px; padding-top: 10px; display: flex; gap: 25px; }
-        .comment-btn { background: none; border: none; color: var(--gold); cursor: pointer; display: flex; align-items: center; font-size: 16px; gap: 5px; padding: 0; }
-        .comment-section { display: none; margin-top: 15px; background: #181818; padding: 10px; border-radius: 8px; }
-        .comment-input-box { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
-        .comment-input-box input { background: #2d2d2d; border: 1px solid #444; color: white; padding: 8px; border-radius: 5px; }
-        .comment-input-box input:disabled { background: #1a1a1a; color: #555; cursor: not-allowed; }
-        .send-comment-btn { background: var(--gold); border: none; padding: 8px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        
-        .comment-item { border-bottom: 1px solid #222; padding: 10px 0; scroll-margin-top: 70px; }
-        .reply-thread { margin-left: 20px; border-left: 1px solid #444; padding-left: 10px; margin-top: 8px; }
-        .reply-item { font-size: 13px; margin-bottom: 5px; padding: 4px 0; }
-        .reply-trigger { background: none; border: none; color: #888; font-size: 11px; cursor: pointer; padding: 0; margin-top: 5px; font-weight: bold; }
-        .reply-trigger:hover { color: var(--gold); }
-        .nested-input-group { display: none; gap: 5px; margin-top: 8px; }
-        
-        .action-link { font-size: 10px; color: #777; margin-left: 10px; cursor: pointer; text-decoration: underline; }
-        .search-container { margin: 0 0 15px 0; display: flex; justify-content: flex-end; }
-        .search-box { background: #1a1a1a; border: 1px solid #333; border-radius: 20px; padding: 5px 12px; display: flex; align-items: center; width: 140px; transition: width 0.3s; }
-        .search-box:focus-within { width: 200px; border-color: var(--gold); }
-        .search-box input { background: transparent; border: none; color: white; font-size: 11px; outline: none; width: 100%; margin-left: 5px; }
-        .search-icon { font-size: 12px; color: var(--gold); }
+/* ── MENU BUTTON ── */
+.menu-btn{position:absolute;top:20px;left:16px;cursor:pointer;font-size:24px;color:var(--gold);line-height:1;padding:4px;z-index:1100}
 
-        .notif-item { padding: 12px; border-bottom: 1px solid #333; cursor: pointer; font-size: 13px; color: #eee; }
-        .notif-item:active { background: #252525; }
-        .notif-item small { color: #777; display: block; margin-top: 4px; }
+/* ── BELL ── */
+.bell-wrap{position:absolute;top:18px;right:16px;cursor:pointer;z-index:1100}
+.bell-icon{font-size:24px}
+.bell-badge{position:absolute;top:-4px;right:-6px;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 5px;border-radius:10px;display:none}
+.bell-badge.show{display:block}
 
-        .btn { background: var(--gold); color: #000; padding: 15px; border: none; border-radius: 10px; width: 100%; font-weight: bold; cursor: pointer; }
-        .devo-card { background: linear-gradient(rgba(212, 175, 55, 0.1), rgba(0,0,0,0)); border: 1px solid var(--gold); border-radius: 15px; padding: 15px; margin-bottom: 10px; text-align: center; position: relative; }
-        .devo-title { color: var(--gold); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: bold; }
-        .devo-close { position: absolute; right: 10px; top: 10px; color: #777; font-size: 18px; cursor: pointer; padding: 5px; }
-        .sermon-nav { display: flex; gap: 10px; margin-bottom: 15px; }
-        .s-btn { flex: 1; padding: 20px 10px; border-radius: 12px; border: 1px solid var(--gold); background: #1a1a1a; color: white; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; }
-        .s-btn.active { background: var(--gold); color: black; }
-        .audio-player-container { background: #111; padding: 15px; border-radius: 10px; border: 1px solid #333; margin-top: 10px; display: flex; align-items: center; gap: 15px; }
-        audio { height: 35px; flex: 1; filter: invert(80%) sepia(50%) saturate(1000%) hue-rotate(10deg); }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+/* ── SIDE MENU ── */
+.menu-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;z-index:1150}
+.side-menu{position:fixed;top:0;left:-260px;width:260px;height:100%;background:var(--card);z-index:1200;transition:left .3s ease;box-shadow:4px 0 20px rgba(0,0,0,.6);border-right:2px solid var(--gold)}
+.side-menu.open{left:0}
+.menu-hdr{padding:20px;background:var(--navy);color:var(--gold);font-family:'Cinzel',serif;font-weight:600;border-bottom:1px solid var(--gold);display:flex;justify-content:space-between;align-items:center}
+.menu-close{cursor:pointer;font-size:22px}
+.menu-link{padding:15px 24px;color:var(--text);display:block;font-size:15px;border-bottom:1px solid #2a2a2a;cursor:pointer;transition:all .2s}
+.menu-link:hover{background:var(--s2);color:var(--gold)}
+.menu-link.disabled{opacity:.4;cursor:not-allowed}
 
-        .folder-header { 
-            background: #252525; 
-            padding: 12px 15px; 
-            margin-bottom: 10px; 
-            border-radius: 8px; 
-            border-left: 4px solid var(--gold); 
-            cursor: pointer; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            font-size: 14px;
-            font-weight: bold;
-            color: var(--gold);
-        }
-    </style>
+/* ── NOTIF DROPDOWN ── */
+.notif-dd{position:fixed;top:64px;right:10px;width:290px;max-height:400px;background:var(--card);border:1px solid var(--gold);border-radius:var(--rl);box-shadow:0 10px 40px rgba(0,0,0,.6);display:none;z-index:2000;overflow-y:auto}
+.notif-dd.open{display:block;animation:slideDown .2s ease}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.notif-hdr{padding:10px 14px;border-bottom:1px solid #333;display:flex;justify-content:space-between;align-items:center;background:var(--s2)}
+.notif-hdr span{color:var(--gold);font-family:'Cinzel',serif;font-size:13px;font-weight:600}
+.notif-clear-btn{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer}
+.notif-item{padding:12px 14px;border-bottom:1px solid #2a2a2a;cursor:pointer;font-size:13px;color:var(--text);transition:background .15s}
+.notif-item:hover{background:var(--s2)}
+.notif-item small{color:var(--muted);display:block;margin-top:3px;font-size:11px}
+.notif-empty{padding:20px;text-align:center;color:var(--muted);font-size:13px}
+
+/* ── SLIDER ── */
+.slider-wrap{width:100%;height:220px;position:relative;overflow:hidden;background:#000;border-bottom:2px solid var(--gold)}
+.slide{width:100%;height:100%;position:absolute;opacity:0;transition:opacity 1s ease;object-fit:cover}
+.slide.active{opacity:1}
+
+/* ── TABS ── */
+.nav-tabs{display:flex;background:#1a1a1a;position:sticky;top:0;z-index:900;border-bottom:1px solid #333;overflow-x:auto}
+.tab{flex:1;padding:14px 8px;text-align:center;color:var(--muted);font-weight:700;cursor:pointer;font-size:11px;min-width:75px;letter-spacing:.04em;transition:all .2s;border-bottom:3px solid transparent;white-space:nowrap}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold);background:var(--s2)}
+
+/* ── CONTENT ── */
+.tab-section{display:none;padding:14px;animation:fadeIn .35s ease}
+.tab-section.active{display:block}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* ── CARD ── */
+.card{background:var(--card);border-radius:var(--rl);padding:16px;margin-bottom:18px;border-top:3px solid var(--gold);position:relative}
+.card img{width:100%;border-radius:8px;margin-bottom:12px;object-fit:cover;max-height:280px}
+.card video, .card iframe{width:100%;border-radius:8px;margin-bottom:12px}
+.time-txt{font-size:10px;color:var(--muted);display:block;margin-bottom:6px}
+
+/* ── DEVOTIONAL ── */
+.devo-card{background:linear-gradient(rgba(212,175,55,.1),rgba(0,0,0,0));border:1px solid var(--gold);border-radius:var(--rl);padding:16px;margin-bottom:14px;text-align:center;position:relative}
+.devo-title{color:var(--gold);font-size:11px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;font-weight:700;font-family:'Cinzel',serif}
+.devo-verse{color:#fff;font-family:'Cinzel',serif;font-size:1rem;margin:6px 0}
+.devo-text{font-style:italic;color:#ccc;margin-top:8px;font-size:14px;line-height:1.7}
+.devo-close{position:absolute;right:10px;top:8px;color:var(--muted);font-size:20px;cursor:pointer;padding:4px;line-height:1}
+.devo-close:hover{color:var(--text)}
+
+/* ── INTERACTION BAR ── */
+.ibar{border-top:1px solid #2a2a2a;margin-top:12px;padding-top:12px;display:flex;gap:24px;align-items:center}
+.ibar-btn{background:none;border:none;color:var(--gold);cursor:pointer;display:flex;align-items:center;font-size:15px;gap:6px;padding:0;font-family:'Lato',sans-serif;transition:opacity .2s}
+.ibar-btn:hover{opacity:.7}
+.ibar-btn.liked{color:var(--red)}
+
+/* ── COMMENTS ── */
+.comment-section{display:none;margin-top:14px;background:#181818;padding:12px;border-radius:8px;animation:fadeIn .2s ease}
+.comment-section.open{display:block}
+.comment-item{border-bottom:1px solid #252525;padding:10px 0;scroll-margin-top:80px}
+.comment-item:last-child{border-bottom:none}
+.comment-author{color:var(--gold);font-weight:700;font-size:12px;margin-bottom:3px;font-family:'Cinzel',serif}
+.admin-reply-line{color:var(--gold);font-size:12px;margin-top:5px;padding-left:10px;border-left:2px solid var(--gold);font-style:italic}
+.reply-thread{margin-left:18px;padding-left:10px;border-left:1px solid #333;margin-top:8px}
+.reply-item{font-size:13px;padding:3px 0;color:var(--text)}
+.reply-author{color:var(--gold);font-weight:700}
+.reply-trigger{background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;padding:0;margin-top:5px;font-weight:700;font-family:'Lato',sans-serif;transition:color .2s}
+.reply-trigger:hover{color:var(--gold)}
+.nested-input{display:none;gap:6px;margin-top:8px}
+.nested-input input{background:#2a2a2a;border:1px solid #444;color:var(--text);padding:7px 10px;border-radius:6px;font-size:13px;flex:1;outline:none}
+.nested-input input:focus{border-color:var(--gold-dim)}
+.nested-send{background:var(--gold);border:none;padding:0 14px;border-radius:6px;cursor:pointer;font-weight:700;font-size:13px}
+
+.comment-input{margin-top:12px;border-top:1px solid #2a2a2a;padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.comment-input input{background:var(--s3);border:1px solid #444;color:var(--text);padding:8px 12px;border-radius:6px;font-size:13px;width:100%;outline:none;transition:border-color .2s}
+.comment-input input:focus{border-color:var(--gold-dim)}
+.comment-input input:disabled{background:#1a1a1a;color:#444;cursor:not-allowed}
+.comment-send-row{display:flex;gap:6px}
+.comment-send-row input{flex:1}
+.send-btn{background:var(--gold);border:none;padding:8px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px;transition:background .2s}
+.send-btn:hover{background:#e8c440}
+
+.action-link{font-size:10px;color:#666;margin-left:8px;cursor:pointer;text-decoration:underline}
+.action-link:hover{color:var(--red)}
+
+/* ── SEARCH ── */
+.search-wrap{margin-bottom:14px;display:flex;justify-content:flex-end}
+.search-box{background:#1a1a1a;border:1px solid #333;border-radius:20px;padding:6px 14px;display:flex;align-items:center;width:150px;transition:width .3s,border-color .2s}
+.search-box:focus-within{width:210px;border-color:var(--gold)}
+.search-box input{background:transparent;border:none;color:var(--text);font-size:12px;outline:none;width:100%;margin-left:6px}
+.search-icon-sm{font-size:12px;color:var(--gold)}
+
+/* ── AUDIO PLAYER ── */
+.audio-wrap{background:#111;padding:14px;border-radius:8px;border:1px solid #333;margin-top:8px;display:flex;align-items:center;gap:12px}
+.audio-wrap audio{height:34px;flex:1;filter:invert(80%) sepia(50%) saturate(1000%) hue-rotate(10deg)}
+.audio-title{color:var(--gold);font-family:'Cinzel',serif;font-weight:600;font-size:14px;margin-bottom:6px}
+
+/* ── SERMONS ── */
+.sermon-nav{display:flex;gap:10px;margin-bottom:14px}
+.s-btn{flex:1;padding:18px 10px;border-radius:12px;border:1px solid var(--gold);background:#1a1a1a;color:var(--text);font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12px;transition:all .2s;font-family:'Lato',sans-serif}
+.s-btn.active{background:var(--gold);color:#000}
+.s-btn:not(.active):hover{background:var(--gold-glow)}
+.s-btn .icon{font-size:22px}
+
+/* ── FOLDER ── */
+.folder-hdr{background:var(--s2);padding:12px 15px;margin-bottom:8px;border-radius:8px;border-left:4px solid var(--gold);cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:700;color:var(--gold);user-select:none;transition:background .2s}
+.folder-hdr:hover{background:#2d2d2d}
+
+/* ── PRAYER FORM ── */
+.prayer-ta{width:100%;background:var(--s3);color:var(--text);border:1px solid #444;border-radius:8px;padding:12px;font-family:'Lato',sans-serif;font-size:14px;resize:vertical;outline:none;transition:border-color .2s}
+.prayer-ta:focus{border-color:var(--gold)}
+.pray-btn{background:var(--gold);color:#000;border:none;border-radius:8px;padding:14px;width:100%;margin-top:10px;font-weight:700;font-size:15px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.04em;transition:background .2s}
+.pray-btn:hover{background:#e8c440}
+
+/* ── ABOUT ── */
+.about-title{color:var(--gold);font-family:'Cinzel',serif;margin-top:0}
+.about-title + *{margin-top:4px}
+
+/* ── HIGHLIGHT ANIMATION ── */
+@keyframes glow{0%{background:#444}100%{background:var(--card)}}
+.highlight{animation:glow 2s ease-out}
+
+/* ── TOAST (member-facing) ── */
+.m-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--s2);border:1px solid var(--gold);border-radius:50px;padding:10px 22px;font-size:13px;color:var(--text);z-index:9999;display:none;white-space:nowrap;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+.m-toast.show{display:block;animation:fadeIn .3s ease}
+</style>
 </head>
 <body>
-    <header>
-        <div class="menu-container" onclick="toggleSideMenu()">
-            <span>☰</span>
-        </div>
-        <div class="bell-container" onclick="toggleNotifDropdown()">
-            <span class="bell-icon">🔔</span>
-            <span id="notif-count" class="bell-badge">0</span>
-        </div>
-        <h1>Union in Christ Church</h1>
-        <div class="logo-sub">Founder: Lady Bishop E. Chafulumira</div>
-    </header>
 
-    <div id="side-menu-overlay" class="menu-overlay" onclick="toggleSideMenu()"></div>
-    <div id="side-menu" class="side-menu">
-        <div class="menu-header">
-            <span>MENU</span>
-            <span onclick="toggleSideMenu()" style="cursor:pointer; font-size: 20px;">&times;</span>
-        </div>
-        <div class="menu-links">
-            <div class="menu-link" onclick="handleMenuClick('home')">🏠 Home</div>
-            <div class="menu-link" onclick="handleMenuClick('sermons')">📖 Sermons</div>
-            <div class="menu-link" onclick="handleMenuClick('prayer')">🙏 Prayer</div>
-            <div class="menu-link" onclick="handleMenuClick('about')">ℹ️ About Us</div>
-            <div class="menu-link" style="opacity: 0.5;">💰 Give</div>
-        </div>
+<!-- TOAST -->
+<div id="m-toast" class="m-toast"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="menu-btn" onclick="openMenu()">&#9776;</div>
+  <h1>Union in Christ Church</h1>
+  <div class="logo-sub">Founder: Lady Bishop E. Chafulumira</div>
+  <div class="bell-wrap" onclick="toggleNotif()">
+    <span class="bell-icon">&#128276;</span>
+    <span id="bell-badge" class="bell-badge">0</span>
+  </div>
+</header>
+
+<!-- SIDE MENU -->
+<div id="menu-overlay" class="menu-overlay" onclick="closeMenu()"></div>
+<div id="side-menu" class="side-menu">
+  <div class="menu-hdr">
+    <span>MENU</span>
+    <span class="menu-close" onclick="closeMenu()">&times;</span>
+  </div>
+  <div>
+    <div class="menu-link" onclick="goTab('home')">&#127968; Home</div>
+    <div class="menu-link" onclick="goTab('sermons')">&#128214; Sermons</div>
+    <div class="menu-link" onclick="goTab('prayer')">&#128591; Prayer</div>
+    <div class="menu-link" onclick="goTab('about')">&#8505;&#65039; About Us</div>
+    <div class="menu-link disabled">&#128176; Give</div>
+  </div>
+</div>
+
+<!-- NOTIF DROPDOWN -->
+<div id="notif-dd" class="notif-dd">
+  <div class="notif-hdr">
+    <span>Notifications</span>
+    <button class="notif-clear-btn" onclick="clearNotifs()">Clear all</button>
+  </div>
+  <div id="notif-list">
+    <div class="notif-empty">No new alerts</div>
+  </div>
+</div>
+
+<!-- SLIDER -->
+<div class="slider-wrap">
+  <img id="slide-img1" class="slide active" src="" alt="">
+  <img id="slide-img2" class="slide" src="" alt="">
+</div>
+
+<!-- TABS -->
+<div class="nav-tabs">
+  <div class="tab active" data-tab="home"    onclick="showTab('home',this)">HOME</div>
+  <div class="tab"        data-tab="sermons" onclick="showTab('sermons',this)">SERMONS</div>
+  <div class="tab"        data-tab="prayer"  onclick="showTab('prayer',this)">PRAYER</div>
+  <div class="tab"        data-tab="about"   onclick="showTab('about',this)">ABOUT</div>
+</div>
+
+<!-- HOME -->
+<div id="home" class="tab-section active">
+  <div id="devotional-card" class="devo-card" style="display:none">
+    <div class="devo-close" onclick="closeDevo()">&#10005;</div>
+    <div class="devo-title">&#10024; Word For Today</div>
+    <div id="devo-verse" class="devo-verse"></div>
+    <div id="devo-text"  class="devo-text"></div>
+  </div>
+  <div class="search-wrap">
+    <div class="search-box">
+      <span class="search-icon-sm">&#128269;</span>
+      <input type="text" placeholder="Search..." onkeyup="filterCards(this,'updates-feed')">
     </div>
+  </div>
+  <div id="updates-feed"></div>
+</div>
 
-    <div id="notif-dropdown" class="notif-dropdown">
-        <div class="notif-header">
-            <span style="color:var(--gold); font-weight:bold;">Notifications</span>
-            <button onclick="clearNotifs()" style="background:none; border:none; color:#777; font-size:11px; cursor:pointer;">Clear</button>
-        </div>
-        <div id="notif-list">
-            <p style="padding:20px; text-align:center; color:#555; font-size:12px;">No new alerts</p>
-        </div>
+<!-- SERMONS -->
+<div id="sermons" class="tab-section">
+  <div class="sermon-nav">
+    <button class="s-btn active" id="btn-vid" onclick="setSermonFilter('video')">
+      <span class="icon">&#127909;</span>VIDEO
+    </button>
+    <button class="s-btn" id="btn-aud" onclick="setSermonFilter('audio')">
+      <span class="icon">&#128266;</span>AUDIO
+    </button>
+  </div>
+  <div class="search-wrap">
+    <div class="search-box">
+      <span class="search-icon-sm">&#128269;</span>
+      <input type="text" placeholder="Search..." onkeyup="filterCards(this,'sermons-feed')">
     </div>
+  </div>
+  <div id="sermons-feed"></div>
+</div>
 
-    <div class="slider-container"><img id="img1" class="slide active" src=""><img id="img2" class="slide" src=""></div>
-    
-    <div class="nav-tabs">
-        <div class="tab active" onclick="showTab('home', this)">HOME</div>
-        <div class="tab" onclick="showTab('sermons', this)">SERMONS</div>
-        <div class="tab" onclick="showTab('prayer', this)">PRAYER</div>
-        <div class="tab" onclick="showTab('about', this)">ABOUT</div>
-    </div>
-    
-    <div id="home" class="content-section active">
-        <div id="devotional-display" class="devo-card" style="display:none;">
-            <div class="devo-close" onclick="closeDevo()">&times;</div>
-            <div class="devo-title">✨ Word For Today</div>
-            <h3 id="devo-verse" style="margin: 5px 0; color: white;"></h3>
-            <p id="devo-text" style="font-style: italic; color: #ccc; margin-top: 10px;"></p>
-        </div>
-        <div class="search-container"><div class="search-box"><span class="search-icon">🔍</span><input type="text" id="homeSearch" placeholder="Search home..." onkeyup="filterPosts('homeSearch', 'updates-list')"></div></div>
-        <div id="updates-list"></div>
-    </div>
+<!-- PRAYER -->
+<div id="prayer" class="tab-section">
+  <div class="card">
+    <h3 style="color:var(--gold);font-family:'Cinzel',serif;margin-bottom:12px">How can we pray for you?</h3>
+    <textarea id="prayer-text" class="prayer-ta" rows="5"
+      placeholder="Share your prayer request... (include your name)"></textarea>
+    <button class="pray-btn" onclick="submitPrayer()">&#128591; Submit Request</button>
+  </div>
+</div>
 
-    <div id="sermons" class="content-section">
-        <div class="sermon-nav">
-            <button class="s-btn active" id="btn-vid" onclick="filterSermons('video')"><span>🎥</span>VIDEO</button>
-            <button class="s-btn" id="btn-aud" onclick="filterSermons('audio')"><span>🔊</span>AUDIO</button>
-        </div>
-        <div class="search-container"><div class="search-box"><span class="search-icon">🔍</span><input type="text" id="sermonSearch" placeholder="Search sermons..." onkeyup="filterPosts('sermonSearch', 'sermons-list')"></div></div>
-        <div id="sermons-list"></div>
-    </div>
+<!-- ABOUT -->
+<div id="about" class="tab-section">
+  <div class="card">
+    <h2 class="about-title">Our Vision</h2>
+    <p>Seeing people getting saved and uniting the body of Christ in Love through the Holy Spirit.</p>
+    <h2 class="about-title" style="margin-top:20px">Contact Us</h2>
+    <p>+265 998 352 637</p>
+    <h2 class="about-title" style="margin-top:20px">Address</h2>
+    <p>Ndirande main market, next to Ndirande post office, Blantyre.</p>
+  </div>
+</div>
 
-    <div id="prayer" class="content-section">
-        <div class="card"><h3>How can we pray for you?</h3><textarea id="prayer-text" style="width:100%; background:#2d2d2d; color:white; border-radius:8px; padding:10px; box-sizing:border-box; border:1px solid #444;" rows="4" placeholder="Remember to include your name..."></textarea>
-        <button class="btn" style="margin-top:10px;" onclick="submitPrayer()">Submit Request</button></div>
-    </div>
+<script>
+/* ══════════════════════════════════════════════════════
+   WAIT FOR FIREBASE MODULE TO EXPOSE window._fb
+══════════════════════════════════════════════════════ */
+window.addEventListener('fb-ready', function() {
+  var fb = window._fb;
+  var initApp   = fb.initializeApp,
+      getDB     = fb.getDatabase,
+      dbRef     = fb.ref,
+      onValue   = fb.onValue,
+      off       = fb.off,
+      push      = fb.push,
+      update    = fb.update,
+      remove    = fb.remove,
+      query     = fb.query,
+      limitToLast = fb.limitToLast,
+      get       = fb.get,
+      orderByChild = fb.orderByChild;
 
-    <div id="about" class="content-section">
-        <div class="card">
-            <h2 style="color: var(--gold); margin-top: 0;">Our Vision</h2>
-            <p>Seeing people getting saved and uniting the body of Christ in Love through the Holy Spirit.</p>
-            <h2 style="color: var(--gold);">Contact Us</h2>
-            <p>+265 998 352 637</p>
-            <h2 style="color: var(--gold);">Address</h2>
-            <p>Ndirande main market, next to Ndirande post office, Blantyre.</p>
-        </div>
-    </div>
+  /* ── INIT ── */
+  var app = initApp({
+    apiKey:        'AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo',
+    authDomain:    'unioninchristapp.firebaseapp.com',
+    databaseURL:   'https://unioninchristapp-default-rtdb.firebaseio.com',
+    projectId:     'unioninchristapp',
+    storageBucket: 'unioninchristapp.firebasestorage.app',
+    appId:         '1:68198927662:web:1ffa7ec16b35d4be88bebf'
+  });
+  var db = getDB(app);
+  var r  = function(path) { return dbRef(db, path); };
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBKJ9Vm28eNy26J0vGkcbig1cLrtKrbtwo",
-            authDomain: "unioninchristapp.firebaseapp.com",
-            databaseURL: "https://unioninchristapp-default-rtdb.firebaseio.com",
-            projectId: "unioninchristapp",
-            storageBucket: "unioninchristapp.firebasestorage.app",
-            appId: "1:68198927662:web:1ffa7ec16b35d4be88bebf"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+  /* ── LISTENER REGISTRY ── */
+  var _L = [];
+  function listen(path, cb) {
+    var ref = r(path);
+    onValue(ref, cb);
+    _L.push({ ref: ref, cb: cb });
+  }
 
-        let currentSermonFilter = 'video';
-        let userNotifId = localStorage.getItem('userNotifId') || 'user_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('userNotifId', userNotifId);
+  /* ── USER ID — persisted so notifications survive page refresh ── */
+  var userId = localStorage.getItem('uic_uid');
+  if (!userId) {
+    userId = 'u_' + Math.random().toString(36).slice(2, 11);
+    localStorage.setItem('uic_uid', userId);
+  }
 
-        function toggleSideMenu() {
-            const menu = document.getElementById('side-menu');
-            const overlay = document.getElementById('side-menu-overlay');
-            if(menu.classList.contains('open')) {
-                menu.classList.remove('open');
-                overlay.style.display = 'none';
-            } else {
-                menu.classList.add('open');
-                overlay.style.display = 'block';
-            }
-        }
+  /* ── UTILS ── */
+  function san(s) {
+    if (typeof s !== 'string') return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  /* linkify: turns URLs into clickable links — but NOT audio/video URLs
+     (those get rendered as players, not anchor tags)                   */
+  function linkify(text) {
+    var urlRe = /(\b(https?):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+    if (text.includes('.mp3') || text.includes('archive.org/download')) return san(text);
+    return san(text).replace(urlRe, '<a href="$1" target="_blank" rel="noopener" style="color:var(--gold)">$1</a>');
+  }
+  function mToast(msg) {
+    var t = document.getElementById('m-toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 2800);
+  }
+  /* Detect whether a sermon item is audio based on text or image field.
+     Matches the same logic used by the admin buildCard() function.     */
+  function isAudioItem(item) {
+    return (item.image && item.image.includes('.mp3'))
+        || (item.text  && item.text.includes('.mp3'))
+        || (item.text  && item.text.includes('archive.org'));
+  }
 
-        function handleMenuClick(tabId) {
-            const tabElement = document.querySelector(`.tab[onclick*="'${tabId}'"]`);
-            showTab(tabId, tabElement);
-            toggleSideMenu();
-        }
+  /* ── SLIDER ── */
+  listen('settings/slider', function(s) {
+    var d = s.val(); if (!d) return;
+    document.getElementById('slide-img1').src = d.img1 || '';
+    document.getElementById('slide-img2').src = d.img2 || '';
+  });
+  var _sCur = 0;
+  setInterval(function() {
+    var slides = document.querySelectorAll('.slide');
+    if (slides.length < 2) return;
+    slides[_sCur].classList.remove('active');
+    _sCur = (_sCur + 1) % slides.length;
+    slides[_sCur].classList.add('active');
+  }, 8000);
 
-        function toggleNotifDropdown() {
-            const dd = document.getElementById('notif-dropdown');
-            dd.style.display = (dd.style.display === 'block') ? 'none' : 'block';
-        }
+  /* ── DEVOTIONAL ── */
+  listen('settings/devotional', function(s) {
+    var d = s.val();
+    var card = document.getElementById('devotional-card');
+    var lastHidden = localStorage.getItem('hidden_verse');
+    if (d && d.verse && d.verse !== lastHidden) {
+      document.getElementById('devo-verse').textContent = d.verse;
+      document.getElementById('devo-text').textContent  = d.text;
+      card.style.display = 'block';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+  window.closeDevo = function() {
+    var verse = document.getElementById('devo-verse').textContent;
+    localStorage.setItem('hidden_verse', verse);
+    document.getElementById('devotional-card').style.display = 'none';
+  };
 
-        window.addEventListener('click', function(e) {
-            if (!document.querySelector('.bell-container').contains(e.target) && !document.getElementById('notif-dropdown').contains(e.target) && !document.querySelector('.menu-container').contains(e.target)){
-                document.getElementById('notif-dropdown').style.display = 'none';
-            }
+  /* ══════════════════════════════════════════════════════
+     RENDER POSTS
+     Data contract (set by admin portal):
+       updates  → { text, image?, date, timestamp, likes }
+       sermons  → { text, image, category, date, timestamp, likes }
+       comments → { userName, text, userNotifId, timestamp, adminReply?, replies? }
+  ══════════════════════════════════════════════════════ */
+  var _sermonFilter = 'video';
+
+  function setSermonFilter(type) {
+    _sermonFilter = type;
+    document.getElementById('btn-vid').classList.toggle('active', type === 'video');
+    document.getElementById('btn-aud').classList.toggle('active', type === 'audio');
+    document.getElementById('sermons-feed').innerHTML = '';
+    renderFeed('sermons', 'sermons-feed');
+  }
+  window.setSermonFilter = setSermonFilter;
+
+  function renderFeed(path, feedId) {
+    listen(path, function(s) {
+      var feed  = document.getElementById(feedId);
+      var data  = s.val();
+      feed.innerHTML = '';
+      if (!data) return;
+
+      var likedPosts = JSON.parse(localStorage.getItem('likedPosts') || '[]');
+      var savedName  = localStorage.getItem('uic_name') || '';
+
+      if (path === 'sermons') {
+        /* Group into folders — matches admin's category field */
+        var folders = {};
+        Object.keys(data).forEach(function(k) {
+          var item = data[k];
+          var audio = isAudioItem(item);
+          if (_sermonFilter === 'audio' && !audio) return;
+          if (_sermonFilter === 'video' &&  audio) return;
+          var folder = item.category || 'General Sermons';
+          if (!folders[folder]) folders[folder] = [];
+          folders[folder].push({ key: k, item: item });
         });
+        Object.keys(folders).forEach(function(folderName) {
+          var fid = 'f-' + folderName.replace(/[^a-zA-Z0-9]/g, '-');
+          var wrapper = document.createElement('div');
+          wrapper.innerHTML =
+            '<div class="folder-hdr" onclick="toggleFolder(\'' + fid + '\')">' +
+              '<span>&#128193; ' + san(folderName) + '</span>' +
+              '<span id="fi-' + fid + '">&#9658;</span>' +
+            '</div>' +
+            '<div id="' + fid + '" style="display:none"></div>';
+          feed.appendChild(wrapper);
+          var container = document.getElementById(fid);
+          folders[folderName].slice().reverse().forEach(function(entry) {
+            container.appendChild(buildCard(entry.key, entry.item, path, likedPosts, savedName));
+          });
+        });
+      } else {
+        Object.keys(data).slice().reverse().forEach(function(k) {
+          feed.appendChild(buildCard(k, data[k], path, likedPosts, savedName));
+        });
+      }
+    });
+  }
 
-        function filterPosts(inputId, listId) {
-            const query = document.getElementById(inputId).value.toLowerCase();
-            const cards = document.querySelectorAll(`#${listId} .card`);
-            cards.forEach(card => {
-                const text = card.innerText.toLowerCase();
-                card.style.display = text.includes(query) ? "block" : "none";
+  function buildCard(k, item, path, likedPosts, savedName) {
+    var isAudio   = isAudioItem(item);
+    var isLiked   = likedPosts.indexOf(k) !== -1;
+    var tabName   = (path === 'updates') ? 'home' : 'sermons';
+    var timeStr   = item.timestamp
+      ? new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : '';
+
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.id = 'post-' + k;
+
+    /* ── MEDIA HTML ── */
+    var mediaHtml = '';
+    if (isAudio) {
+      /* Audio sermon: image field holds the .mp3 URL (set by admin publishAudio)
+         text field holds the title (set by admin: title saved to item.text)      */
+      var audioSrc = item.image || (item.text.match(/https?:\/\/\S+/) || [])[0] || '';
+      var audioTitle = item.text ? item.text.replace(/https?:\/\/\S+/g, '').trim() : 'Audio Sermon';
+      mediaHtml =
+        '<p class="audio-title">&#128266; ' + san(audioTitle) + '</p>' +
+        '<div class="audio-wrap"><audio controls><source src="' + san(audioSrc) + '" type="audio/mpeg">Your browser does not support audio.</audio></div>';
+    } else if (item.image) {
+      var img = item.image;
+      if (img.includes('youtu.be') || img.includes('youtube.com')) {
+        /* YouTube embed */
+        var ytId = img.includes('v=')
+          ? img.split('v=')[1].split('&')[0]
+          : img.split('/').pop().split('?')[0];
+        mediaHtml = '<iframe width="100%" height="220" src="https://www.youtube.com/embed/' + san(ytId) +
+          '" frameborder="0" allowfullscreen style="border-radius:8px;margin-bottom:12px;display:block"></iframe>';
+      } else if (img.includes('.mp4') || img.includes('drive.google') || img.includes('dropbox.com')) {
+        /* Direct video */
+        mediaHtml = '<video controls style="width:100%;border-radius:8px;margin-bottom:12px"><source src="' +
+          san(img) + '" type="video/mp4">Your browser does not support video.</video>';
+      } else {
+        /* Regular image */
+        mediaHtml = '<img src="' + san(img) + '" alt="" loading="lazy">';
+      }
+      mediaHtml += '<p>' + linkify(item.text || '') + '</p>';
+    } else {
+      mediaHtml = '<p>' + linkify(item.text || '') + '</p>';
+    }
+
+    card.innerHTML =
+      '<span class="time-txt">' + san(item.date || '') + ' at ' + timeStr + '</span>' +
+      mediaHtml +
+      '<div class="ibar">' +
+        '<button class="ibar-btn' + (isLiked ? ' liked' : '') + '" id="likebtn-' + k + '"' +
+          ' onclick="likePost(\'' + path + '\',\'' + k + '\')">' +
+          '&#10084;&#65039; <span id="likes-' + k + '">' + (item.likes || 0) + '</span>' +
+        '</button>' +
+        '<button class="ibar-btn" onclick="toggleComments(\'' + k + '\')">' +
+          '&#128172; <span id="count-' + k + '">0</span>' +
+        '</button>' +
+      '</div>' +
+      '<div id="section-' + k + '" class="comment-section">' +
+        '<div id="display-' + k + '"></div>' +
+        '<div class="comment-input">' +
+          '<input type="text" id="name-' + k + '" placeholder="Your Name"' +
+            ' value="' + san(savedName) + '"' +
+            ' oninput="onNameChange(\'' + k + '\')">' +
+          '<div class="comment-send-row">' +
+            '<input type="text" id="in-' + k + '" placeholder="Write a comment..."' +
+              (savedName ? '' : ' disabled') + '>' +
+            '<button class="send-btn" onclick="addComment(\'' + k + '\',\'' + tabName + '\')">Send</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    loadComments(k, tabName);
+    return card;
+  }
+
+  /* ── NAME CHANGE — unlock comment field ── */
+  window.onNameChange = function(id) {
+    var name = document.getElementById('name-' + id).value.trim();
+    document.querySelectorAll('[id^="in-"]').forEach(function(el) {
+      el.disabled = (name === '');
+    });
+    if (name) localStorage.setItem('uic_name', name);
+  };
+
+  /* ── TOGGLE FOLDER ── */
+  window.toggleFolder = function(id) {
+    var el = document.getElementById(id);
+    var icon = document.getElementById('fi-' + id);
+    var open = el.style.display === 'none' || el.style.display === '';
+    el.style.display = open ? 'block' : 'none';
+    icon.innerHTML = open ? '&#9660;' : '&#9658;';
+  };
+
+  /* ── LIKE POST ──
+     Stored in localStorage so likes survive page refresh.
+     Firebase transaction ensures atomic increment/decrement. */
+  window.likePost = function(path, id) {
+    var liked = JSON.parse(localStorage.getItem('likedPosts') || '[]');
+    var idx = liked.indexOf(id);
+    var btn = document.getElementById('likebtn-' + id);
+    if (idx !== -1) {
+      /* Unlike */
+      liked.splice(idx, 1);
+      if (btn) btn.classList.remove('liked');
+      /* NOTE: Using update+get rather than transaction for compat with modular SDK
+         The admin portal uses the same pattern */
+      get(r(path + '/' + id + '/likes')).then(function(s) {
+        update(r(path + '/' + id), { likes: Math.max(0, (s.val() || 1) - 1) });
+      });
+    } else {
+      liked.push(id);
+      if (btn) btn.classList.add('liked');
+      get(r(path + '/' + id + '/likes')).then(function(s) {
+        update(r(path + '/' + id), { likes: (s.val() || 0) + 1 });
+      });
+    }
+    localStorage.setItem('likedPosts', JSON.stringify(liked));
+  };
+
+  /* ── COMMENTS ──
+     userNotifId stored in comment so admin reply notification can
+     be targeted back to the right user.                          */
+  window.toggleComments = function(id) {
+    document.getElementById('section-' + id).classList.toggle('open');
+  };
+
+  window.addComment = function(id, tab) {
+    var name = (document.getElementById('name-' + id).value || '').trim();
+    var text = (document.getElementById('in-' + id).value  || '').trim();
+    if (!name || !text) return;
+    localStorage.setItem('uic_name', name);
+    push(r('comments/' + id), {
+      userName:    name,
+      text:        text,
+      userNotifId: userId,   /* matches admin notification targeting */
+      timestamp:   Date.now()
+    }).then(function() {
+      document.getElementById('in-' + id).value = '';
+    }).catch(function() {
+      mToast('Failed to send comment. Please try again.');
+    });
+  };
+
+  function loadComments(postId, tabName) {
+    listen('comments/' + postId, function(s) {
+      var box     = document.getElementById('display-' + postId);
+      var counter = document.getElementById('count-' + postId);
+      if (!box) return;
+      box.innerHTML = '';
+      var data = s.val();
+      var total = 0;
+      var myName = localStorage.getItem('uic_name') || '';
+
+      if (data) {
+        Object.keys(data).forEach(function(ck) {
+          total++;
+          var c = data[ck];
+          var threadHtml = '';
+
+          /* Admin reply — written by admin portal's sendReply() */
+          if (c.adminReply) {
+            total++;
+            threadHtml += '<div class="admin-reply-line"><strong>Admin:</strong> ' + san(c.adminReply) + '</div>';
+          }
+
+          /* Member replies (replies sub-collection) */
+          if (c.replies) {
+            Object.keys(c.replies).forEach(function(rk) {
+              total++;
+              var rep = c.replies[rk];
+              threadHtml +=
+                '<div class="reply-item" id="rep-' + rk + '">' +
+                  '<span class="reply-author">' + san(rep.userName || 'Member') + ':</span> ' +
+                  san(rep.text || '') +
+                  (rep.userName === myName
+                    ? '<span class="action-link" onclick="delPath(\'comments/' + postId + '/' + ck + '/replies/' + rk + '\')">del</span>'
+                    : '') +
+                '</div>';
             });
-        }
+          }
 
-        function linkify(text) {
-            const urlPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
-            if(text.includes('.mp3') || text.includes('archive.org/download')) return text; 
-            return text.replace(urlPattern, '<a href="$1" target="_blank" style="color: var(--gold); text-decoration: underline;">$1</a>');
-        }
+          box.innerHTML +=
+            '<div class="comment-item" id="cmt-' + ck + '">' +
+              '<div class="comment-author">' + san(c.userName || 'Member') +
+                (c.userName === myName
+                  ? '<span class="action-link" onclick="delPath(\'comments/' + postId + '/' + ck + '\')">del</span>'
+                  : '') +
+              '</div>' +
+              '<div style="font-size:14px;margin:3px 0">' + san(c.text || '') + '</div>' +
+              (threadHtml ? '<div class="reply-thread">' + threadHtml + '</div>' : '') +
+              '<button class="reply-trigger" onclick="toggleReply(\'' + ck + '\')">Reply</button>' +
+              '<div id="ni-' + ck + '" class="nested-input">' +
+                '<input type="text" id="nit-' + ck + '" placeholder="Write a reply...">' +
+                '<button class="nested-send"' +
+                  ' onclick="sendReply(\'' + postId + '\',\'' + ck + '\',\'' + (c.userNotifId || '') + '\',\'' + tabName + '\')">Send</button>' +
+              '</div>' +
+            '</div>';
+        });
+      }
 
-        function filterSermons(type) {
-            currentSermonFilter = type;
-            document.getElementById('btn-vid').classList.toggle('active', type === 'video');
-            document.getElementById('btn-aud').classList.toggle('active', type === 'audio');
-            document.getElementById('sermonSearch').value = "";
-            render('sermons', 'sermons-list');
-        }
+      if (counter) counter.textContent = total;
+      if (!total) box.innerHTML = '<p style="text-align:center;color:var(--muted);font-size:13px;padding:12px 0">No comments yet.</p>';
+    });
+  }
 
-        function showTab(t, e) {
-            document.querySelectorAll('.content-section, .tab').forEach(x => x.classList.remove('active'));
-            document.getElementById(t).classList.add('active'); e.classList.add('active');
-        }
+  window.toggleReply = function(id) {
+    var el = document.getElementById('ni-' + id);
+    var isOpen = el.style.display === 'flex';
+    el.style.display = isOpen ? 'none' : 'flex';
+    if (!isOpen) { var inp = document.getElementById('nit-' + id); if(inp) inp.focus(); }
+  };
 
-        function closeDevo() {
-            const verse = document.getElementById('devo-verse').innerText;
-            localStorage.setItem('hidden_verse', verse);
-            document.getElementById('devotional-display').style.display = 'none';
-        }
+  window.sendReply = function(postId, commentId, targetUserId, tab) {
+    var inp  = document.getElementById('nit-' + commentId);
+    var text = (inp ? inp.value : '').trim();
+    var name = localStorage.getItem('uic_name') || 'Member';
+    if (!text) return;
 
-        function loadData() {
-            db.ref('settings/slider').on('value', s => { const d = s.val(); if(d){ document.getElementById('img1').src=d.img1; document.getElementById('img2').src=d.img2; } });
-            db.ref('settings/devotional').on('value', s => {
-                const d = s.val();
-                const box = document.getElementById('devotional-display');
-                const lastHidden = localStorage.getItem('hidden_verse');
-                if(d && d.verse && d.verse !== lastHidden) {
-                    box.style.display = 'block';
-                    document.getElementById('devo-verse').innerText = d.verse;
-                    document.getElementById('devo-text').innerText = d.text;
-                } else { box.style.display = 'none'; }
-            });
-            render('updates', 'updates-list');
-            render('sermons', 'sermons-list');
-            listenNotifs();
-        }
+    push(r('comments/' + postId + '/' + commentId + '/replies'), {
+      userName:    name,
+      text:        text,
+      userNotifId: userId,
+      timestamp:   Date.now()
+    }).then(function() {
+      /* Send notification to the original commenter if it's not ourselves */
+      if (targetUserId && targetUserId !== userId) {
+        push(r('notifications/' + targetUserId), {
+          from:   name,
+          msg:    'replied to your comment',
+          postId: postId,
+          tab:    tab,
+          time:   Date.now()
+        });
+      }
+      inp.value = '';
+      window.toggleReply(commentId);
+    }).catch(function() {
+      mToast('Failed to send reply.');
+    });
+  };
 
-        function listenNotifs() {
-            db.ref(`notifications/${userNotifId}`).on('value', s => {
-                const list = document.getElementById('notif-list');
-                const badge = document.getElementById('notif-count');
-                const data = s.val();
-                if(!data) { 
-                    list.innerHTML = '<p style="padding:20px; text-align:center; color:#555; font-size:12px;">No new alerts</p>'; 
-                    badge.style.display='none'; 
-                    return; 
-                }
-                
-                list.innerHTML = "";
-                const keys = Object.keys(data).reverse();
-                badge.innerText = keys.length;
-                badge.style.display = 'block';
+  /* Delete own comment/reply */
+  window.delPath = function(path) {
+    if (!confirm('Delete this?')) return;
+    remove(r(path)).catch(function() { mToast('Could not delete.'); });
+  };
 
-                keys.forEach(k => {
-                    const n = data[k];
-                    const div = document.createElement('div');
-                    div.className = 'notif-item';
-                    div.onclick = () => {
-                        // Mark as seen in LocalStorage so it never comes back
-                        localStorage.setItem('seen_' + n.postId, 'true');
-                        
-                        showTab(n.tab, document.querySelector(`.tab[onclick*="${n.tab}"]`));
-                        document.getElementById('notif-dropdown').style.display = 'none';
-                        setTimeout(() => {
-                            const target = document.getElementById('post-' + n.postId);
-                            if(target) {
-                                target.scrollIntoView({behavior: 'smooth'});
-                                target.classList.add('highlight-comment');
-                                setTimeout(() => target.classList.remove('highlight-comment'), 2000);
-                            }
-                        }, 500);
-                        db.ref(`notifications/${userNotifId}/${k}`).remove();
-                    };
-                    div.innerHTML = `<strong>${n.from}</strong> ${n.msg || 'replied'} <small>${new Date(n.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small>`;
-                    list.appendChild(div);
-                });
-            });
-        }
+  /* ── FILTER ── */
+  window.filterCards = function(input, feedId) {
+    var q = input.value.toLowerCase();
+    document.querySelectorAll('#' + feedId + ' .card').forEach(function(c) {
+      c.style.display = c.innerText.toLowerCase().includes(q) ? '' : 'none';
+    });
+  };
 
-        function clearNotifs() { 
-            db.ref(`notifications/${userNotifId}`).once('value', snap => {
-                const data = snap.val();
-                if(data) {
-                    Object.values(data).forEach(n => {
-                        localStorage.setItem('seen_' + n.postId, 'true');
-                    });
-                }
-                db.ref(`notifications/${userNotifId}`).remove();
-            });
-        }
+  /* ── PRAYER ── */
+  window.submitPrayer = function() {
+    var text = (document.getElementById('prayer-text').value || '').trim();
+    if (!text) { mToast('Please write your prayer request first.'); return; }
+    push(r('prayers'), {
+      text:      text,
+      date:      new Date().toLocaleDateString('en-GB'),
+      timestamp: Date.now(),
+      status:    'unread'    /* admin marks this as read when viewed */
+    }).then(function() {
+      mToast('Prayer request sent! &#128591;');
+      document.getElementById('prayer-text').value = '';
+    }).catch(function() {
+      mToast('Failed to send. Please try again.');
+    });
+  };
 
-        function toggleFolder(id) {
-            const el = document.getElementById(id);
-            const icon = document.getElementById('icon-' + id);
-            if (el.style.display === 'none' || el.style.display === '') {
-                el.style.display = 'block';
-                icon.innerText = '▼';
-            } else {
-                el.style.display = 'none';
-                icon.innerText = '▶';
+  /* ══════════════════════════════════════════════════════
+     NOTIFICATIONS
+     Path: notifications/{userId}/{pushId}
+     Shape: { from, msg, postId, tab, time }
+     Written by: admin (reply) + sendReply() above + setupNewPostListeners()
+  ══════════════════════════════════════════════════════ */
+  var bellCount = 0;
+
+  listen('notifications/' + userId, function(s) {
+    var data = s.val();
+    var badge = document.getElementById('bell-badge');
+    var list  = document.getElementById('notif-list');
+
+    if (!data) {
+      list.innerHTML = '<div class="notif-empty">No new alerts</div>';
+      bellCount = 0; badge.classList.remove('show'); badge.textContent = '0';
+      return;
+    }
+
+    list.innerHTML = '';
+    var keys = Object.keys(data).reverse();
+    bellCount = keys.length;
+    badge.textContent = bellCount;
+    badge.classList.toggle('show', bellCount > 0);
+
+    keys.forEach(function(k) {
+      var n = data[k];
+      var div = document.createElement('div');
+      div.className = 'notif-item';
+      div.innerHTML =
+        '<strong>' + san(n.from || 'Admin') + '</strong> ' + san(n.msg || 'replied') +
+        '<small>' + new Date(n.time || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '</small>';
+      div.onclick = function() {
+        /* Navigate to correct tab and scroll to post */
+        var tabEl = document.querySelector('[data-tab="' + n.tab + '"]');
+        if (tabEl) showTab(n.tab, tabEl);
+        document.getElementById('notif-dd').classList.remove('open');
+        setTimeout(function() {
+          var target = document.getElementById('post-' + n.postId);
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            target.classList.add('highlight');
+            setTimeout(function() { target.classList.remove('highlight'); }, 2200);
+          }
+        }, 400);
+        /* Remove this specific notification */
+        remove(r('notifications/' + userId + '/' + k));
+      };
+      list.appendChild(div);
+    });
+  });
+
+  window.clearNotifs = function() {
+    remove(r('notifications/' + userId));
+    document.getElementById('notif-dd').classList.remove('open');
+  };
+
+  /* New post notifications — only fire for posts within last 2 minutes */
+  function setupNewPostListeners() {
+    ['updates', 'sermons'].forEach(function(path) {
+      var q = query(r(path), orderByChild('timestamp'), limitToLast(1));
+      onValue(q, function(snap) {
+        var d = snap.val(); if (!d) return;
+        var k = Object.keys(d)[0];
+        var post = d[k];
+        /* Guard: only if recent AND not already notified */
+        if (!post.timestamp || post.timestamp < Date.now() - 120000) return;
+        if (localStorage.getItem('notif_seen_' + k)) return;
+        localStorage.setItem('notif_seen_' + k, '1');
+
+        var tab = path === 'updates' ? 'home' : 'sermons';
+        var msg = path === 'updates' ? 'posted a new update' : 'posted a new sermon';
+
+        /* Dedup: check if notif already in DB before pushing */
+        get(r('notifications/' + userId)).then(function(ns) {
+          var existing = ns.val() || {};
+          var exists = Object.values(existing).some(function(v) { return v.postId === k; });
+          if (!exists) {
+            push(r('notifications/' + userId), { from: 'Admin', msg: msg, postId: k, tab: tab, time: Date.now() });
+          }
+        });
+      });
+    });
+  }
+
+  /* Admin reply watcher — notifies member when admin replies to their comment */
+  function setupAdminReplyListener() {
+    listen('comments', function(s) {
+      var data = s.val(); if (!data) return;
+      Object.keys(data).forEach(function(postId) {
+        var comments = data[postId]; if (!comments) return;
+        Object.keys(comments).forEach(function(cId) {
+          var c = comments[cId];
+          /* Only notify if this comment belongs to us AND admin has replied */
+          if (c.adminReply && c.userNotifId === userId) {
+            var key = 'ar_notif_' + cId;
+            if (!localStorage.getItem(key)) {
+              localStorage.setItem(key, '1');
+              push(r('notifications/' + userId), {
+                from: 'Admin', msg: 'replied to your comment',
+                postId: postId, tab: 'home', time: Date.now()
+              });
             }
-        }
+          }
+        });
+      });
+    });
+  }
 
-        function render(path, divId) {
-            db.ref(path).on('value', s => {
-                const list = document.getElementById(divId); 
-                list.innerHTML = "";
-                const data = s.val(); if(!data) return;
-                const likedPosts = JSON.parse(localStorage.getItem('likedPosts')) || [];
-                const savedName = localStorage.getItem('userName') || '';
+  /* ── START ── */
+  renderFeed('updates',  'updates-feed');
+  renderFeed('sermons',  'sermons-feed');
+  setupNewPostListeners();
+  setupAdminReplyListener();
+});
 
-                if (path === 'sermons') {
-                    let folders = {};
-                    Object.keys(data).forEach(k => {
-                        const item = data[k];
-                        const isAudio = item.text.includes('.mp3') || (item.image && item.image.includes('.mp3')) || item.text.includes('archive.org');
-                        if(currentSermonFilter === 'audio' && !isAudio) return;
-                        if(currentSermonFilter === 'video' && isAudio) return;
+/* ══════════════════════════════════════════════════════
+   UI FUNCTIONS (global — no Firebase dependency)
+══════════════════════════════════════════════════════ */
+function showTab(tabId, el) {
+  document.querySelectorAll('.tab-section, .tab').forEach(function(x) {
+    x.classList.remove('active');
+  });
+  document.getElementById(tabId).classList.add('active');
+  if (el) el.classList.add('active');
+}
+window.showTab = showTab;
 
-                        let folderName = item.category || "General Sermons";
-                        if (!folders[folderName]) folders[folderName] = [];
-                        folders[folderName].push({ key: k, ...item });
-                    });
+/* Triggered from side menu links */
+window.goTab = function(tabId) {
+  var el = document.querySelector('[data-tab="' + tabId + '"]');
+  showTab(tabId, el);
+  closeMenu();
+};
 
-                    Object.keys(folders).forEach(folderName => {
-                        const folderId = 'folder-' + folderName.replace(/\s+/g, '-');
-                        const folderWrapper = document.createElement('div');
-                        folderWrapper.innerHTML = `
-                            <div class="folder-header" onclick="toggleFolder('${folderId}')">
-                                <span>📁 ${folderName}</span>
-                                <span id="icon-${folderId}">▶</span>
-                            </div>
-                            <div id="${folderId}" style="display: none;"></div>
-                        `;
-                        list.appendChild(folderWrapper);
-                        const folderContainer = document.getElementById(folderId);
+/* Side menu */
+function openMenu() {
+  document.getElementById('side-menu').classList.add('open');
+  document.getElementById('menu-overlay').style.display = 'block';
+}
+function closeMenu() {
+  document.getElementById('side-menu').classList.remove('open');
+  document.getElementById('menu-overlay').style.display = 'none';
+}
+window.openMenu = openMenu;
+window.closeMenu = closeMenu;
 
-                        folders[folderName].reverse().forEach(item => {
-                            const card = createCard(item.key, item, path, likedPosts, savedName);
-                            folderContainer.appendChild(card);
-                        });
-                    });
-                } else {
-                    Object.keys(data).reverse().forEach(k => {
-                        const card = createCard(k, data[k], path, likedPosts, savedName);
-                        list.appendChild(card);
-                    });
-                }
-            });
-        }
-
-        function createCard(k, item, path, likedPosts, savedName) {
-            const isAudio = item.text.includes('.mp3') || (item.image && item.image.includes('.mp3')) || item.text.includes('archive.org');
-            const isLiked = likedPosts.includes(k);
-            const timeStr = item.timestamp ? new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
-            const card = document.createElement('div'); 
-            card.className = 'card';
-            card.id = 'post-' + k;
-            
-            let contentHtml = "";
-            if (isAudio) {
-                const audioSrc = item.image || (item.text.match(/(https?:\/\/[^\s]+)/g) ? item.text.match(/(https?:\/\/[^\s]+)/g)[0] : "");
-                contentHtml = `
-                    <h4 style="margin:0 0 10px 0; color:var(--gold);">🔊 ${item.text.replace(/(https?:\/\/[^\s]+)/g, '') || 'Audio Sermon'}</h4>
-                    <div class="audio-player-container"><audio controls><source src="${audioSrc}" type="audio/mpeg"></audio></div>
-                `;
-            } else {
-                const isVideo = item.image && (
-                    item.image.includes('dropbox.com') || 
-                    item.image.includes('drive.google') || 
-                    item.image.includes('.mp4') ||
-                    item.image.includes('youtube.com') || 
-                    item.image.includes('youtu.be')
-                );
-
-                if (isVideo) {
-                    if (item.image.includes('youtube.com') || item.image.includes('youtu.be')) {
-                        let ytId = "";
-                        if(item.image.includes('v=')) {
-                            ytId = item.image.split('v=')[1].split('&')[0];
-                        } else {
-                            ytId = item.image.split('/').pop().split('?')[0];
-                        }
-                        contentHtml = `<iframe width="100%" height="220" src="https://www.youtube.com/embed/${ytId}" frameborder="0" allowfullscreen style="border-radius:8px; margin-bottom:12px;"></iframe><p>${linkify(item.text)}</p>`;
-                    } else {
-                        contentHtml = `<video controls style="width:100%; border-radius:8px; margin-bottom:12px;"><source src="${item.image}" type="video/mp4">Your browser does not support the video tag.</video><p>${linkify(item.text)}</p>`;
-                    }
-                } else {
-                    contentHtml = `${item.image ? `<img src="${item.image}" style="width:100%; border-radius:8px; margin-bottom:12px;">` : ''}<p>${linkify(item.text)}</p>`;
-                }
-            }
-
-            card.innerHTML = `
-                <span class="time-txt">${item.date} at ${timeStr}</span>
-                ${contentHtml}
-                <div class="interaction-bar">
-                    <button class="comment-btn" onclick="toggleComments('${k}')">💬 <span id="count-${k}">(0)</span></button>
-                    <button class="comment-btn" id="likebtn-${k}" style="color: ${isLiked ? '#ff4d4d' : 'var(--gold)'}" onclick="likePost('${path}','${k}')">❤️ <span id="likes-${k}">${item.likes || 0}</span></button>
-                </div>
-                <div id="section-${k}" class="comment-section">
-                    <div id="display-${k}"></div>
-                    <div class="comment-input-box">
-                        <input type="text" id="name-${k}" placeholder="Your Name" value="${savedName}" oninput="validateName('${k}')">
-                        <div style="display:flex; gap:5px;">
-                            <input type="text" id="in-${k}" placeholder="Comment..." ${!savedName ? 'disabled' : ''} style="flex:1;">
-                            <button class="send-comment-btn" onclick="addComment('${k}', '${path === 'updates' ? 'home' : 'sermons'}')">Send</button>
-                        </div>
-                    </div>
-                </div>`;
-            loadComments(k, path === 'updates' ? 'home' : 'sermons');
-            return card;
-        }
-
-        function validateName(id) {
-            const nameVal = document.getElementById('name-' + id).value.trim();
-            document.querySelectorAll(`[id^='in-']`).forEach(el => el.disabled = (nameVal === ""));
-            localStorage.setItem('userName', nameVal);
-        }
-
-        function likePost(p, id) {
-            let likedPosts = JSON.parse(localStorage.getItem('likedPosts')) || [];
-            if (likedPosts.includes(id)) {
-                db.ref(`${p}/${id}/likes`).transaction(c => (c || 1) - 1);
-                likedPosts = likedPosts.filter(i => i !== id);
-            } else {
-                db.ref(`${p}/${id}/likes`).transaction(c => (c || 0) + 1);
-                likedPosts.push(id);
-            }
-            localStorage.setItem('likedPosts', JSON.stringify(likedPosts));
-        }
-
-        function toggleComments(id) { const el = document.getElementById('section-' + id); el.style.display = el.style.display === 'block' ? 'none' : 'block'; }
-        
-        function addComment(id, tab) {
-            const name = document.getElementById('name-' + id).value;
-            const text = document.getElementById('in-' + id).value;
-            if(!name || !text) return;
-            db.ref(`comments/${id}`).push({ userName: name, text: text, userNotifId: userNotifId, timestamp: new Date().getTime() })
-              .then(() => document.getElementById('in-' + id).value = "");
-        }
-
-        function loadComments(postId, tabName) {
-            db.ref(`comments/${postId}`).on('value', s => {
-                const box = document.getElementById('display-' + postId);
-                const countBadge = document.getElementById('count-' + postId);
-                const data = s.val(); if(!box) return; box.innerHTML = "";
-                const myName = localStorage.getItem('userName') || '';
-                let totalInteractions = 0;
-
-                if(data) {
-                    Object.keys(data).forEach(ck => { 
-                        totalInteractions++;
-                        const c = data[ck]; 
-                        let threadHTML = "";
-
-                        if(c.adminReply) {
-                            totalInteractions++;
-                            threadHTML += `<div class="reply-item"><strong style="color:var(--gold)">Admin:</strong> ${c.adminReply}</div>`;
-                        }
-
-                        if(c.replies) {
-                            Object.keys(c.replies).forEach(rk => {
-                                totalInteractions++;
-                                const r = c.replies[rk];
-                                threadHTML += `<div class="reply-item"><strong style="color:var(--gold)">${r.userName}:</strong> ${r.text}
-                                ${r.userName === myName ? `<span class="action-link" style="color:red" onclick="deleteItem('comments/${postId}/${ck}/replies/${rk}')">del</span>` : ''}</div>`;
-                            });
-                        }
-
-                        box.innerHTML += `
-                        <div class="comment-item" id="cmt-${ck}">
-                            <strong style="color:var(--gold); font-size:12px;">${c.userName}</strong>
-                            <div>${c.text}</div>
-                            ${c.userName === myName ? `<span class="action-link" style="color:red" onclick="deleteItem('comments/${postId}/${ck}')">del</span>` : ''}
-                            <div class="reply-thread">${threadHTML}</div>
-                            <button class="reply-trigger" onclick="toggleReplyField('${ck}')">Reply</button>
-                            <div id="nested-box-${ck}" class="nested-input-group">
-                                <input type="text" id="nest-in-${ck}" placeholder="Reply..." style="flex:1; background:#333; color:white; border:1px solid #444; padding:5px; border-radius:4px;">
-                                <button onclick="sendNestedReply('${postId}','${ck}','${c.userNotifId}','${tabName}')" style="background:var(--gold); border:none; padding:0 10px; border-radius:4px;">Send</button>
-                            </div>
-                        </div>`; 
-                    });
-                }
-                countBadge.innerText = `(${totalInteractions})`;
-            });
-        }
-
-        function toggleReplyField(id) {
-            const box = document.getElementById('nested-box-' + id);
-            box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
-        }
-
-        function sendNestedReply(postId, commentId, targetUserNotifId, tab) {
-            const input = document.getElementById('nest-in-' + commentId);
-            const text = input.value;
-            const name = localStorage.getItem('userName') || "Member";
-            if(!text) return;
-
-            db.ref(`comments/${postId}/${commentId}/replies`).push({
-                userName: name, text: text, userNotifId: userNotifId, timestamp: new Date().getTime()
-            }).then(() => {
-                if(targetUserNotifId && targetUserNotifId !== userNotifId) {
-                    db.ref(`notifications/${targetUserNotifId}`).push({
-                        from: name, msg: "replied to your comment", postId: postId, tab: tab, time: new Date().getTime()
-                    });
-                }
-                input.value = "";
-                toggleReplyField(commentId);
-            });
-        }
-
-        function deleteItem(path) { if(confirm("Delete this?")) db.ref(path).remove(); }
-
-        function submitPrayer() {
-            const text = document.getElementById('prayer-text').value; if(!text) return;
-            db.ref('prayers').push({ text, date: new Date().toLocaleDateString(), timestamp: new Date().getTime(), status: "unread" }).then(() => { alert("Sent successfully"); document.getElementById('prayer-text').value=""; });
-        }
-        
-        let cur = 0; setInterval(() => {
-            const s = document.querySelectorAll('.slide'); if(s.length<2) return;
-            s[cur].classList.remove('active'); cur = (cur+1)%s.length; s[cur].classList.add('active');
-        }, 8000);
-
-        function setupNewPostListeners() {
-            ['updates', 'sermons'].forEach(path => {
-                db.ref(path).orderByChild('timestamp').limitToLast(1).on('child_added', (snap) => {
-                    const post = snap.val();
-                    const postId = snap.key;
-                    
-                    // CHECK: Is it new? (Last 2 mins) AND have we NOT seen it before?
-                    if (post.timestamp > (Date.now() - 120000) && !localStorage.getItem('seen_' + postId)) {
-                        const tab = (path === 'updates') ? 'home' : 'sermons';
-                        const msg = (path === 'sermons') ? "posted a new sermon" : "posted a new update";
-                        
-                        // Only add if not already in the current notification list
-                        db.ref(`notifications/${userNotifId}`).once('value', nSnap => {
-                            let exists = false;
-                            const existing = nSnap.val();
-                            if(existing) {
-                                Object.values(existing).forEach(v => { if(v.postId === postId) exists = true; });
-                            }
-                            if(!exists) {
-                                db.ref(`notifications/${userNotifId}`).push({
-                                    from: "Admin", msg: msg, postId: postId, tab: tab, time: Date.now()
-                                });
-                            }
-                        });
-                    }
-                });
-            });
-        }
-
-        function setupAdminReplyListener() {
-            db.ref('comments').on('child_changed', (snap) => {
-                const postId = snap.key;
-                const comments = snap.val();
-                Object.keys(comments).forEach(cId => {
-                    const c = comments[cId];
-                    if (c.adminReply && c.userNotifId === userNotifId) {
-                        const notifiedKey = 'notified_' + cId;
-                        if (!localStorage.getItem(notifiedKey)) {
-                            db.ref(`notifications/${userNotifId}`).push({
-                                from: "Admin", msg: "replied to your post", postId: postId, tab: 'home', time: Date.now()
-                            });
-                            localStorage.setItem(notifiedKey, 'true');
-                        }
-                    }
-                });
-            });
-        }
-
-        function finalLoadData() {
-            loadData();
-            setupNewPostListeners();
-            setupAdminReplyListener();
-        };
-
-        window.onload = finalLoadData;
-    </script>
+/* Notification dropdown */
+window.toggleNotif = function() {
+  document.getElementById('notif-dd').classList.toggle('open');
+};
+document.addEventListener('click', function(e) {
+  var dd = document.getElementById('notif-dd');
+  if (!dd.classList.contains('open')) return;
+  if (!e.target.closest('#notif-dd') && !e.target.closest('.bell-wrap')) {
+    dd.classList.remove('open');
+  }
+});
+</script>
 </body>
+</html>
